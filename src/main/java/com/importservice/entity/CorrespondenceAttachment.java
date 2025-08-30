@@ -81,7 +81,6 @@ public class CorrespondenceAttachment extends BaseEntity {
     @Column(name = "file_data_error_message", columnDefinition = "TEXT")
     private String fileDataErrorMessage;
     
-    @Column(name = "import_status", length = 20)
     @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     

@@ -20,7 +20,6 @@ public class CorrespondenceCurrentPosition extends BaseEntity {
     @Column(name = "pos_guid", length = 2147483647)
     private String posGuid;
     
-    @Column(name = "import_status", length = 20)
     @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     

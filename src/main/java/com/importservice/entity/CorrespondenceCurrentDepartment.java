@@ -15,11 +15,9 @@ public class CorrespondenceCurrentDepartment extends BaseEntity {
     @Column(name = "dep_guid", length = 2147483647)
     private String depGuid;
     
-    @Column(name = "doc_guid", length = 36)
     @Column(name = "doc_guid", length = 2147483647)
     private String docGuid;
     
-    @Column(name = "import_status", length = 20)
     @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     

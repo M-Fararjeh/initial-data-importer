@@ -161,7 +161,6 @@ public class Correspondence extends BaseEntity {
     @Column(name = "to_position_guid", length = 2147483647)
     private String toPositionGuid;
     
-    @Column(name = "import_status", length = 20)
     @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     
