@@ -595,7 +595,14 @@ public class DataImportService {
         int totalRecords = 0;
 
         try {
-            String url = sourceApiBaseUrl + endpoint;
+            String url;
+            if (endpoint.contains("/CorrespondenceAttachments/docGuid/")) {
+                // Special case for CorrespondenceAttachments - use different base URL
+                String docGuid = endpoint.substring(endpoint.lastIndexOf("/") + 1);
+                url = "https://itba.tarasol.cloud/Tarasol4ExtractorApi/docGuid/" + docGuid;
+            } else {
+                url = sourceApiBaseUrl + endpoint;
+            }
             HttpHeaders headers = createHeaders();
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
