@@ -1,0 +1,59 @@
+### Java ###
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+*.log
+
+### Maven ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+
+### Gradle ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+
+### Spring Boot ###
+/out/
+/bin/
+/logs/
+/tmp/
+/.apt_generated/
+/.mvn/
+/mvnw
+mvnw.cmd
+
+### IDEs ###
+# IntelliJ
+.idea/
+*.iws
+*.ipr
+
+# Eclipse
+.project
+.classpath
+.settings/
+.springBeans
+
+# VS Code
+.vscode/
+
+### OS files ###
+.DS_Store
+Thumbs.db
+
+### Tests ###
+/test-output/
+/surefire-reports/
+/jacoco.exec
+
+### Other ###
+/.env
+*.env
+*.swp

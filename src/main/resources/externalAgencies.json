@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "category": "Principality",
+    "label_en": "Emirate of Riyadh Region",
+    "label_ar": "إمارة منطقة الرياض"
+  },
+  {
+    "id": 2,
+    "category": "Principality",
+    "label_en": "Emirate of Makkah Region",
+    "label_ar": "إمارة منطقة مكة المكرمة"
+  },
+  {
+    "id": 3,
+    "category": "Ministry",
+    "label_en": "Ministry of Interior",
+    "label_ar": "وزارة الداخلية"
+  },
+  {
+    "id": 4,
+    "category": "Authority",
+    "label_en": "General Authority for Statistics",
+    "label_ar": "الهيئة العامة للإحصاء"
+  }
+]
