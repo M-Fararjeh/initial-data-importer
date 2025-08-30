@@ -70,7 +70,7 @@ public class Correspondence extends BaseEntity {
     private String notes;
     
     @JsonProperty("ManualAttacmentsCount")
-    @Column(name = "manual_attachments_count", length = 50)
+    @Column(name = "manual_attachments_count", length = 2147483647)
     private String manualAttachmentsCount;
     
     @JsonProperty("ImportanceId")
