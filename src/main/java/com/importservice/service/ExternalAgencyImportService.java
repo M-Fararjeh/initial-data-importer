@@ -135,7 +135,7 @@ public class ExternalAgencyImportService {
         DestinationRequestDto request = new DestinationRequestDto();
         
         ExternalAgencyInfoDto agencyInfo = new ExternalAgencyInfoDto(
-            String.valueOf(agency.getId()),      // Convert id to string
+            String.format("%03d", agency.getId()),  // Format id to 3 digits with leading zeros
             agency.getLabelEn(),                 // nameEn from label_en
             agency.getLabelAr(),                 // nameAr from label_ar
             "saudiArabia",                       // constant country value
