@@ -452,27 +452,14 @@ public class DataImportService {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             
-            // Parse the response manually to handle generic type properly
-            String responseBody = response.getBody();
-            logger.debug("Raw API response for {}: {}", entityName, responseBody);
-            
-            // First parse as generic ApiResponseDto
-            ApiResponseDto<Object> genericResponse = objectMapper.readValue(responseBody, 
-                new TypeReference<ApiResponseDto<Object>>() {});
-            
-            if (!genericResponse.getSuccess()) {
-                return createErrorResponse("API returned failure: " + genericResponse.getMessage());
-            }
-            
-            // Convert the data list to the specific entity type
-            List<T> entities = new ArrayList<>();
-            if (genericResponse.getData() != null) {
-                for (Object item : genericResponse.getData()) {
-                    T entity = objectMapper.convertValue(item, entityClass);
-                    entities.add(entity);
-                }
+            TypeReference<ApiResponseDto<T>> typeRef = new TypeReference<ApiResponseDto<T>>() {};
+            ApiResponseDto<T> apiResponse = objectMapper.readValue(response.getBody(), typeRef);
+
+            if (!apiResponse.getSuccess()) {
+                return createErrorResponse("API returned failure: " + apiResponse.getMessage());
             }
 
+            List<T> entities = apiResponse.getData();
             totalRecords = entities.size();
             logger.info("Found {} {} to import", totalRecords, entityName);
 
@@ -560,14 +547,27 @@ public class DataImportService {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             
-            TypeReference<ApiResponseDto<Correspondence>> typeRef = new TypeReference<ApiResponseDto<Correspondence>>() {};
-            ApiResponseDto<Correspondence> apiResponse = objectMapper.readValue(response.getBody(), typeRef);
-
-            if (!apiResponse.getSuccess()) {
-                return createErrorResponse("API returned failure: " + apiResponse.getMessage());
+            // Parse the response manually to handle generic type properly
+            String responseBody = response.getBody();
+            logger.debug("Raw API response for Correspondences: {}", responseBody);
+            
+            // First parse as generic ApiResponseDto
+            ApiResponseDto<Object> genericResponse = objectMapper.readValue(responseBody, 
+                new TypeReference<ApiResponseDto<Object>>() {});
+            
+            if (!genericResponse.getSuccess()) {
+                return createErrorResponse("API returned failure: " + genericResponse.getMessage());
+            }
+            
+            // Convert the data list to the specific entity type
+            List<Correspondence> correspondences = new ArrayList<>();
+            if (genericResponse.getData() != null) {
+                for (Object item : genericResponse.getData()) {
+                    Correspondence correspondence = objectMapper.convertValue(item, Correspondence.class);
+                    correspondences.add(correspondence);
+                }
             }
 
-            List<Correspondence> correspondences = apiResponse.getData();
             totalRecords = correspondences.size();
             logger.info("Found {} correspondences to import", totalRecords);
 
