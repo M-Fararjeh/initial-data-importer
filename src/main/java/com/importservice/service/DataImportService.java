@@ -125,105 +125,105 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importClassifications() {
-        logger.debug("Starting classifications import");
+        logger.info("Starting classifications import");
         return importGenericData("/Classifications", Classification.class, classificationRepository, "Classifications");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importContacts() {
-        logger.debug("Starting contacts import");
+        logger.info("Starting contacts import");
         return importGenericData("/Contacts", Contact.class, contactRepository, "Contacts");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importDecisions() {
-        logger.debug("Starting decisions import");
+        logger.info("Starting decisions import");
         return importGenericData("/Decisions", Decision.class, decisionRepository, "Decisions");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importDepartments() {
-        logger.debug("Starting departments import");
+        logger.info("Starting departments import");
         return importGenericData("/Departments", Department.class, departmentRepository, "Departments");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importForms() {
-        logger.debug("Starting forms import");
+        logger.info("Starting forms import");
         return importGenericData("/Forms", Form.class, formRepository, "Forms");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importFormTypes() {
-        logger.debug("Starting form types import");
+        logger.info("Starting form types import");
         return importGenericData("/FormTypes", FormType.class, formTypeRepository, "FormTypes");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importImportance() {
-        logger.debug("Starting importance import");
+        logger.info("Starting importance import");
         return importGenericData("/Importance", Importance.class, importanceRepository, "Importance");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importPositions() {
-        logger.debug("Starting positions import");
+        logger.info("Starting positions import");
         return importGenericData("/Positions", Position.class, positionRepository, "Positions");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importPosRoles() {
-        logger.debug("Starting pos roles import");
+        logger.info("Starting pos roles import");
         return importGenericData("/PosRole", PosRole.class, posRoleRepository, "PosRoles");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importPriority() {
-        logger.debug("Starting priority import");
+        logger.info("Starting priority import");
         return importGenericData("/Priority", Priority.class, priorityRepository, "Priority");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importRoles() {
-        logger.debug("Starting roles import");
+        logger.info("Starting roles import");
         return importGenericData("/Roles", Role.class, roleRepository, "Roles");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importSecrecy() {
-        logger.debug("Starting secrecy import");
+        logger.info("Starting secrecy import");
         return importGenericData("/Secrecy", Secrecy.class, secrecyRepository, "Secrecy");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importUserPositions() {
-        logger.debug("Starting user positions import");
+        logger.info("Starting user positions import");
         return importGenericData("/UserPosition", UserPosition.class, userPositionRepository, "UserPositions");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importUsers() {
-        logger.debug("Starting users import");
+        logger.info("Starting users import");
         return importUsersData();
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondences() {
-        logger.debug("Starting correspondences import");
+        logger.info("Starting correspondences import");
         return importCorrespondenceData();
     }
 
@@ -232,7 +232,6 @@ public class DataImportService {
         int successfulImports = 0;
         int failedImports = 0;
         int totalRecords = 0;
-        int skippedDuplicates = 0;
 
         try {
             String url = sourceApiBaseUrl + "/Users";
@@ -271,17 +270,9 @@ public class DataImportService {
                             errors.add("Null User object received");
                             continue;
                         }
-                        
-                        // Check if record already exists
-                        if (userRepository.existsById(user.getGuid())) {
-                            skippedDuplicates++;
-                            logger.debug("Skipping duplicate user: {}", user.getGuid());
-                            continue;
-                        }
-                        
                         userRepository.save(user);
                         successfulImports++;
-                        logger.debug("Successfully saved user: {}", user.getGuid());
+                        logger.info("Successfully saved user: {}", user.getGuid());
                     } catch (Exception e) {
                         failedImports++;
                         String userGuid = user != null ? user.getGuid() : "unknown";
@@ -295,8 +286,8 @@ public class DataImportService {
             }
 
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Users import completed. Success: %d, Failed: %d, Skipped: %d", 
-                                         successfulImports, failedImports, skippedDuplicates);
+            String message = String.format("Users import completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
 
             return new ImportResponseDto(status, message, totalRecords, successfulImports, failedImports, errors);
 
@@ -311,7 +302,7 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceAttachments(String docGuid) {
-        logger.debug("Starting correspondence attachments import for doc: {}", docGuid);
+        logger.info("Starting correspondence attachments import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceAttachments/docGuid/" + docGuid, 
                                              CorrespondenceAttachment.class, 
                                              correspondenceAttachmentRepository, 
@@ -321,7 +312,7 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceComments(String docGuid) {
-        logger.debug("Starting correspondence comments import for doc: {}", docGuid);
+        logger.info("Starting correspondence comments import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceComments/docGuid/" + docGuid, 
                                              CorrespondenceComment.class, 
                                              correspondenceCommentRepository, 
@@ -331,7 +322,7 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceCopyTos(String docGuid) {
-        logger.debug("Starting correspondence copy tos import for doc: {}", docGuid);
+        logger.info("Starting correspondence copy tos import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceCopyTo/docGUId/" + docGuid, 
                                              CorrespondenceCopyTo.class, 
                                              correspondenceCopyToRepository, 
@@ -341,13 +332,12 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceCurrentDepartments(String docGuid) {
-        logger.debug("Starting correspondence current departments import for doc: {}", docGuid);
+        logger.info("Starting correspondence current departments import for doc: {}", docGuid);
         
         List<String> errors = new ArrayList<>();
         int successfulImports = 0;
         int failedImports = 0;
         int totalRecords = 0;
-        int skippedDuplicates = 0;
 
         try {
             String url = sourceApiBaseUrl + "/CorrespondenceCurrentDepartments/docGuid/" + docGuid;
@@ -390,19 +380,10 @@ public class DataImportService {
                         errors.add("Null department object received");
                         continue;
                     }
-                    
-                    // Check if record already exists by dep_guid and doc_guid combination
-                    if (correspondenceCurrentDepartmentRepository.existsByDocGuidAndDepGuid(docGuid, dept.getDepGuid())) {
-                        skippedDuplicates++;
-                        logger.debug("Skipping duplicate current department: {} for doc: {}", 
-                                   dept.getDepGuid(), docGuid);
-                        continue;
-                    }
-                    
                     dept.setDocGuid(docGuid); // Set the doc guid
                     correspondenceCurrentDepartmentRepository.save(dept);
                     successfulImports++;
-                    logger.debug("Successfully saved correspondence current department for docGuid: {}", docGuid);
+                    logger.info("Successfully saved correspondence current department for docGuid: {}", docGuid);
                 } catch (Exception e) {
                     failedImports++;
                     String errorMsg = "Failed to save correspondence current department: " + e.getMessage();
@@ -426,7 +407,7 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceCurrentPositions(String docGuid) {
-        logger.debug("Starting correspondence current positions import for doc: {}", docGuid);
+        logger.info("Starting correspondence current positions import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceCurrentPositions/docGuid/" + docGuid, 
                                              CorrespondenceCurrentPosition.class, 
                                              correspondenceCurrentPositionRepository, 
@@ -436,7 +417,7 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceCurrentUsers(String docGuid) {
-        logger.debug("Starting correspondence current users import for doc: {}", docGuid);
+        logger.info("Starting correspondence current users import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceCurrentUsers/docGuid/" + docGuid, 
                                              CorrespondenceCurrentUser.class, 
                                              correspondenceCurrentUserRepository, 
@@ -446,7 +427,7 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceCustomFields(String docGuid) {
-        logger.debug("Starting correspondence custom fields import for doc: {}", docGuid);
+        logger.info("Starting correspondence custom fields import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceCustomFields/docGuid/" + docGuid, 
                                              CorrespondenceCustomField.class, 
                                              correspondenceCustomFieldRepository, 
@@ -456,7 +437,7 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceLinks(String docGuid) {
-        logger.debug("Starting correspondence links import for doc: {}", docGuid);
+        logger.info("Starting correspondence links import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceLinks/docGuid/" + docGuid, 
                                              CorrespondenceLink.class, 
                                              correspondenceLinkRepository, 
@@ -466,7 +447,7 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceSendTos(String docGuid) {
-        logger.debug("Starting correspondence send tos import for doc: {}", docGuid);
+        logger.info("Starting correspondence send tos import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceSendTo/docGUId/" + docGuid, 
                                              CorrespondenceSendTo.class, 
                                              correspondenceSendToRepository, 
@@ -476,7 +457,7 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importCorrespondenceTransactions(String docGuid) {
-        logger.debug("Starting correspondence transactions import for doc: {}", docGuid);
+        logger.info("Starting correspondence transactions import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceTransactions/docGuid/" + docGuid, 
                                              CorrespondenceTransaction.class, 
                                              correspondenceTransactionRepository, 
@@ -484,101 +465,60 @@ public class DataImportService {
     }
 
     public ImportResponseDto importAllCorrespondencesWithRelated() {
-        logger.debug("Starting bulk import of all correspondences with related data");
+        logger.info("Starting bulk import of all correspondences with related data");
         
         List<String> errors = new ArrayList<>();
-        int totalProcessed = 0;
+        int totalRecords = 0;
         int successfulImports = 0;
         int failedImports = 0;
         
-        // Pagination settings
-        int pageSize = 50; // Process 50 correspondences at a time
-        int pageNumber = 0;
-        boolean hasMoreData = true;
-        
         try {
-            logger.info("Starting paginated bulk import with page size: {}", pageSize);
+            // Get all correspondences from database
+            List<Correspondence> correspondences = correspondenceRepository.findAll();
+            totalRecords = correspondences.size();
             
-            while (hasMoreData) {
-                // Get correspondences in batches using pagination
-                org.springframework.data.domain.Pageable pageable = 
-                    org.springframework.data.domain.PageRequest.of(pageNumber, pageSize);
-                org.springframework.data.domain.Page<Correspondence> page = 
-                    correspondenceRepository.findAll(pageable);
-                
-                List<Correspondence> correspondences = page.getContent();
-                hasMoreData = page.hasNext();
-                
-                if (correspondences.isEmpty()) {
-                    logger.info("No more correspondences found on page {}", pageNumber);
-                    break;
-                }
-                
-                logger.info("Processing page {} with {} correspondences (Total processed so far: {})", 
-                    pageNumber + 1, correspondences.size(), totalProcessed);
-                
-                // Process each correspondence in the current batch
-                for (Correspondence correspondence : correspondences) {
-                    String docGuid = correspondence.getGuid();
-                    logger.debug("Processing correspondence: {} ({})", docGuid, 
-                        correspondence.getSubject() != null ? correspondence.getSubject().substring(0, Math.min(50, correspondence.getSubject().length())) : "No subject");
-                    
-                    try {
-                        // Call the existing method that handles all related entities
-                        ImportResponseDto result = importAllCorrespondenceRelated(docGuid);
-                        
-                        if ("ERROR".equals(result.getStatus())) {
-                            failedImports++;
-                            if (result.getErrors() != null) {
-                                errors.addAll(result.getErrors());
-                            }
-                            logger.warn("Failed to import related data for correspondence: {} - {}", docGuid, result.getMessage());
-                        } else {
-                            successfulImports++;
-                            logger.debug("Successfully imported all related data for correspondence: {}", docGuid);
-                        }
-                        
-                        totalProcessed++;
-                        
-                        // Force garbage collection every 10 records to prevent memory buildup
-                        if (totalProcessed % 10 == 0) {
-                            System.gc();
-                            logger.debug("Processed {} correspondences, triggered garbage collection", totalProcessed);
-                        }
-                        
-                    } catch (Exception e) {
-                        failedImports++;
-                        totalProcessed++;
-                        String errorMsg = "Error processing correspondence " + docGuid + ": " + e.getMessage();
-                        errors.add(errorMsg);
-                        logger.error(errorMsg, e);
-                    }
-                }
-                
-                pageNumber++;
-                
-                // Add a small delay between pages to prevent overwhelming the system
-                try {
-                    Thread.sleep(100); // 100ms delay between pages
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    logger.warn("Thread interrupted during page processing delay");
-                }
-            }
+            logger.info("Found {} correspondences in database to process", totalRecords);
             
-            if (totalProcessed == 0) {
+            if (correspondences.isEmpty()) {
                 return new ImportResponseDto("SUCCESS", 
                     "No correspondences found in database. Import correspondences first.", 
                     0, 0, 0, new ArrayList<>());
             }
             
+            for (Correspondence correspondence : correspondences) {
+                String docGuid = correspondence.getGuid();
+                logger.info("Processing correspondence: {} ({})", docGuid, correspondence.getSubject());
+                
+                try {
+                    // Call the helper method that handles all related entities
+                    ImportResponseDto result = importAllCorrespondenceRelated(docGuid);
+                    
+                    if ("ERROR".equals(result.getStatus()) || "PARTIAL_SUCCESS".equals(result.getStatus())) {
+                        failedImports++;
+                        if (result.getErrors() != null) {
+                            errors.addAll(result.getErrors());
+                        }
+                        logger.warn("Failed to import related data for correspondence: {} - {}", docGuid, result.getMessage());
+                    } else {
+                        successfulImports++;
+                        logger.info("Successfully imported all related data for correspondence: {}", docGuid);
+                    }
+                    
+                } catch (Exception e) {
+                    failedImports++;
+                    String errorMsg = "Error processing correspondence " + docGuid + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
             String message = String.format(
                 "Bulk import completed. Correspondences processed: %d (Success: %d, Failed: %d)", 
-                totalProcessed, successfulImports, failedImports
+                totalRecords, successfulImports, failedImports
             );
             
-            return new ImportResponseDto(status, message, totalProcessed, successfulImports, failedImports, errors);
+            return new ImportResponseDto(status, message, totalRecords, successfulImports, failedImports, errors);
                 
         } catch (Exception e) {
             logger.error("Failed to execute bulk correspondence import", e);
@@ -589,7 +529,7 @@ public class DataImportService {
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importAllCorrespondenceRelated(String docGuid) {
-        logger.debug("Starting import of all correspondence-related data for doc: {}", docGuid);
+        logger.info("Starting import of all correspondence-related data for doc: {}", docGuid);
         
         List<String> errors = new ArrayList<>();
         int totalRecords = 0;
@@ -627,7 +567,8 @@ public class DataImportService {
             }
             
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("All correspondence-related data import completed for doc %s. Total: %d, Success: %d, Failed: %d", 
+            String message = String.format(
+                "All correspondence-related data import completed for doc %s. Total: %d, Success: %d, Failed: %d", 
                 docGuid, totalRecords, successfulImports, failedImports
             );
             
@@ -854,7 +795,7 @@ public class DataImportService {
                     }
                     repository.save(entityData);
                     successfulImports++;
-                    logger.debug("Successfully saved {}", entityName);
+                    logger.info("Successfully saved {}", entityName);
                 } catch (Exception e) {
                     failedImports++;
                     String errorMsg = "Failed to save " + entityName + ": " + e.getMessage();
@@ -880,7 +821,6 @@ public class DataImportService {
         int successfulImports = 0;
         int failedImports = 0;
         int totalRecords = 0;
-        int skippedDuplicates = 0;
 
         try {
             String url = sourceApiBaseUrl + "/Correspondences/All/PageIndex/1/PageSize/10000";
@@ -952,13 +892,6 @@ public class DataImportService {
                         correspondenceRepository.save(existingCorr);
                     } else {
                         // Insert new record
-                        // Check if record already exists
-                        if (correspondenceRepository.existsById(correspondence.getGuid())) {
-                            skippedDuplicates++;
-                            logger.debug("Skipping duplicate correspondence: {}", correspondence.getGuid());
-                            continue;
-                        }
-                        
                         correspondenceRepository.save(correspondence);
                     }
                     successfulImports++;
@@ -972,8 +905,8 @@ public class DataImportService {
             }
 
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Correspondences import completed. Success: %d, Failed: %d, Skipped: %d", 
-                                         successfulImports, failedImports, skippedDuplicates);
+            String message = String.format("Correspondences import completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
 
             return new ImportResponseDto(status, message, totalRecords, successfulImports, failedImports, errors);
 
