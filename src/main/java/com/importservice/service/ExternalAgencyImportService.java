@@ -9,6 +9,7 @@ import com.importservice.dto.ImportResponseDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -35,11 +36,12 @@ public class ExternalAgencyImportService {
     @Value("${destination.api.token}")
     private String authToken;
 
+    @Autowired
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    public ExternalAgencyImportService() {
-        this.restTemplate = new RestTemplate();
+    public ExternalAgencyImportService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
         this.objectMapper = new ObjectMapper();
     }
 
