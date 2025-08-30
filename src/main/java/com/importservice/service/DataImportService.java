@@ -616,4 +616,10 @@ public class DataImportService {
         return headers;
     }
 
+    private ImportResponseDto createErrorResponse(String errorMessage) {
+        List<String> errors = new ArrayList<>();
+        errors.add(errorMessage);
+        return new ImportResponseDto("ERROR", errorMessage, 0, 0, 0, errors);
+    }
+
 }
