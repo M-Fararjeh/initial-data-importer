@@ -1,0 +1,112 @@
+package com.importservice.entity;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "departments")
+public class Department extends BaseEntity {
+    
+    @Id
+    @Column(name = "guid", length = 36)
+    private String guid;
+    
+    @Column(name = "english_name", length = 500)
+    private String englishName;
+    
+    @Column(name = "local_name", length = 500)
+    private String localName;
+    
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
+    
+    @Column(name = "print_code", length = 100)
+    private String printCode;
+    
+    @Column(name = "global_id", length = 100)
+    private String globalId;
+    
+    @Column(name = "parent_guid", length = 36)
+    private String parentGuid;
+    
+    @Column(name = "main_parent_guid", length = 36)
+    private String mainParentGuid;
+    
+    @Column(name = "is_hidden")
+    private Boolean isHidden;
+    
+    // Constructors
+    public Department() {}
+    
+    // Getters and Setters
+    public String getGuid() {
+        return guid;
+    }
+    
+    public void setGuid(String guid) {
+        this.guid = guid;
+    }
+    
+    public String getEnglishName() {
+        return englishName;
+    }
+    
+    public void setEnglishName(String englishName) {
+        this.englishName = englishName;
+    }
+    
+    public String getLocalName() {
+        return localName;
+    }
+    
+    public void setLocalName(String localName) {
+        this.localName = localName;
+    }
+    
+    public String getNotes() {
+        return notes;
+    }
+    
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+    
+    public String getPrintCode() {
+        return printCode;
+    }
+    
+    public void setPrintCode(String printCode) {
+        this.printCode = printCode;
+    }
+    
+    public String getGlobalId() {
+        return globalId;
+    }
+    
+    public void setGlobalId(String globalId) {
+        this.globalId = globalId;
+    }
+    
+    public String getParentGuid() {
+        return parentGuid;
+    }
+    
+    public void setParentGuid(String parentGuid) {
+        this.parentGuid = parentGuid;
+    }
+    
+    public String getMainParentGuid() {
+        return mainParentGuid;
+    }
+    
+    public void setMainParentGuid(String mainParentGuid) {
+        this.mainParentGuid = mainParentGuid;
+    }
+    
+    public Boolean getIsHidden() {
+        return isHidden;
+    }
+    
+    public void setIsHidden(Boolean isHidden) {
+        this.isHidden = isHidden;
+    }
+}
