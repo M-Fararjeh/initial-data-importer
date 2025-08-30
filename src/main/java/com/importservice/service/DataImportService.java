@@ -500,14 +500,33 @@ public class DataImportService {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             
-            TypeReference<ApiResponseDto<T>> typeRef = new TypeReference<ApiResponseDto<T>>() {};
-            ApiResponseDto<T> apiResponse = objectMapper.readValue(response.getBody(), typeRef);
-
-            if (!apiResponse.getSuccess()) {
-                return createErrorResponse("API returned failure: " + apiResponse.getMessage());
+            // Parse response body manually to handle generic types properly
+            String responseBody = response.getBody();
+            logger.debug("Raw API response for {}: {}", entityName, responseBody);
+            
+            // First parse as generic ApiResponseDto
+            ApiResponseDto<Object> genericResponse = objectMapper.readValue(responseBody, 
+                new TypeReference<ApiResponseDto<Object>>() {});
+            
+            if (!genericResponse.getSuccess()) {
+                return createErrorResponse("API returned failure: " + genericResponse.getMessage());
+            }
+            
+            // Convert the data list to the specific entity type
+            List<T> entities = new ArrayList<>();
+            if (genericResponse.getData() != null) {
+                for (Object item : genericResponse.getData()) {
+                    try {
+                        T entityData = objectMapper.convertValue(item, entityClass);
+                        entities.add(entityData);
+                    } catch (Exception e) {
+                        logger.error("Failed to convert item to {}: {}", entityClass.getSimpleName(), e.getMessage());
+                        failedImports++;
+                        errors.add("Failed to parse " + entityName + " item: " + e.getMessage());
+                    }
+                }
             }
 
-            List<T> entities = apiResponse.getData();
             totalRecords = entities.size();
             logger.info("Found {} {} to import", totalRecords, entityName);
 
