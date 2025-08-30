@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -122,90 +123,105 @@ public class DataImportService {
 
     // Basic entity import methods
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importClassifications() {
         logger.info("Starting classifications import");
         return importGenericData("/Classifications", Classification.class, classificationRepository, "Classifications");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importContacts() {
         logger.info("Starting contacts import");
         return importGenericData("/Contacts", Contact.class, contactRepository, "Contacts");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importDecisions() {
         logger.info("Starting decisions import");
         return importGenericData("/Decisions", Decision.class, decisionRepository, "Decisions");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importDepartments() {
         logger.info("Starting departments import");
         return importGenericData("/Departments", Department.class, departmentRepository, "Departments");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importForms() {
         logger.info("Starting forms import");
         return importGenericData("/Forms", Form.class, formRepository, "Forms");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importFormTypes() {
         logger.info("Starting form types import");
         return importGenericData("/FormTypes", FormType.class, formTypeRepository, "FormTypes");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importImportance() {
         logger.info("Starting importance import");
         return importGenericData("/Importance", Importance.class, importanceRepository, "Importance");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importPositions() {
         logger.info("Starting positions import");
         return importGenericData("/Positions", Position.class, positionRepository, "Positions");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importPosRoles() {
         logger.info("Starting pos roles import");
         return importGenericData("/PosRole", PosRole.class, posRoleRepository, "PosRoles");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importPriority() {
         logger.info("Starting priority import");
         return importGenericData("/Priority", Priority.class, priorityRepository, "Priority");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importRoles() {
         logger.info("Starting roles import");
         return importGenericData("/Roles", Role.class, roleRepository, "Roles");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importSecrecy() {
         logger.info("Starting secrecy import");
         return importGenericData("/Secrecy", Secrecy.class, secrecyRepository, "Secrecy");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importUserPositions() {
         logger.info("Starting user positions import");
         return importGenericData("/UserPosition", UserPosition.class, userPositionRepository, "UserPositions");
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importUsers() {
         logger.info("Starting users import");
         return importUsersData();
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondences() {
         logger.info("Starting correspondences import");
         return importCorrespondenceData();
@@ -266,6 +282,7 @@ public class DataImportService {
 
     // Correspondence-related import methods
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceAttachments(String docGuid) {
         logger.info("Starting correspondence attachments import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceAttachments/docGuid/" + docGuid, 
@@ -275,6 +292,7 @@ public class DataImportService {
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceComments(String docGuid) {
         logger.info("Starting correspondence comments import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceComments/docGuid/" + docGuid, 
@@ -284,6 +302,7 @@ public class DataImportService {
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceCopyTos(String docGuid) {
         logger.info("Starting correspondence copy tos import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceCopyTo/docGUId/" + docGuid, 
@@ -293,6 +312,7 @@ public class DataImportService {
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceCurrentDepartments(String docGuid) {
         logger.info("Starting correspondence current departments import for doc: {}", docGuid);
         
@@ -343,6 +363,7 @@ public class DataImportService {
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceCurrentPositions(String docGuid) {
         logger.info("Starting correspondence current positions import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceCurrentPositions/docGuid/" + docGuid, 
@@ -352,6 +373,7 @@ public class DataImportService {
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceCurrentUsers(String docGuid) {
         logger.info("Starting correspondence current users import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceCurrentUsers/docGuid/" + docGuid, 
@@ -361,6 +383,7 @@ public class DataImportService {
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceCustomFields(String docGuid) {
         logger.info("Starting correspondence custom fields import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceCustomFields/docGuid/" + docGuid, 
@@ -370,6 +393,7 @@ public class DataImportService {
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceLinks(String docGuid) {
         logger.info("Starting correspondence links import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceLinks/docGuid/" + docGuid, 
@@ -379,6 +403,7 @@ public class DataImportService {
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceSendTos(String docGuid) {
         logger.info("Starting correspondence send tos import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceSendTo/docGUId/" + docGuid, 
@@ -388,6 +413,7 @@ public class DataImportService {
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    @Transactional
     public ImportResponseDto importCorrespondenceTransactions(String docGuid) {
         logger.info("Starting correspondence transactions import for doc: {}", docGuid);
         return importCorrespondenceRelatedData("/CorrespondenceTransactions/docGuid/" + docGuid, 
@@ -396,6 +422,7 @@ public class DataImportService {
                                              "CorrespondenceTransactions");
     }
 
+    @Transactional(readOnly = true)
     public ImportResponseDto importAllCorrespondencesWithRelated() {
         logger.info("Starting bulk import of all correspondences with related data");
         
