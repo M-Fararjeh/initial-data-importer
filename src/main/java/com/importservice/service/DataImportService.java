@@ -452,14 +452,27 @@ public class DataImportService {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             
-            TypeReference<ApiResponseDto<T>> typeRef = new TypeReference<ApiResponseDto<T>>() {};
-            ApiResponseDto<T> apiResponse = objectMapper.readValue(response.getBody(), typeRef);
-
-            if (!apiResponse.getSuccess()) {
-                return createErrorResponse("API returned failure: " + apiResponse.getMessage());
+            // Parse the response manually to handle generic type properly
+            String responseBody = response.getBody();
+            logger.debug("Raw API response for {}: {}", entityName, responseBody);
+            
+            // First parse as generic ApiResponseDto
+            ApiResponseDto<Object> genericResponse = objectMapper.readValue(responseBody, 
+                new TypeReference<ApiResponseDto<Object>>() {});
+            
+            if (!genericResponse.getSuccess()) {
+                return createErrorResponse("API returned failure: " + genericResponse.getMessage());
+            }
+            
+            // Convert the data list to the specific entity type
+            List<T> entities = new ArrayList<>();
+            if (genericResponse.getData() != null) {
+                for (Object item : genericResponse.getData()) {
+                    T entity = objectMapper.convertValue(item, entityClass);
+                    entities.add(entity);
+                }
             }
 
-            List<T> entities = apiResponse.getData();
             totalRecords = entities.size();
             logger.info("Found {} {} to import", totalRecords, entityName);
 
