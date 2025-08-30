@@ -793,6 +793,18 @@ public class DataImportService {
                         errors.add("Null " + entityName + " object received");
                         continue;
                     }
+                    
+                    // Special handling for CorrespondenceAttachment with large file data
+                    if (entityData instanceof CorrespondenceAttachment) {
+                        CorrespondenceAttachment attachment = (CorrespondenceAttachment) entityData;
+                        if (attachment.getFileData() != null && attachment.getFileData().length() > 50_000_000) { // 50MB
+                            logger.warn("Skipping attachment {} due to large file size: {} bytes", 
+                                      attachment.getGuid(), attachment.getFileData().length());
+                            attachment.setFileData(null);
+                            attachment.setFileDataErrorMessage("File too large for import (>50MB)");
+                        }
+                    }
+                    
                     repository.save(entityData);
                     successfulImports++;
                     logger.debug("Successfully saved {}", entityName);
