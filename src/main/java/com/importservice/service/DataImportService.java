@@ -240,13 +240,22 @@ public class DataImportService {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             
+            // Check if response body is null
+            String responseBody = response.getBody();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                logger.warn("Empty response body for Users");
+                return new ImportResponseDto("SUCCESS", "No Users found", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
             // Create specific TypeReference for Users
             TypeReference<ApiResponseDto<User>> typeRef = new TypeReference<ApiResponseDto<User>>() {};
-            ApiResponseDto<User> apiResponse = objectMapper.readValue(response.getBody(), typeRef);
+            ApiResponseDto<User> apiResponse = objectMapper.readValue(responseBody, typeRef);
 
-            if (!apiResponse.getSuccess()) {
-                return new ImportResponseDto("ERROR", "API returned failure: " + apiResponse.getMessage(), 
-                    0, 0, 0, Arrays.asList("API returned failure: " + apiResponse.getMessage()));
+            if (apiResponse == null || !Boolean.TRUE.equals(apiResponse.getSuccess())) {
+                String message = apiResponse != null ? apiResponse.getMessage() : "Unknown API error";
+                return new ImportResponseDto("ERROR", "API returned failure: " + message, 
+                    0, 0, 0, Arrays.asList("API returned failure: " + message));
             }
 
             List<User> users = apiResponse.getData();
@@ -256,15 +265,24 @@ public class DataImportService {
             if (users != null) {
                 for (User user : users) {
                     try {
+                        if (user == null) {
+                            failedImports++;
+                            errors.add("Null User object received");
+                            continue;
+                        }
                         userRepository.save(user);
                         successfulImports++;
                         logger.debug("Successfully saved user: {}", user.getGuid());
                     } catch (Exception e) {
                         failedImports++;
-                        errors.add("Failed to save User " + user.getGuid() + ": " + e.getMessage());
-                        logger.error("Error saving User {}: {}", user.getGuid(), e.getMessage());
+                        String userGuid = user != null ? user.getGuid() : "unknown";
+                        String errorMsg = "Failed to save User " + userGuid + ": " + e.getMessage();
+                        errors.add(errorMsg);
+                        logger.error(errorMsg, e);
                     }
                 }
+            } else {
+                logger.info("No Users data found in API response");
             }
 
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
@@ -328,25 +346,49 @@ public class DataImportService {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             
+            // Check if response body is null
+            String responseBody = response.getBody();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                logger.warn("Empty response body for correspondence current departments, docGuid: {}", docGuid);
+                return new ImportResponseDto("SUCCESS", "No correspondence current departments found for document", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
             TypeReference<ApiResponseDto<CorrespondenceCurrentDepartment>> typeRef = 
                 new TypeReference<ApiResponseDto<CorrespondenceCurrentDepartment>>() {};
-            ApiResponseDto<CorrespondenceCurrentDepartment> apiResponse = objectMapper.readValue(response.getBody(), typeRef);
+            ApiResponseDto<CorrespondenceCurrentDepartment> apiResponse = objectMapper.readValue(responseBody, typeRef);
 
-            if (!apiResponse.getSuccess()) {
-                return createErrorResponse("API returned failure: " + apiResponse.getMessage());
+            if (apiResponse == null || !Boolean.TRUE.equals(apiResponse.getSuccess())) {
+                String message = apiResponse != null ? apiResponse.getMessage() : "Unknown API error";
+                return createErrorResponse("API returned failure: " + message);
             }
 
             List<CorrespondenceCurrentDepartment> departments = apiResponse.getData();
+            if (departments == null || departments.isEmpty()) {
+                logger.info("No correspondence current departments found for docGuid: {}", docGuid);
+                return new ImportResponseDto("SUCCESS", "No correspondence current departments found for document", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
             totalRecords = departments.size();
+            logger.info("Found {} correspondence current departments for docGuid: {}", totalRecords, docGuid);
 
             for (CorrespondenceCurrentDepartment dept : departments) {
                 try {
+                    if (dept == null) {
+                        failedImports++;
+                        errors.add("Null department object received");
+                        continue;
+                    }
                     dept.setDocGuid(docGuid); // Set the doc guid
                     correspondenceCurrentDepartmentRepository.save(dept);
                     successfulImports++;
+                    logger.debug("Successfully saved correspondence current department for docGuid: {}", docGuid);
                 } catch (Exception e) {
                     failedImports++;
-                    errors.add("Failed to save correspondence current department: " + e.getMessage());
+                    String errorMsg = "Failed to save correspondence current department: " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
                 }
             }
 
@@ -534,16 +576,24 @@ public class DataImportService {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             
-            // Parse response body manually to handle generic types properly
+            // Check if response body is null
             String responseBody = response.getBody();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                logger.warn("Empty response body for {}, endpoint: {}", entityName, endpoint);
+                return new ImportResponseDto("SUCCESS", "No " + entityName + " found", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
+            // Parse response body manually to handle generic types properly
             logger.debug("Raw API response for {}: {}", entityName, responseBody);
             
             // First parse as generic ApiResponseDto
             ApiResponseDto<Object> genericResponse = objectMapper.readValue(responseBody, 
                 new TypeReference<ApiResponseDto<Object>>() {});
 
-            if (!genericResponse.getSuccess()) {
-                return createErrorResponse("API returned failure: " + genericResponse.getMessage());
+            if (genericResponse == null || !Boolean.TRUE.equals(genericResponse.getSuccess())) {
+                String message = genericResponse != null ? genericResponse.getMessage() : "Unknown API error";
+                return createErrorResponse("API returned failure: " + message);
             }
 
             // Convert the data list to the specific entity type
@@ -551,14 +601,24 @@ public class DataImportService {
             if (genericResponse.getData() != null) {
                 for (Object item : genericResponse.getData()) {
                     try {
+                        if (item == null) {
+                            logger.warn("Null item found in {} data", entityName);
+                            continue;
+                        }
                         T entityData = objectMapper.convertValue(item, entityClass);
-                        entities.add(entityData);
+                        if (entityData != null) {
+                            entities.add(entityData);
+                        }
                     } catch (Exception e) {
                         logger.error("Failed to convert item to {}: {}", entityClass.getSimpleName(), e.getMessage());
                         failedImports++;
                         errors.add("Failed to parse " + entityName + " item: " + e.getMessage());
                     }
                 }
+            } else {
+                logger.info("No data found for {}, endpoint: {}", entityName, endpoint);
+                return new ImportResponseDto("SUCCESS", "No " + entityName + " found", 
+                    0, 0, 0, new ArrayList<>());
             }
 
             totalRecords = entities.size();
@@ -566,12 +626,18 @@ public class DataImportService {
 
             for (T entityData : entities) {
                 try {
+                    if (entityData == null) {
+                        failedImports++;
+                        errors.add("Null " + entityName + " object received");
+                        continue;
+                    }
                     repository.save(entityData);
                     successfulImports++;
                 } catch (Exception e) {
                     failedImports++;
-                    errors.add("Failed to save " + entityName + ": " + e.getMessage());
-                    logger.error("Error saving {}: {}", entityName, e.getMessage());
+                    String errorMsg = "Failed to save " + entityName + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
                 }
             }
 
@@ -608,16 +674,24 @@ public class DataImportService {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             
-            // Parse response body manually to handle generic types properly
+            // Check if response body is null
             String responseBody = response.getBody();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                logger.warn("Empty response body for {}, endpoint: {}", entityName, endpoint);
+                return new ImportResponseDto("SUCCESS", "No " + entityName + " found", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
+            // Parse response body manually to handle generic types properly
             logger.debug("Raw API response for {}: {}", entityName, responseBody);
             
             // First parse as generic ApiResponseDto
             ApiResponseDto<Object> genericResponse = objectMapper.readValue(responseBody, 
                 new TypeReference<ApiResponseDto<Object>>() {});
             
-            if (!genericResponse.getSuccess()) {
-                return createErrorResponse("API returned failure: " + genericResponse.getMessage());
+            if (genericResponse == null || !Boolean.TRUE.equals(genericResponse.getSuccess())) {
+                String message = genericResponse != null ? genericResponse.getMessage() : "Unknown API error";
+                return createErrorResponse("API returned failure: " + message);
             }
             
             // Convert the data list to the specific entity type
@@ -625,14 +699,24 @@ public class DataImportService {
             if (genericResponse.getData() != null) {
                 for (Object item : genericResponse.getData()) {
                     try {
+                        if (item == null) {
+                            logger.warn("Null item found in {} data", entityName);
+                            continue;
+                        }
                         T entityData = objectMapper.convertValue(item, entityClass);
-                        entities.add(entityData);
+                        if (entityData != null) {
+                            entities.add(entityData);
+                        }
                     } catch (Exception e) {
                         logger.error("Failed to convert item to {}: {}", entityClass.getSimpleName(), e.getMessage());
                         failedImports++;
                         errors.add("Failed to parse " + entityName + " item: " + e.getMessage());
                     }
                 }
+            } else {
+                logger.info("No data found for {}, endpoint: {}", entityName, endpoint);
+                return new ImportResponseDto("SUCCESS", "No " + entityName + " found", 
+                    0, 0, 0, new ArrayList<>());
             }
 
             totalRecords = entities.size();
@@ -640,12 +724,19 @@ public class DataImportService {
 
             for (T entityData : entities) {
                 try {
+                    if (entityData == null) {
+                        failedImports++;
+                        errors.add("Null " + entityName + " object received");
+                        continue;
+                    }
                     repository.save(entityData);
                     successfulImports++;
+                    logger.debug("Successfully saved {}", entityName);
                 } catch (Exception e) {
                     failedImports++;
-                    errors.add("Failed to save " + entityName + ": " + e.getMessage());
-                    logger.error("Error saving {}: {}", entityName, e.getMessage());
+                    String errorMsg = "Failed to save " + entityName + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
                 }
             }
 
@@ -674,25 +765,49 @@ public class DataImportService {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             
-            // Parse the response manually to handle generic type properly
+            // Check if response body is null
             String responseBody = response.getBody();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                logger.warn("Empty response body for Correspondences");
+                return new ImportResponseDto("SUCCESS", "No Correspondences found", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
+            // Parse the response manually to handle generic type properly
             logger.debug("Raw API response for Correspondences: {}", responseBody);
             
             // First parse as generic ApiResponseDto
             ApiResponseDto<Object> genericResponse = objectMapper.readValue(responseBody, 
                 new TypeReference<ApiResponseDto<Object>>() {});
             
-            if (!genericResponse.getSuccess()) {
-                return createErrorResponse("API returned failure: " + genericResponse.getMessage());
+            if (genericResponse == null || !Boolean.TRUE.equals(genericResponse.getSuccess())) {
+                String message = genericResponse != null ? genericResponse.getMessage() : "Unknown API error";
+                return createErrorResponse("API returned failure: " + message);
             }
             
             // Convert the data list to the specific entity type
             List<Correspondence> correspondences = new ArrayList<>();
             if (genericResponse.getData() != null) {
                 for (Object item : genericResponse.getData()) {
-                    Correspondence correspondence = objectMapper.convertValue(item, Correspondence.class);
-                    correspondences.add(correspondence);
+                    try {
+                        if (item == null) {
+                            logger.warn("Null item found in Correspondences data");
+                            continue;
+                        }
+                        Correspondence correspondence = objectMapper.convertValue(item, Correspondence.class);
+                        if (correspondence != null) {
+                            correspondences.add(correspondence);
+                        }
+                    } catch (Exception e) {
+                        logger.error("Failed to convert item to Correspondence: {}", e.getMessage());
+                        failedImports++;
+                        errors.add("Failed to parse Correspondence item: " + e.getMessage());
+                    }
                 }
+            } else {
+                logger.info("No Correspondences data found in API response");
+                return new ImportResponseDto("SUCCESS", "No Correspondences found", 
+                    0, 0, 0, new ArrayList<>());
             }
 
             totalRecords = correspondences.size();
@@ -700,6 +815,11 @@ public class DataImportService {
 
             for (Correspondence correspondence : correspondences) {
                 try {
+                    if (correspondence == null || correspondence.getGuid() == null) {
+                        failedImports++;
+                        errors.add("Null correspondence or GUID received");
+                        continue;
+                    }
                     Optional<Correspondence> existing = correspondenceRepository.findById(correspondence.getGuid());
                     if (existing.isPresent()) {
                         // Update existing record
@@ -713,8 +833,10 @@ public class DataImportService {
                     successfulImports++;
                 } catch (Exception e) {
                     failedImports++;
-                    errors.add("Failed to save correspondence " + correspondence.getGuid() + ": " + e.getMessage());
-                    logger.error("Error saving correspondence: {}", e.getMessage());
+                    String corrGuid = correspondence != null ? correspondence.getGuid() : "unknown";
+                    String errorMsg = "Failed to save correspondence " + corrGuid + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
                 }
             }
 
