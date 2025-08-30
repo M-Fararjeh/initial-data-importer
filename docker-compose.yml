@@ -56,6 +56,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/data_import_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       SPRING_DATASOURCE_USERNAME: import_user
       SPRING_DATASOURCE_PASSWORD: import_password123
+      JAVA_OPTS: "-Xms1g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/"
     depends_on:
       mysql:
         condition: service_healthy

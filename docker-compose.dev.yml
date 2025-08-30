@@ -39,8 +39,30 @@ services:
       interval: 30s
       start_period: 40s
 
+  app-dev:
+    build: .
+    container_name: data-import-app-dev
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-dev:3306/data_import_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: import_user
+      SPRING_DATASOURCE_PASSWORD: import_password123
+      JAVA_OPTS: "-Xms1g -Xmx3g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/"
+    depends_on:
+      mysql-dev:
+        condition: service_healthy
+    networks:
+      - data-import-dev-network
+    volumes:
+      - app_dev_logs:/app/logs
+
 volumes:
   mysql_dev_data:
+    driver: local
+  app_dev_logs:
     driver: local
 
 networks:

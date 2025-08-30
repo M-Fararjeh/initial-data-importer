@@ -24,5 +24,8 @@ RUN mkdir -p /app/logs
 # Expose port
 EXPOSE 8080
 
+# Set default JVM options (can be overridden by JAVA_OPTS environment variable)
+ENV JAVA_OPTS="-Xms512m -Xmx2g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+
 # Run the application
-CMD ["java", "-Xms512m", "-Xmx2g", "-XX:+UseG1GC", "-XX:MaxGCPauseMillis=200", "-jar", "target/data-import-service-1.0.0.jar"]
+CMD ["sh", "-c", "java $JAVA_OPTS -jar target/data-import-service-1.0.0.jar"]
