@@ -1,10 +1,13 @@
 package com.importservice.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+
+import java.time.LocalDateTime;
 
 @Configuration
 public class JacksonConfig {
@@ -13,8 +16,18 @@ public class JacksonConfig {
     @Primary
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
+        
+        // Register JSR310 module for Java 8 time support
         mapper.registerModule(new JavaTimeModule());
+        
+        // Create custom module for our date format
+        SimpleModule customModule = new SimpleModule();
+        customModule.addDeserializer(LocalDateTime.class, new CustomDateTimeDeserializer());
+        mapper.registerModule(customModule);
+        
+        // Disable writing dates as timestamps
         mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        
         return mapper;
     }
 }
