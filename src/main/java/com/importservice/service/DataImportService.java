@@ -272,7 +272,7 @@ public class DataImportService {
                         }
                         userRepository.save(user);
                         successfulImports++;
-                        logger.debug("Successfully saved user: {}", user.getGuid());
+                        logger.info("Successfully saved user: {}", user.getGuid());
                     } catch (Exception e) {
                         failedImports++;
                         String userGuid = user != null ? user.getGuid() : "unknown";
@@ -383,7 +383,7 @@ public class DataImportService {
                     dept.setDocGuid(docGuid); // Set the doc guid
                     correspondenceCurrentDepartmentRepository.save(dept);
                     successfulImports++;
-                    logger.debug("Successfully saved correspondence current department for docGuid: {}", docGuid);
+                    logger.info("Successfully saved correspondence current department for docGuid: {}", docGuid);
                 } catch (Exception e) {
                     failedImports++;
                     String errorMsg = "Failed to save correspondence current department: " + e.getMessage();
@@ -775,7 +775,7 @@ public class DataImportService {
                     }
                     repository.save(entityData);
                     successfulImports++;
-                    logger.debug("Successfully saved {}", entityName);
+                    logger.info("Successfully saved {}", entityName);
                 } catch (Exception e) {
                     failedImports++;
                     String errorMsg = "Failed to save " + entityName + ": " + e.getMessage();
