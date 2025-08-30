@@ -38,6 +38,9 @@ public class DataImportService {
 
     @Autowired
     private RestTemplate restTemplate;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
 
     // Basic entity repositories
     @Autowired
@@ -116,7 +119,6 @@ public class DataImportService {
     @Autowired
     private CorrespondenceTransactionRepository correspondenceTransactionRepository;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // Basic entity import methods
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
