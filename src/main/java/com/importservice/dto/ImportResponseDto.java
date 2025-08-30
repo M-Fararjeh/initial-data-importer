@@ -1,14 +1,28 @@
 package com.importservice.dto;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 
+@ApiModel(description = "Response object for import operations")
 public class ImportResponseDto {
     
+    @ApiModelProperty(value = "Import operation status", example = "SUCCESS")
     private String status;
+    
+    @ApiModelProperty(value = "Descriptive message about the import result", example = "Import completed successfully")
     private String message;
+    
+    @ApiModelProperty(value = "Total number of records processed", example = "4")
     private Integer totalRecords;
+    
+    @ApiModelProperty(value = "Number of successfully imported records", example = "4")
     private Integer successfulImports;
+    
+    @ApiModelProperty(value = "Number of failed import attempts", example = "0")
     private Integer failedImports;
+    
+    @ApiModelProperty(value = "List of error messages for failed imports")
     private List<String> errors;
 
     public ImportResponseDto() {
