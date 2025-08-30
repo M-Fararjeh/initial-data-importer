@@ -9,27 +9,27 @@ public class Position extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("DepartmentGUId")
-    @Column(name = "department_guid", length = 36)
+    @Column(name = "department_guid", length = 2147483647)
     private String departmentGuid;
     
     @JsonProperty("EnglishPositionName")
-    @Column(name = "english_position_name", length = 500)
+    @Column(name = "english_position_name", length = 2147483647)
     private String englishPositionName;
     
     @JsonProperty("LocalPositionName")
-    @Column(name = "local_position_name", length = 500)
+    @Column(name = "local_position_name", length = 2147483647)
     private String localPositionName;
     
     @JsonProperty("EnglishPositionTitle")
-    @Column(name = "english_position_title", length = 500)
+    @Column(name = "english_position_title", length = 2147483647)
     private String englishPositionTitle;
     
     @JsonProperty("LocalPositionTitle")
-    @Column(name = "local_position_title", length = 500)
+    @Column(name = "local_position_title", length = 2147483647)
     private String localPositionTitle;
     
     @JsonProperty("IsManager")
@@ -41,19 +41,19 @@ public class Position extends BaseEntity {
     private Boolean isHidden;
     
     @JsonProperty("EnglishPrefix")
-    @Column(name = "english_prefix", length = 100)
+    @Column(name = "english_prefix", length = 2147483647)
     private String englishPrefix;
     
     @JsonProperty("EnglishSuffix")
-    @Column(name = "english_suffix", length = 100)
+    @Column(name = "english_suffix", length = 2147483647)
     private String englishSuffix;
     
     @JsonProperty("LocalPrefix")
-    @Column(name = "local_prefix", length = 100)
+    @Column(name = "local_prefix", length = 2147483647)
     private String localPrefix;
     
     @JsonProperty("LocalSuffix")
-    @Column(name = "local_suffix", length = 100)
+    @Column(name = "local_suffix", length = 2147483647)
     private String localSuffix;
     
     // Constructors

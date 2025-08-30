@@ -9,19 +9,19 @@ public class Decision extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("EnglishName")
-    @Column(name = "english_name", length = 500)
+    @Column(name = "english_name", length = 2147483647)
     private String englishName;
     
     @JsonProperty("LocalName")
-    @Column(name = "local_name", length = 500)
+    @Column(name = "local_name", length = 2147483647)
     private String localName;
     
     @JsonProperty("DisplayName")
-    @Column(name = "display_name", length = 500)
+    @Column(name = "display_name", length = 2147483647)
     private String displayName;
     
     // Constructors

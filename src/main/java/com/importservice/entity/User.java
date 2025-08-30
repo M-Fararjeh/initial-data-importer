@@ -14,11 +14,11 @@ public class User extends BaseEntity {
     private String guid;
     
     @JsonProperty("LoginName")
-    @Column(name = "login_name", length = 100)
+    @Column(name = "login_name", length = 2147483647)
     private String loginName;
     
     @JsonProperty("CellPhonNumber")
-    @Column(name = "cell_phone_number", length = 50)
+    @Column(name = "cell_phone_number", length = 2147483647)
     private String cellPhoneNumber;
     
     @JsonProperty("Description")
@@ -26,43 +26,43 @@ public class User extends BaseEntity {
     private String description;
     
     @JsonProperty("EMail")
-    @Column(name = "email", length = 100)
+    @Column(name = "email", length = 2147483647)
     private String email;
     
     @JsonProperty("EnglishFirstName")
-    @Column(name = "english_first_name", length = 200)
+    @Column(name = "english_first_name", length = 2147483647)
     private String englishFirstName;
     
     @JsonProperty("EnglishFamilyName")
-    @Column(name = "english_family_name", length = 200)
+    @Column(name = "english_family_name", length = 2147483647)
     private String englishFamilyName;
     
     @JsonProperty("LocalFirstName")
-    @Column(name = "local_first_name", length = 200)
+    @Column(name = "local_first_name", length = 2147483647)
     private String localFirstName;
     
     @JsonProperty("LocalFamilyName")
-    @Column(name = "local_family_name", length = 200)
+    @Column(name = "local_family_name", length = 2147483647)
     private String localFamilyName;
     
     @JsonProperty("EnglishTitle")
-    @Column(name = "english_title", length = 200)
+    @Column(name = "english_title", length = 2147483647)
     private String englishTitle;
     
     @JsonProperty("EnglishLocalTitle")
-    @Column(name = "english_local_title", length = 200)
+    @Column(name = "english_local_title", length = 2147483647)
     private String englishLocalTitle;
     
     @JsonProperty("DisplayName")
-    @Column(name = "display_name", length = 200)
+    @Column(name = "display_name", length = 2147483647)
     private String displayName;
     
     @JsonProperty("UserCode")
-    @Column(name = "user_code", length = 50)
+    @Column(name = "user_code", length = 2147483647)
     private String userCode;
     
     @JsonProperty("NickName")
-    @Column(name = "nick_name", length = 100)
+    @Column(name = "nick_name", length = 2147483647)
     private String nickName;
     
     @JsonProperty("Notes")

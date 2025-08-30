@@ -9,15 +9,15 @@ public class UserPosition extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("PosGUId")
-    @Column(name = "pos_guid", length = 36)
+    @Column(name = "pos_guid", length = 2147483647)
     private String posGuid;
     
     @JsonProperty("UserGUId")
-    @Column(name = "user_guid", length = 36)
+    @Column(name = "user_guid", length = 2147483647)
     private String userGuid;
     
     @JsonProperty("IsDeleted")

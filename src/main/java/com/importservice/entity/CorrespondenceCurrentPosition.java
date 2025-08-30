@@ -9,18 +9,19 @@ public class CorrespondenceCurrentPosition extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("DocGUId")
-    @Column(name = "doc_guid", length = 36)
+    @Column(name = "doc_guid", length = 2147483647)
     private String docGuid;
     
     @JsonProperty("PosGUId")
-    @Column(name = "pos_guid", length = 36)
+    @Column(name = "pos_guid", length = 2147483647)
     private String posGuid;
     
     @Column(name = "import_status", length = 20)
+    @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     
     // Constructors

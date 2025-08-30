@@ -13,11 +13,11 @@ public class Importance extends BaseEntity {
     private Integer id;
     
     @JsonProperty("EnglishName")
-    @Column(name = "english_name", length = 500)
+    @Column(name = "english_name", length = 2147483647)
     private String englishName;
     
     @JsonProperty("LocalName")
-    @Column(name = "local_name", length = 500)
+    @Column(name = "local_name", length = 2147483647)
     private String localName;
     
     @JsonProperty("Order")

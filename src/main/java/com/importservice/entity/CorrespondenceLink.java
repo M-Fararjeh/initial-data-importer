@@ -9,26 +9,27 @@ public class CorrespondenceLink extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("DocGUId")
-    @Column(name = "doc_guid", length = 36)
+    @Column(name = "doc_guid", length = 2147483647)
     private String docGuid;
     
     @JsonProperty("LinkDocGUId")
-    @Column(name = "link_doc_guid", length = 36)
+    @Column(name = "link_doc_guid", length = 2147483647)
     private String linkDocGuid;
     
     @JsonProperty("LinkTypeEnglishName")
-    @Column(name = "link_type_english_name", length = 200)
+    @Column(name = "link_type_english_name", length = 2147483647)
     private String linkTypeEnglishName;
     
     @JsonProperty("LinkTypeLocalName")
-    @Column(name = "link_type_local_name", length = 200)
+    @Column(name = "link_type_local_name", length = 2147483647)
     private String linkTypeLocalName;
     
     @Column(name = "import_status", length = 20)
+    @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     
     // Constructors

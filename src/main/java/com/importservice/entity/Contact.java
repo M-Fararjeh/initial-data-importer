@@ -9,59 +9,59 @@ public class Contact extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("EnglishName")
-    @Column(name = "english_name", length = 500)
+    @Column(name = "english_name", length = 2147483647)
     private String englishName;
     
     @JsonProperty("LocalName")
-    @Column(name = "local_name", length = 500)
+    @Column(name = "local_name", length = 2147483647)
     private String localName;
     
     @JsonProperty("ParentGUId")
-    @Column(name = "parent_guid", length = 36)
+    @Column(name = "parent_guid", length = 2147483647)
     private String parentGuid;
     
     @JsonProperty("EnglishTitle")
-    @Column(name = "english_title", length = 200)
+    @Column(name = "english_title", length = 2147483647)
     private String englishTitle;
     
     @JsonProperty("LocalTitle")
-    @Column(name = "local_title", length = 200)
+    @Column(name = "local_title", length = 2147483647)
     private String localTitle;
     
     @JsonProperty("EMail")
-    @Column(name = "email", length = 100)
+    @Column(name = "email", length = 2147483647)
     private String email;
     
     @JsonProperty("Phone")
-    @Column(name = "phone", length = 50)
+    @Column(name = "phone", length = 2147483647)
     private String phone;
     
     @JsonProperty("FAX")
-    @Column(name = "fax", length = 50)
+    @Column(name = "fax", length = 2147483647)
     private String fax;
     
     @JsonProperty("GlobalId")
-    @Column(name = "global_id", length = 100)
+    @Column(name = "global_id", length = 2147483647)
     private String globalId;
     
     @JsonProperty("EnglishPrefix")
-    @Column(name = "english_prefix", length = 100)
+    @Column(name = "english_prefix", length = 2147483647)
     private String englishPrefix;
     
     @JsonProperty("LocalPrefix")
-    @Column(name = "local_prefix", length = 100)
+    @Column(name = "local_prefix", length = 2147483647)
     private String localPrefix;
     
     @JsonProperty("EnglishSuffix")
-    @Column(name = "english_suffix", length = 100)
+    @Column(name = "english_suffix", length = 2147483647)
     private String englishSuffix;
     
     @JsonProperty("LocalSuffix")
-    @Column(name = "local_suffix", length = 100)
+    @Column(name = "local_suffix", length = 2147483647)
     private String localSuffix;
     
     @JsonProperty("IsBlocked")

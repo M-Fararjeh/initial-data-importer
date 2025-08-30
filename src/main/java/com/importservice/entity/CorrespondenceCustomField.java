@@ -9,66 +9,67 @@ public class CorrespondenceCustomField extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("DocGUId")
-    @Column(name = "doc_guid", length = 36)
+    @Column(name = "doc_guid", length = 2147483647)
     private String docGuid;
     
     @JsonProperty("EvDate")
-    @Column(name = "ev_date", length = 50)
+    @Column(name = "ev_date", length = 2147483647)
     private String evDate;
     
     @JsonProperty("EVToDate")
-    @Column(name = "ev_to_date", length = 50)
+    @Column(name = "ev_to_date", length = 2147483647)
     private String evToDate;
     
     @JsonProperty("DADate")
-    @Column(name = "da_date", length = 50)
+    @Column(name = "da_date", length = 2147483647)
     private String daDate;
     
     @JsonProperty("EMName")
-    @Column(name = "em_name", length = 200)
+    @Column(name = "em_name", length = 2147483647)
     private String emName;
     
     @JsonProperty("CLOrd")
-    @Column(name = "cl_ord", length = 50)
+    @Column(name = "cl_ord", length = 2147483647)
     private String clOrd;
     
     @JsonProperty("ESalary")
-    @Column(name = "e_salary", length = 50)
+    @Column(name = "e_salary", length = 2147483647)
     private String eSalary;
     
     @JsonProperty("EMPER")
-    @Column(name = "emper", length = 50)
+    @Column(name = "emper", length = 2147483647)
     private String emper;
     
     @JsonProperty("WorkH")
-    @Column(name = "work_h", length = 50)
+    @Column(name = "work_h", length = 2147483647)
     private String workH;
     
     @JsonProperty("DMaking")
-    @Column(name = "d_making", length = 50)
+    @Column(name = "d_making", length = 2147483647)
     private String dMaking;
     
     @JsonProperty("ENTNUM")
-    @Column(name = "entnum", length = 50)
+    @Column(name = "entnum", length = 2147483647)
     private String entnum;
     
     @JsonProperty("EPer")
-    @Column(name = "e_per", length = 50)
+    @Column(name = "e_per", length = 2147483647)
     private String ePer;
     
     @JsonProperty("RProc")
-    @Column(name = "r_proc", length = 50)
+    @Column(name = "r_proc", length = 2147483647)
     private String rProc;
     
     @JsonProperty("Comdate")
-    @Column(name = "comdate", length = 50)
+    @Column(name = "comdate", length = 2147483647)
     private String comdate;
     
     @Column(name = "import_status", length = 20)
+    @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     
     // Constructors

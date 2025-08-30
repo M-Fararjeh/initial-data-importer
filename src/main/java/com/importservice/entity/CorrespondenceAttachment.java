@@ -10,19 +10,19 @@ public class CorrespondenceAttachment extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("DocGUId")
-    @Column(name = "doc_guid", length = 36)
+    @Column(name = "doc_guid", length = 2147483647)
     private String docGuid;
     
     @JsonProperty("FileUId")
-    @Column(name = "file_uid", length = 36)
+    @Column(name = "file_uid", length = 2147483647)
     private String fileUid;
     
     @JsonProperty("FileType")
-    @Column(name = "file_type", length = 50)
+    @Column(name = "file_type", length = 2147483647)
     private String fileType;
     
     @JsonProperty("CreationDate")
@@ -30,11 +30,11 @@ public class CorrespondenceAttachment extends BaseEntity {
     private LocalDateTime fileCreationDate;
     
     @JsonProperty("Name")
-    @Column(name = "name", length = 500)
+    @Column(name = "name", length = 2147483647)
     private String name;
     
     @JsonProperty("Caption")
-    @Column(name = "caption", length = 500)
+    @Column(name = "caption", length = 2147483647)
     private String caption;
     
     @JsonProperty("Description")
@@ -54,11 +54,11 @@ public class CorrespondenceAttachment extends BaseEntity {
     private Boolean isTemp;
     
     @JsonProperty("ArciveFileId")
-    @Column(name = "archive_file_id", length = 100)
+    @Column(name = "archive_file_id", length = 2147483647)
     private String archiveFileId;
     
     @JsonProperty("CreationUserName")
-    @Column(name = "creation_user_name", length = 100)
+    @Column(name = "creation_user_name", length = 2147483647)
     private String creationUserName;
     
     @JsonProperty("Annotation")
@@ -66,11 +66,11 @@ public class CorrespondenceAttachment extends BaseEntity {
     private String annotation;
     
     @JsonProperty("PrivateAccessGUId")
-    @Column(name = "private_access_guid", length = 36)
+    @Column(name = "private_access_guid", length = 2147483647)
     private String privateAccessGuid;
     
     @JsonProperty("PrivateAccessType")
-    @Column(name = "private_access_type", length = 50)
+    @Column(name = "private_access_type", length = 2147483647)
     private String privateAccessType;
     
     @JsonProperty("FileData")
@@ -82,6 +82,7 @@ public class CorrespondenceAttachment extends BaseEntity {
     private String fileDataErrorMessage;
     
     @Column(name = "import_status", length = 20)
+    @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     
     // Constructors

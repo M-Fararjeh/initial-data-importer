@@ -9,15 +9,15 @@ public class Department extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("EnglishName")
-    @Column(name = "english_name", length = 500)
+    @Column(name = "english_name", length = 2147483647)
     private String englishName;
     
     @JsonProperty("LocalName")
-    @Column(name = "local_name", length = 500)
+    @Column(name = "local_name", length = 2147483647)
     private String localName;
     
     @JsonProperty("Notes")
@@ -25,19 +25,19 @@ public class Department extends BaseEntity {
     private String notes;
     
     @JsonProperty("PrintCode")
-    @Column(name = "print_code", length = 100)
+    @Column(name = "print_code", length = 2147483647)
     private String printCode;
     
     @JsonProperty("GlobalId")
-    @Column(name = "global_id", length = 100)
+    @Column(name = "global_id", length = 2147483647)
     private String globalId;
     
     @JsonProperty("ParentGUId")
-    @Column(name = "parent_guid", length = 36)
+    @Column(name = "parent_guid", length = 2147483647)
     private String parentGuid;
     
     @JsonProperty("MainParentGUId")
-    @Column(name = "main_parent_guid", length = 36)
+    @Column(name = "main_parent_guid", length = 2147483647)
     private String mainParentGuid;
     
     @JsonProperty("IsHidden")

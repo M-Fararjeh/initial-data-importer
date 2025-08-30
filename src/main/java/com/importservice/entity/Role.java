@@ -9,15 +9,15 @@ public class Role extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("EnglishName")
-    @Column(name = "english_name", length = 500)
+    @Column(name = "english_name", length = 2147483647)
     private String englishName;
     
     @JsonProperty("LocalName")
-    @Column(name = "local_name", length = 500)
+    @Column(name = "local_name", length = 2147483647)
     private String localName;
     
     @JsonProperty("Notes")
@@ -25,7 +25,7 @@ public class Role extends BaseEntity {
     private String notes;
     
     @JsonProperty("MainParentGUId")
-    @Column(name = "main_parent_guid", length = 36)
+    @Column(name = "main_parent_guid", length = 2147483647)
     private String mainParentGuid;
     
     // Constructors

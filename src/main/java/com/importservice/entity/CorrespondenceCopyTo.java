@@ -9,19 +9,19 @@ public class CorrespondenceCopyTo extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("DocGUId")
-    @Column(name = "doc_guid", length = 36)
+    @Column(name = "doc_guid", length = 2147483647)
     private String docGuid;
     
     @JsonProperty("CopyToGUId")
-    @Column(name = "copy_to_guid", length = 36)
+    @Column(name = "copy_to_guid", length = 2147483647)
     private String copyToGuid;
     
     @JsonProperty("CopyToType")
-    @Column(name = "copy_to_type", length = 50)
+    @Column(name = "copy_to_type", length = 2147483647)
     private String copyToType;
     
     @JsonProperty("Notes")
@@ -29,6 +29,7 @@ public class CorrespondenceCopyTo extends BaseEntity {
     private String notes;
     
     @Column(name = "import_status", length = 20)
+    @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     
     // Constructors

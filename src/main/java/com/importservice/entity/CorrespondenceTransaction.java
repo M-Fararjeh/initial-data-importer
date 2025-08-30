@@ -10,11 +10,11 @@ public class CorrespondenceTransaction extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 2147483647)
     private String guid;
     
     @JsonProperty("DocGUId")
-    @Column(name = "doc_guid", length = 36)
+    @Column(name = "doc_guid", length = 2147483647)
     private String docGuid;
     
     @JsonProperty("ActionId")
@@ -22,11 +22,11 @@ public class CorrespondenceTransaction extends BaseEntity {
     private Integer actionId;
     
     @JsonProperty("ActionEnglishName")
-    @Column(name = "action_english_name", length = 200)
+    @Column(name = "action_english_name", length = 2147483647)
     private String actionEnglishName;
     
     @JsonProperty("ActionLocalName")
-    @Column(name = "action_local_name", length = 200)
+    @Column(name = "action_local_name", length = 2147483647)
     private String actionLocalName;
     
     @JsonProperty("ActionDate")
@@ -34,23 +34,23 @@ public class CorrespondenceTransaction extends BaseEntity {
     private LocalDateTime actionDate;
     
     @JsonProperty("OrderActionDate")
-    @Column(name = "order_action_date", length = 50)
+    @Column(name = "order_action_date", length = 2147483647)
     private String orderActionDate;
     
     @JsonProperty("FromUserName")
-    @Column(name = "from_user_name", length = 100)
+    @Column(name = "from_user_name", length = 2147483647)
     private String fromUserName;
     
     @JsonProperty("FromPosGUId")
-    @Column(name = "from_pos_guid", length = 36)
+    @Column(name = "from_pos_guid", length = 2147483647)
     private String fromPosGuid;
     
     @JsonProperty("FromDepartmentGUId")
-    @Column(name = "from_department_guid", length = 36)
+    @Column(name = "from_department_guid", length = 2147483647)
     private String fromDepartmentGuid;
     
     @JsonProperty("FromRoleGUId")
-    @Column(name = "from_role_guid", length = 36)
+    @Column(name = "from_role_guid", length = 2147483647)
     private String fromRoleGuid;
     
     @JsonProperty("Notes")
@@ -62,27 +62,27 @@ public class CorrespondenceTransaction extends BaseEntity {
     private String reason;
     
     @JsonProperty("DecisionGUId")
-    @Column(name = "decision_guid", length = 36)
+    @Column(name = "decision_guid", length = 2147483647)
     private String decisionGuid;
     
     @JsonProperty("ToUserName")
-    @Column(name = "to_user_name", length = 100)
+    @Column(name = "to_user_name", length = 2147483647)
     private String toUserName;
     
     @JsonProperty("ToPosGUid")
-    @Column(name = "to_pos_guid", length = 36)
+    @Column(name = "to_pos_guid", length = 2147483647)
     private String toPosGuid;
     
     @JsonProperty("ToDepartmentGUId")
-    @Column(name = "to_department_guid", length = 36)
+    @Column(name = "to_department_guid", length = 2147483647)
     private String toDepartmentGuid;
     
     @JsonProperty("ForwardToGUId")
-    @Column(name = "forward_to_guid", length = 36)
+    @Column(name = "forward_to_guid", length = 2147483647)
     private String forwardToGuid;
     
     @JsonProperty("ForwardToType")
-    @Column(name = "forward_to_type", length = 50)
+    @Column(name = "forward_to_type", length = 2147483647)
     private String forwardToType;
     
     @JsonProperty("IsMultiForward")
@@ -98,6 +98,7 @@ public class CorrespondenceTransaction extends BaseEntity {
     private Boolean isHidden;
     
     @Column(name = "import_status", length = 20)
+    @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     
     // Constructors
