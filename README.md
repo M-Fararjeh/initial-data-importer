@@ -23,6 +23,24 @@ A Spring Boot application for importing external agency data from JSON files to 
 
 ## Running the Application
 
+### Using Docker Compose (Recommended)
+
+```bash
+# Start MySQL and the application
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Stop and remove volumes (WARNING: This will delete all data)
+docker-compose down -v
+```
+
+### Local Development
+
 ```bash
 # Build the project
 mvn clean compile
@@ -32,6 +50,15 @@ mvn spring-boot:run
 ```
 
 The application will start on port 8080 with context path `/data-import`.
+
+### Database Access
+
+When using Docker Compose:
+- **MySQL Host**: localhost:3306
+- **Database**: data_import_db
+- **Username**: import_user
+- **Password**: import_password123
+- **Root Password**: rootpassword123
 
 ## Example Usage
 
