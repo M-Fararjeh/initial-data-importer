@@ -1,5 +1,6 @@
 package com.importservice.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 
 @Entity
@@ -7,18 +8,23 @@ import javax.persistence.*;
 public class Classification extends BaseEntity {
     
     @Id
+    @JsonProperty("GUId")
     @Column(name = "guid", length = 36)
     private String guid;
     
+    @JsonProperty("EnglishName")
     @Column(name = "english_name", length = 500)
     private String englishName;
     
+    @JsonProperty("LocalName")
     @Column(name = "local_name", length = 500)
     private String localName;
     
+    @JsonProperty("Notes")
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
     
+    @JsonProperty("IsHidden")
     @Column(name = "is_hidden")
     private Boolean isHidden;
     

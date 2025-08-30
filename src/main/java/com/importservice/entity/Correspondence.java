@@ -1,5 +1,6 @@
 package com.importservice.entity;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
@@ -8,117 +9,155 @@ import java.time.LocalDateTime;
 public class Correspondence extends BaseEntity {
     
     @Id
+    @JsonProperty("GUId")
     @Column(name = "guid", length = 36)
     private String guid;
     
+    @JsonProperty("SystemNo")
     @Column(name = "system_no")
     private Integer systemNo;
     
+    @JsonProperty("SerialNumber")
     @Column(name = "serial_number", length = 50)
     private String serialNumber;
     
+    @JsonProperty("DbCreationDate")
     @Column(name = "db_creation_date")
     private LocalDateTime dbCreationDate;
     
+    @JsonProperty("CreationDate")
     @Column(name = "correspondence_creation_date")
     private LocalDateTime correspondenceCreationDate;
     
+    @JsonProperty("LastModifiedDate")
     @Column(name = "correspondence_last_modified_date")
     private LocalDateTime correspondenceLastModifiedDate;
     
+    @JsonProperty("IncomingDate")
     @Column(name = "incoming_date")
     private LocalDateTime incomingDate;
     
+    @JsonProperty("DueDate")
     @Column(name = "due_date")
     private LocalDateTime dueDate;
     
+    @JsonProperty("CorrespondenceTypeId")
     @Column(name = "correspondence_type_id")
     private Integer correspondenceTypeId;
     
+    @JsonProperty("CorrespondenceFormTypeGUId")
     @Column(name = "correspondence_form_type_guid", length = 36)
     private String correspondenceFormTypeGuid;
     
+    @JsonProperty("ClassificationGUId")
     @Column(name = "classification_guid", length = 36)
     private String classificationGuid;
     
+    @JsonProperty("Subject")
     @Column(name = "subject", columnDefinition = "TEXT")
     private String subject;
     
+    @JsonProperty("ReferenceNo")
     @Column(name = "reference_no", length = 100)
     private String referenceNo;
     
+    @JsonProperty("ExternalReferanceNumber")
     @Column(name = "external_reference_number", length = 100)
     private String externalReferenceNumber;
     
+    @JsonProperty("Notes")
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
     
+    @JsonProperty("ManualAttacmentsCount")
     @Column(name = "manual_attachments_count", length = 50)
     private String manualAttachmentsCount;
     
+    @JsonProperty("ImportanceId")
     @Column(name = "importance_id")
     private Integer importanceId;
     
+    @JsonProperty("PriorityId")
     @Column(name = "priority_id")
     private Integer priorityId;
     
+    @JsonProperty("SecrecyId")
     @Column(name = "secrecy_id")
     private Integer secrecyId;
     
+    @JsonProperty("NeedReplyStatus")
     @Column(name = "need_reply_status", length = 50)
     private String needReplyStatus;
     
+    @JsonProperty("ComingFromGUId")
     @Column(name = "coming_from_guid", length = 36)
     private String comingFromGuid;
     
+    @JsonProperty("ComingFromType")
     @Column(name = "coming_from_type", length = 50)
     private String comingFromType;
     
+    @JsonProperty("LastDecisionGUId")
     @Column(name = "last_decision_guid", length = 36)
     private String lastDecisionGuid;
     
+    @JsonProperty("IsDraft")
     @Column(name = "is_draft")
     private Boolean isDraft;
     
+    @JsonProperty("IsDeleted")
     @Column(name = "is_deleted")
     private Boolean isDeleted;
     
+    @JsonProperty("IsBlocked")
     @Column(name = "is_blocked")
     private Boolean isBlocked;
     
+    @JsonProperty("IsCanceled")
     @Column(name = "is_canceled")
     private Integer isCanceled;
     
+    @JsonProperty("IsArchive")
     @Column(name = "is_archive")
     private Boolean isArchive;
     
+    @JsonProperty("IsFinal")
     @Column(name = "is_final")
     private Boolean isFinal;
     
+    @JsonProperty("IsMigrated")
     @Column(name = "is_migrated")
     private Boolean isMigrated;
     
+    @JsonProperty("ArchivedDocumentId")
     @Column(name = "archived_document_id", length = 100)
     private String archivedDocumentId;
     
+    @JsonProperty("CreationUserName")
     @Column(name = "creation_user_name", length = 100)
     private String creationUserName;
     
+    @JsonProperty("CreationUserGUId")
     @Column(name = "creation_user_guid", length = 36)
     private String creationUserGuid;
     
+    @JsonProperty("CreationPositionGUId")
     @Column(name = "creation_position_guid", length = 36)
     private String creationPositionGuid;
     
+    @JsonProperty("CreationDepartmentGUId")
     @Column(name = "creation_department_guid", length = 36)
     private String creationDepartmentGuid;
     
+    @JsonProperty("FromPositionGUId")
     @Column(name = "from_position_guid", length = 36)
     private String fromPositionGuid;
     
+    @JsonProperty("FromDepartmentGUId")
     @Column(name = "from_department_guid", length = 36)
     private String fromDepartmentGuid;
     
+    @JsonProperty("ToPositionGUId")
     @Column(name = "to_position_guid", length = 36)
     private String toPositionGuid;
     

@@ -4,13 +4,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "decisions")
-public class Decision extends BaseEntity {
+@Table(name = "importance")
+public class Importance extends BaseEntity {
     
     @Id
-    @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
-    private String guid;
+    @JsonProperty("Id")
+    @Column(name = "id")
+    private Integer id;
     
     @JsonProperty("EnglishName")
     @Column(name = "english_name", length = 500)
@@ -20,20 +20,24 @@ public class Decision extends BaseEntity {
     @Column(name = "local_name", length = 500)
     private String localName;
     
-    @JsonProperty("DisplayName")
-    @Column(name = "display_name", length = 500)
-    private String displayName;
+    @JsonProperty("Order")
+    @Column(name = "order_value")
+    private Integer orderValue;
+    
+    @JsonProperty("Notes")
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
     
     // Constructors
-    public Decision() {}
+    public Importance() {}
     
     // Getters and Setters
-    public String getGuid() {
-        return guid;
+    public Integer getId() {
+        return id;
     }
     
-    public void setGuid(String guid) {
-        this.guid = guid;
+    public void setId(Integer id) {
+        this.id = id;
     }
     
     public String getEnglishName() {
@@ -52,11 +56,19 @@ public class Decision extends BaseEntity {
         this.localName = localName;
     }
     
-    public String getDisplayName() {
-        return displayName;
+    public Integer getOrderValue() {
+        return orderValue;
     }
     
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
+    public void setOrderValue(Integer orderValue) {
+        this.orderValue = orderValue;
+    }
+    
+    public String getNotes() {
+        return notes;
+    }
+    
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

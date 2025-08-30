@@ -4,13 +4,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "decisions")
-public class Decision extends BaseEntity {
+@Table(name = "form_types")
+public class FormType extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
-    private String guid;
+    @Column(name = "guid")
+    private Integer guid;
     
     @JsonProperty("EnglishName")
     @Column(name = "english_name", length = 500)
@@ -20,19 +20,23 @@ public class Decision extends BaseEntity {
     @Column(name = "local_name", length = 500)
     private String localName;
     
-    @JsonProperty("DisplayName")
-    @Column(name = "display_name", length = 500)
-    private String displayName;
+    @JsonProperty("Notes")
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
+    
+    @JsonProperty("IsVisible")
+    @Column(name = "is_visible")
+    private Integer isVisible;
     
     // Constructors
-    public Decision() {}
+    public FormType() {}
     
     // Getters and Setters
-    public String getGuid() {
+    public Integer getGuid() {
         return guid;
     }
     
-    public void setGuid(String guid) {
+    public void setGuid(Integer guid) {
         this.guid = guid;
     }
     
@@ -52,11 +56,19 @@ public class Decision extends BaseEntity {
         this.localName = localName;
     }
     
-    public String getDisplayName() {
-        return displayName;
+    public String getNotes() {
+        return notes;
     }
     
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+    
+    public Integer getIsVisible() {
+        return isVisible;
+    }
+    
+    public void setIsVisible(Integer isVisible) {
+        this.isVisible = isVisible;
     }
 }

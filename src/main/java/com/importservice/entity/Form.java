@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "decisions")
-public class Decision extends BaseEntity {
+@Table(name = "forms")
+public class Form extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
@@ -20,12 +20,12 @@ public class Decision extends BaseEntity {
     @Column(name = "local_name", length = 500)
     private String localName;
     
-    @JsonProperty("DisplayName")
-    @Column(name = "display_name", length = 500)
-    private String displayName;
+    @JsonProperty("Notes")
+    @Column(name = "notes", columnDefinition = "TEXT")
+    private String notes;
     
     // Constructors
-    public Decision() {}
+    public Form() {}
     
     // Getters and Setters
     public String getGuid() {
@@ -52,11 +52,11 @@ public class Decision extends BaseEntity {
         this.localName = localName;
     }
     
-    public String getDisplayName() {
-        return displayName;
+    public String getNotes() {
+        return notes;
     }
     
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

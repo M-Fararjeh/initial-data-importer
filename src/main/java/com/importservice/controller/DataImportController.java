@@ -3,6 +3,7 @@ package com.importservice.controller;
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.service.DataImportService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,6 +23,7 @@ public class DataImportController {
     @Autowired
     private DataImportService dataImportService;
 
+    // Basic entity imports
     @PostMapping("/classifications")
     @Operation(summary = "Import Classifications", description = "Import classification data from source API")
     @ApiResponses(value = {
@@ -48,6 +50,162 @@ public class DataImportController {
         return getResponseEntity(response);
     }
 
+    @PostMapping("/decisions")
+    @Operation(summary = "Import Decisions", description = "Import decision data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importDecisions() {
+        logger.info("Received request to import decisions");
+        ImportResponseDto response = dataImportService.importDecisions();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/departments")
+    @Operation(summary = "Import Departments", description = "Import department data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importDepartments() {
+        logger.info("Received request to import departments");
+        ImportResponseDto response = dataImportService.importDepartments();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/forms")
+    @Operation(summary = "Import Forms", description = "Import form data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importForms() {
+        logger.info("Received request to import forms");
+        ImportResponseDto response = dataImportService.importForms();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/form-types")
+    @Operation(summary = "Import Form Types", description = "Import form type data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importFormTypes() {
+        logger.info("Received request to import form types");
+        ImportResponseDto response = dataImportService.importFormTypes();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/importance")
+    @Operation(summary = "Import Importance", description = "Import importance data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importImportance() {
+        logger.info("Received request to import importance");
+        ImportResponseDto response = dataImportService.importImportance();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/positions")
+    @Operation(summary = "Import Positions", description = "Import position data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importPositions() {
+        logger.info("Received request to import positions");
+        ImportResponseDto response = dataImportService.importPositions();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/pos-roles")
+    @Operation(summary = "Import Position Roles", description = "Import position role data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importPosRoles() {
+        logger.info("Received request to import pos roles");
+        ImportResponseDto response = dataImportService.importPosRoles();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/priority")
+    @Operation(summary = "Import Priority", description = "Import priority data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importPriority() {
+        logger.info("Received request to import priority");
+        ImportResponseDto response = dataImportService.importPriority();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/roles")
+    @Operation(summary = "Import Roles", description = "Import role data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importRoles() {
+        logger.info("Received request to import roles");
+        ImportResponseDto response = dataImportService.importRoles();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/secrecy")
+    @Operation(summary = "Import Secrecy", description = "Import secrecy data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importSecrecy() {
+        logger.info("Received request to import secrecy");
+        ImportResponseDto response = dataImportService.importSecrecy();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/user-positions")
+    @Operation(summary = "Import User Positions", description = "Import user position data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importUserPositions() {
+        logger.info("Received request to import user positions");
+        ImportResponseDto response = dataImportService.importUserPositions();
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/users")
+    @Operation(summary = "Import Users", description = "Import user data from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importUsers() {
+        logger.info("Received request to import users");
+        ImportResponseDto response = dataImportService.importUsers();
+        return getResponseEntity(response);
+    }
+
     @PostMapping("/correspondences")
     @Operation(summary = "Import Correspondences", description = "Import correspondence data from source API")
     @ApiResponses(value = {
@@ -61,22 +219,201 @@ public class DataImportController {
         return getResponseEntity(response);
     }
 
-    @PostMapping("/all")
-    @Operation(summary = "Import All Data", description = "Import all entity types from source API")
+    // Correspondence-related entity imports
+    @PostMapping("/correspondence-attachments/{docGuid}")
+    @Operation(summary = "Import Correspondence Attachments", description = "Import correspondence attachment data for specific document")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Import completed successfully"),
         @ApiResponse(responseCode = "400", description = "Import failed with errors"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<ImportResponseDto> importAllData() {
-        logger.info("Received request to import all data");
+    public ResponseEntity<ImportResponseDto> importCorrespondenceAttachments(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence attachments for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceAttachments(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/correspondence-comments/{docGuid}")
+    @Operation(summary = "Import Correspondence Comments", description = "Import correspondence comment data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importCorrespondenceComments(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence comments for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceComments(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/correspondence-copy-tos/{docGuid}")
+    @Operation(summary = "Import Correspondence Copy Tos", description = "Import correspondence copy to data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importCorrespondenceCopyTos(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence copy tos for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceCopyTos(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/correspondence-current-departments/{docGuid}")
+    @Operation(summary = "Import Correspondence Current Departments", description = "Import correspondence current department data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importCorrespondenceCurrentDepartments(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence current departments for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceCurrentDepartments(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/correspondence-current-positions/{docGuid}")
+    @Operation(summary = "Import Correspondence Current Positions", description = "Import correspondence current position data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importCorrespondenceCurrentPositions(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence current positions for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceCurrentPositions(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/correspondence-current-users/{docGuid}")
+    @Operation(summary = "Import Correspondence Current Users", description = "Import correspondence current user data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importCorrespondenceCurrentUsers(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence current users for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceCurrentUsers(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/correspondence-custom-fields/{docGuid}")
+    @Operation(summary = "Import Correspondence Custom Fields", description = "Import correspondence custom field data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importCorrespondenceCustomFields(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence custom fields for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceCustomFields(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/correspondence-links/{docGuid}")
+    @Operation(summary = "Import Correspondence Links", description = "Import correspondence link data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importCorrespondenceLinks(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence links for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceLinks(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/correspondence-send-tos/{docGuid}")
+    @Operation(summary = "Import Correspondence Send Tos", description = "Import correspondence send to data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importCorrespondenceSendTos(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence send tos for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceSendTos(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/correspondence-transactions/{docGuid}")
+    @Operation(summary = "Import Correspondence Transactions", description = "Import correspondence transaction data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importCorrespondenceTransactions(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import correspondence transactions for doc: {}", docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceTransactions(docGuid);
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/basic-entities")
+    @Operation(summary = "Import All Basic Entities", description = "Import all basic entity types from source API")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importBasicEntities() {
+        logger.info("Received request to import all basic entities");
         
-        // Import basic entities first
+        // Import all basic entities in logical order
         dataImportService.importClassifications();
         dataImportService.importContacts();
+        dataImportService.importDecisions();
+        dataImportService.importDepartments();
+        dataImportService.importForms();
+        dataImportService.importFormTypes();
+        dataImportService.importImportance();
+        dataImportService.importPositions();
+        dataImportService.importPosRoles();
+        dataImportService.importPriority();
+        dataImportService.importRoles();
+        dataImportService.importSecrecy();
+        dataImportService.importUserPositions();
+        dataImportService.importUsers();
         
-        // Then import correspondences
+        // Finally import correspondences
         ImportResponseDto response = dataImportService.importCorrespondences();
+        
+        return getResponseEntity(response);
+    }
+
+    @PostMapping("/all-correspondence-related/{docGuid}")
+    @Operation(summary = "Import All Correspondence Related Data", description = "Import all correspondence-related data for specific document")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importAllCorrespondenceRelated(
+            @Parameter(description = "Document GUID") @PathVariable String docGuid) {
+        logger.info("Received request to import all correspondence-related data for doc: {}", docGuid);
+        
+        // Import all correspondence-related entities
+        dataImportService.importCorrespondenceAttachments(docGuid);
+        dataImportService.importCorrespondenceComments(docGuid);
+        dataImportService.importCorrespondenceCopyTos(docGuid);
+        dataImportService.importCorrespondenceCurrentDepartments(docGuid);
+        dataImportService.importCorrespondenceCurrentPositions(docGuid);
+        dataImportService.importCorrespondenceCurrentUsers(docGuid);
+        dataImportService.importCorrespondenceCustomFields(docGuid);
+        dataImportService.importCorrespondenceLinks(docGuid);
+        dataImportService.importCorrespondenceSendTos(docGuid);
+        ImportResponseDto response = dataImportService.importCorrespondenceTransactions(docGuid);
         
         return getResponseEntity(response);
     }
