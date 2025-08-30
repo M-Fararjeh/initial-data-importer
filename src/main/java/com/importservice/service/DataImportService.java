@@ -270,6 +270,114 @@ public class DataImportService {
                             errors.add("Null User object received");
                             continue;
                         }
+                        // Check if record already exists
+                        if (classificationRepository.existsById(classification.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate classification: {}", classification.getGuid());
+                            continue;
+                        }
+                        
+                        // Check if record already exists
+                        if (contactRepository.existsById(contact.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate contact: {}", contact.getGuid());
+                            continue;
+                        }
+                        
+                        // Check if record already exists
+                        if (correspondenceAttachmentRepository.existsById(attachment.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate attachment: {}", attachment.getGuid());
+                            continue;
+                        }
+                        
+                        // Check if record already exists
+                        if (correspondenceCommentRepository.existsById(comment.getCommentGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate comment: {}", comment.getCommentGuid());
+                            continue;
+                        }
+                        // Check if record already exists by dep_guid and doc_guid combination
+                        if (correspondenceCurrentDepartmentRepository.existsByDocGuidAndDepGuid(docGuid, currentDept.getDepGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate current department: {} for doc: {}", 
+                                       currentDept.getDepGuid(), docGuid);
+                            continue;
+                        }
+                        
+                        
+                        if (decisionRepository.existsById(decision.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate decision: {}", decision.getGuid());
+                            continue;
+                        }
+                        
+                        if (departmentRepository.existsById(department.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate department: {}", department.getGuid());
+                            continue;
+                        }
+                        
+                        if (formTypeRepository.existsById(formType.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate form type: {}", formType.getGuid());
+                            continue;
+                        }
+                        
+                        if (roleRepository.existsById(role.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate role: {}", role.getGuid());
+                            continue;
+                        }
+                        
+                        if (userRepository.existsById(user.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate user: {}", user.getGuid());
+                            continue;
+                        }
+                        
+                        if (correspondenceCopyToRepository.existsById(copyTo.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate copy to: {}", copyTo.getGuid());
+                            continue;
+                        }
+                        
+                        if (correspondenceCurrentPositionRepository.existsById(currentPos.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate current position: {}", currentPos.getGuid());
+                            continue;
+                        }
+                        
+                        if (correspondenceCurrentUserRepository.existsById(currentUser.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate current user: {}", currentUser.getGuid());
+                            continue;
+                        }
+                        
+                        if (correspondenceCustomFieldRepository.existsById(customField.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate custom field: {}", customField.getGuid());
+                            continue;
+                        }
+                        
+                        if (correspondenceLinkRepository.existsById(link.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate link: {}", link.getGuid());
+                            continue;
+                        }
+                        
+                        if (correspondenceSendToRepository.existsById(sendTo.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate send to: {}", sendTo.getGuid());
+                            continue;
+                        }
+                        
+                        if (correspondenceTransactionRepository.existsById(transaction.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate transaction: {}", transaction.getGuid());
+                            continue;
+                        }
+                        
                         userRepository.save(user);
                         successfulImports++;
                         logger.debug("Successfully saved user: {}", user.getGuid());
@@ -286,8 +394,8 @@ public class DataImportService {
             }
 
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Users import completed. Success: %d, Failed: %d", 
-                                         successfulImports, failedImports);
+            String message = String.format("Users import completed. Success: %d, Failed: %d, Skipped: %d", 
+                                         successfulImports, failedImports, skippedDuplicates);
 
             return new ImportResponseDto(status, message, totalRecords, successfulImports, failedImports, errors);
 
@@ -608,11 +716,11 @@ public class DataImportService {
             }
             
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format(
-                "All correspondence-related data import completed for doc %s. Total: %d, Success: %d, Failed: %d", 
+            String message = String.format("Correspondence transactions import completed for doc %s. Success: %d, Failed: %d, Skipped: %d", 
+                                         docGuid, successfulImports, failedImports, skippedDuplicates);
                 docGuid, totalRecords, successfulImports, failedImports
             );
-            
+                                       response.getData() != null ? response.getData().size() : 0,
             return new ImportResponseDto(status, message, totalRecords, successfulImports, failedImports, errors);
             
         } catch (Exception e) {
@@ -933,6 +1041,13 @@ public class DataImportService {
                         correspondenceRepository.save(existingCorr);
                     } else {
                         // Insert new record
+                        // Check if record already exists
+                        if (correspondenceRepository.existsById(correspondence.getGuid())) {
+                            skippedDuplicates++;
+                            logger.debug("Skipping duplicate correspondence: {}", correspondence.getGuid());
+                            continue;
+                        }
+                        
                         correspondenceRepository.save(correspondence);
                     }
                     successfulImports++;
@@ -946,8 +1061,8 @@ public class DataImportService {
             }
 
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Correspondences import completed. Success: %d, Failed: %d", 
-                                         successfulImports, failedImports);
+            String message = String.format("Correspondences import completed. Success: %d, Failed: %d, Skipped: %d", 
+                                         successfulImports, failedImports, skippedDuplicates);
 
             return new ImportResponseDto(status, message, totalRecords, successfulImports, failedImports, errors);
 
