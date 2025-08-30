@@ -339,6 +339,102 @@ public class DataImportService {
                                              "CorrespondenceTransactions");
     }
 
+    public ImportResponseDto importAllCorrespondencesWithRelated() {
+        logger.info("Starting bulk import of all correspondences with related data");
+        
+        List<String> errors = new ArrayList<>();
+        int totalCorrespondences = 0;
+        int successfulCorrespondences = 0;
+        int failedCorrespondences = 0;
+        int totalRelatedEntities = 0;
+        int successfulRelatedEntities = 0;
+        int failedRelatedEntities = 0;
+        
+        try {
+            // Get all correspondences from database
+            List<Correspondence> correspondences = correspondenceRepository.findAll();
+            totalCorrespondences = correspondences.size();
+            
+            logger.info("Found {} correspondences in database to process", totalCorrespondences);
+            
+            if (correspondences.isEmpty()) {
+                return new ImportResponseDto("SUCCESS", 
+                    "No correspondences found in database. Import correspondences first.", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
+            for (Correspondence correspondence : correspondences) {
+                String docGuid = correspondence.getGuid();
+                logger.info("Processing correspondence: {} ({})", docGuid, correspondence.getSubject());
+                
+                try {
+                    // Import all related entities for this correspondence
+                    ImportResponseDto attachmentsResult = importCorrespondenceAttachments(docGuid);
+                    ImportResponseDto commentsResult = importCorrespondenceComments(docGuid);
+                    ImportResponseDto copyTosResult = importCorrespondenceCopyTos(docGuid);
+                    ImportResponseDto currentDepartmentsResult = importCorrespondenceCurrentDepartments(docGuid);
+                    ImportResponseDto currentPositionsResult = importCorrespondenceCurrentPositions(docGuid);
+                    ImportResponseDto currentUsersResult = importCorrespondenceCurrentUsers(docGuid);
+                    ImportResponseDto customFieldsResult = importCorrespondenceCustomFields(docGuid);
+                    ImportResponseDto linksResult = importCorrespondenceLinks(docGuid);
+                    ImportResponseDto sendTosResult = importCorrespondenceSendTos(docGuid);
+                    ImportResponseDto transactionsResult = importCorrespondenceTransactions(docGuid);
+                    
+                    // Aggregate results
+                    List<ImportResponseDto> results = List.of(
+                        attachmentsResult, commentsResult, copyTosResult, currentDepartmentsResult,
+                        currentPositionsResult, currentUsersResult, customFieldsResult, 
+                        linksResult, sendTosResult, transactionsResult
+                    );
+                    
+                    boolean correspondenceSuccess = true;
+                    for (ImportResponseDto result : results) {
+                        totalRelatedEntities += result.getTotalRecords();
+                        successfulRelatedEntities += result.getSuccessfulImports();
+                        failedRelatedEntities += result.getFailedImports();
+                        
+                        if ("ERROR".equals(result.getStatus())) {
+                            correspondenceSuccess = false;
+                            errors.addAll(result.getErrors());
+                        }
+                    }
+                    
+                    if (correspondenceSuccess) {
+                        successfulCorrespondences++;
+                        logger.info("Successfully processed all related data for correspondence: {}", docGuid);
+                    } else {
+                        failedCorrespondences++;
+                        errors.add("Failed to process some related data for correspondence: " + docGuid);
+                    }
+                    
+                } catch (Exception e) {
+                    failedCorrespondences++;
+                    String errorMsg = "Error processing correspondence " + docGuid + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            
+            String status = failedCorrespondences == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format(
+                "Bulk import completed. Correspondences processed: %d (Success: %d, Failed: %d). " +
+                "Related entities: %d (Success: %d, Failed: %d)", 
+                totalCorrespondences, successfulCorrespondences, failedCorrespondences,
+                totalRelatedEntities, successfulRelatedEntities, failedRelatedEntities
+            );
+            
+            return new ImportResponseDto(status, message, 
+                totalCorrespondences + totalRelatedEntities, 
+                successfulCorrespondences + successfulRelatedEntities, 
+                failedCorrespondences + failedRelatedEntities, 
+                errors);
+                
+        } catch (Exception e) {
+            logger.error("Failed to execute bulk correspondence import", e);
+            return createErrorResponse("Failed to execute bulk correspondence import: " + e.getMessage());
+        }
+    }
+
     private <T, ID> ImportResponseDto importGenericData(String endpoint, Class<T> entityClass, 
                                                        JpaRepository<T, ID> repository, String entityName) {
         List<String> errors = new ArrayList<>();
