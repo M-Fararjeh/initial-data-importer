@@ -488,42 +488,50 @@ public class DataImportService {
                     "No correspondences found in database. Import correspondences first.", 
                     0, 0, 0, new ArrayList<>());
             }
-            
-            for (Correspondence correspondence : correspondences) {
-                String docGuid = correspondence.getGuid();
-                logger.info("Processing correspondence: {} ({})", docGuid, correspondence.getSubject());
-                
-                try {
-                    // Import all related entities for this correspondence
-                    ImportResponseDto attachmentsResult = importCorrespondenceAttachments(docGuid);
-                    ImportResponseDto commentsResult = importCorrespondenceComments(docGuid);
-                    ImportResponseDto copyTosResult = importCorrespondenceCopyTos(docGuid);
-                    ImportResponseDto currentDepartmentsResult = importCorrespondenceCurrentDepartments(docGuid);
-                    ImportResponseDto currentPositionsResult = importCorrespondenceCurrentPositions(docGuid);
-                    ImportResponseDto currentUsersResult = importCorrespondenceCurrentUsers(docGuid);
-                    ImportResponseDto customFieldsResult = importCorrespondenceCustomFields(docGuid);
-                    ImportResponseDto linksResult = importCorrespondenceLinks(docGuid);
-                    ImportResponseDto sendTosResult = importCorrespondenceSendTos(docGuid);
-                    ImportResponseDto transactionsResult = importCorrespondenceTransactions(docGuid);
+                    ImportResponseDto attachmentsResult = importAndSaveCorrespondenceAttachments(docGuid);
+                    correspondenceSuccess &= processResult(attachmentsResult, "Attachments", docGuid, errors);
+                    updateCounters(attachmentsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
                     
-                    // Aggregate results
-                    List<ImportResponseDto> results = Arrays.asList(
-                        attachmentsResult, commentsResult, copyTosResult, currentDepartmentsResult,
-                        currentPositionsResult, currentUsersResult, customFieldsResult, 
-                        linksResult, sendTosResult, transactionsResult
-                    );
+                    ImportResponseDto commentsResult = importAndSaveCorrespondenceComments(docGuid);
+                    correspondenceSuccess &= processResult(commentsResult, "Comments", docGuid, errors);
+                    updateCounters(commentsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
                     
-                    boolean correspondenceSuccess = true;
-                    for (ImportResponseDto result : results) {
-                        totalRelatedEntities += result.getTotalRecords();
-                        successfulRelatedEntities += result.getSuccessfulImports();
-                        failedRelatedEntities += result.getFailedImports();
-                        
-                        if ("ERROR".equals(result.getStatus())) {
-                            correspondenceSuccess = false;
-                            errors.addAll(result.getErrors());
-                        }
-                    }
+                    ImportResponseDto copyTosResult = importAndSaveCorrespondenceCopyTos(docGuid);
+                    correspondenceSuccess &= processResult(copyTosResult, "CopyTos", docGuid, errors);
+                    updateCounters(copyTosResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+                    
+                    ImportResponseDto currentDepartmentsResult = importAndSaveCorrespondenceCurrentDepartments(docGuid);
+                    correspondenceSuccess &= processResult(currentDepartmentsResult, "CurrentDepartments", docGuid, errors);
+                    updateCounters(currentDepartmentsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+                    
+                    ImportResponseDto currentPositionsResult = importAndSaveCorrespondenceCurrentPositions(docGuid);
+                    correspondenceSuccess &= processResult(currentPositionsResult, "CurrentPositions", docGuid, errors);
+                    updateCounters(currentPositionsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+                    
+                    ImportResponseDto currentUsersResult = importAndSaveCorrespondenceCurrentUsers(docGuid);
+                    correspondenceSuccess &= processResult(currentUsersResult, "CurrentUsers", docGuid, errors);
+                    updateCounters(currentUsersResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+                    
+                    ImportResponseDto customFieldsResult = importAndSaveCorrespondenceCustomFields(docGuid);
+                    correspondenceSuccess &= processResult(customFieldsResult, "CustomFields", docGuid, errors);
+                    updateCounters(customFieldsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+                    
+                    ImportResponseDto linksResult = importAndSaveCorrespondenceLinks(docGuid);
+                    correspondenceSuccess &= processResult(linksResult, "Links", docGuid, errors);
+                    updateCounters(linksResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+                    
+                    ImportResponseDto sendTosResult = importAndSaveCorrespondenceSendTos(docGuid);
+                    correspondenceSuccess &= processResult(sendTosResult, "SendTos", docGuid, errors);
+                    updateCounters(sendTosResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+                    
+                    ImportResponseDto transactionsResult = importAndSaveCorrespondenceTransactions(docGuid);
+                    correspondenceSuccess &= processResult(transactionsResult, "Transactions", docGuid, errors);
+                    updateCounters(transactionsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+                    
+                    // Update global counters
+                    totalRelatedEntities += corrTotalRelated;
+                    successfulRelatedEntities += corrSuccessfulRelated;
+                    failedRelatedEntities += corrFailedRelated;
                     
                     if (correspondenceSuccess) {
                         successfulCorrespondences++;
