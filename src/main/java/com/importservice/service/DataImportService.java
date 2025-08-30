@@ -469,19 +469,16 @@ public class DataImportService {
         logger.info("Starting bulk import of all correspondences with related data");
         
         List<String> errors = new ArrayList<>();
-        int totalCorrespondences = 0;
-        int successfulCorrespondences = 0;
-        int failedCorrespondences = 0;
-        int totalRelatedEntities = 0;
-        int successfulRelatedEntities = 0;
-        int failedRelatedEntities = 0;
+        int totalRecords = 0;
+        int successfulImports = 0;
+        int failedImports = 0;
         
         try {
             // Get all correspondences from database
             List<Correspondence> correspondences = correspondenceRepository.findAll();
-            totalCorrespondences = correspondences.size();
+            totalRecords = correspondences.size();
             
-            logger.info("Found {} correspondences in database to process", totalCorrespondences);
+            logger.info("Found {} correspondences in database to process", totalRecords);
             
             if (correspondences.isEmpty()) {
                 return new ImportResponseDto("SUCCESS", 
@@ -494,66 +491,33 @@ public class DataImportService {
                 logger.info("Processing correspondence: {} ({})", docGuid, correspondence.getSubject());
                 
                 try {
-                    // Import all related entities for this correspondence
-                    ImportResponseDto attachmentsResult = importCorrespondenceAttachments(docGuid);
-                    ImportResponseDto commentsResult = importCorrespondenceComments(docGuid);
-                    ImportResponseDto copyTosResult = importCorrespondenceCopyTos(docGuid);
-                    ImportResponseDto currentDepartmentsResult = importCorrespondenceCurrentDepartments(docGuid);
-                    ImportResponseDto currentPositionsResult = importCorrespondenceCurrentPositions(docGuid);
-                    ImportResponseDto currentUsersResult = importCorrespondenceCurrentUsers(docGuid);
-                    ImportResponseDto customFieldsResult = importCorrespondenceCustomFields(docGuid);
-                    ImportResponseDto linksResult = importCorrespondenceLinks(docGuid);
-                    ImportResponseDto sendTosResult = importCorrespondenceSendTos(docGuid);
-                    ImportResponseDto transactionsResult = importCorrespondenceTransactions(docGuid);
+                    // Call the existing importAllCorrespondenceRelated method
+                    ImportResponseDto result = importAllCorrespondenceRelated(docGuid);
                     
-                    // Aggregate results
-                    List<ImportResponseDto> results = Arrays.asList(
-                        attachmentsResult, commentsResult, copyTosResult, currentDepartmentsResult,
-                        currentPositionsResult, currentUsersResult, customFieldsResult, 
-                        linksResult, sendTosResult, transactionsResult
-                    );
-                    
-                    boolean correspondenceSuccess = true;
-                    for (ImportResponseDto result : results) {
-                        totalRelatedEntities += result.getTotalRecords();
-                        successfulRelatedEntities += result.getSuccessfulImports();
-                        failedRelatedEntities += result.getFailedImports();
-                        
-                        if ("ERROR".equals(result.getStatus())) {
-                            correspondenceSuccess = false;
-                            errors.addAll(result.getErrors());
-                        }
-                    }
-                    
-                    if (correspondenceSuccess) {
-                        successfulCorrespondences++;
-                        logger.info("Successfully processed all related data for correspondence: {}", docGuid);
+                    if ("ERROR".equals(result.getStatus())) {
+                        failedImports++;
+                        errors.addAll(result.getErrors());
+                        logger.warn("Failed to import related data for correspondence: {}", docGuid);
                     } else {
-                        failedCorrespondences++;
-                        errors.add("Failed to process some related data for correspondence: " + docGuid);
+                        successfulImports++;
+                        logger.info("Successfully imported all related data for correspondence: {}", docGuid);
                     }
                     
                 } catch (Exception e) {
-                    failedCorrespondences++;
+                    failedImports++;
                     String errorMsg = "Error processing correspondence " + docGuid + ": " + e.getMessage();
                     errors.add(errorMsg);
                     logger.error(errorMsg, e);
                 }
             }
             
-            String status = failedCorrespondences == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
             String message = String.format(
-                "Bulk import completed. Correspondences processed: %d (Success: %d, Failed: %d). " +
-                "Related entities: %d (Success: %d, Failed: %d)", 
-                totalCorrespondences, successfulCorrespondences, failedCorrespondences,
-                totalRelatedEntities, successfulRelatedEntities, failedRelatedEntities
+                "Bulk import completed. Correspondences processed: %d (Success: %d, Failed: %d)", 
+                totalRecords, successfulImports, failedImports
             );
             
-            return new ImportResponseDto(status, message, 
-                totalCorrespondences + totalRelatedEntities, 
-                successfulCorrespondences + successfulRelatedEntities, 
-                failedCorrespondences + failedRelatedEntities, 
-                errors);
+            return new ImportResponseDto(status, message, totalRecords, successfulImports, failedImports, errors);
                 
         } catch (Exception e) {
             logger.error("Failed to execute bulk correspondence import", e);
