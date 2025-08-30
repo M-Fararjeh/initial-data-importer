@@ -14,8 +14,10 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
@@ -112,6 +114,17 @@ public class ExternalAgencyImportService {
             
             return response.getStatusCode().is2xxSuccessful();
             
+        } catch (HttpClientErrorException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                logger.error("Authentication failed for agency: {}. Please check the API token in application.properties", 
+                           agency.getLabelEn());
+                logger.error("Current token starts with: {}...", 
+                           authToken != null && authToken.length() > 10 ? authToken.substring(0, 10) : "null");
+            } else {
+                logger.error("HTTP error {} importing agency: {} - {}", 
+                           e.getStatusCode(), agency.getLabelEn(), e.getMessage());
+            }
+            return false;
         } catch (Exception e) {
             logger.error("Failed to import agency: " + agency.getLabelEn(), e);
             return false;

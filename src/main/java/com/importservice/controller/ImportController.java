@@ -11,8 +11,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/import")
@@ -59,4 +63,33 @@ public class ImportController {
             return ResponseEntity.status(500).body(errorResponse);
         }
     }
+
+    @GetMapping("/status")
+    @Operation(summary = "Get Import Service Status", 
+               description = "Returns the current status and configuration of the import service")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Status retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Object>> getImportStatus() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("service", "data-import-service");
+        status.put("status", "READY");
+        status.put("version", "1.0.0");
+        
+        // Add configuration info (without exposing sensitive data)
+        Map<String, Object> config = new HashMap<>();
+        config.put("hasDestinationUrl", destinationApiUrl != null && !destinationApiUrl.isEmpty());
+        config.put("hasAuthToken", authToken != null && !authToken.isEmpty());
+        status.put("configuration", config);
+        
+        return ResponseEntity.ok(status);
+    }
+
+    @Autowired
+    @Value("${destination.api.url}")
+    private String destinationApiUrl;
+
+    @Autowired
+    @Value("${destination.api.token}")
+    private String authToken;
 }
