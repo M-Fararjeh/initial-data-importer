@@ -20,7 +20,6 @@ public class CorrespondenceCurrentUser extends BaseEntity {
     @Column(name = "user_name", length = 2147483647)
     private String userName;
     
-    @Column(name = "import_status", length = 20)
     @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     

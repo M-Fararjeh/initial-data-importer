@@ -28,7 +28,6 @@ public class CorrespondenceLink extends BaseEntity {
     @Column(name = "link_type_local_name", length = 2147483647)
     private String linkTypeLocalName;
     
-    @Column(name = "import_status", length = 20)
     @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     

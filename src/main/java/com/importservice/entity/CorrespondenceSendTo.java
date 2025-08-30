@@ -32,7 +32,6 @@ public class CorrespondenceSendTo extends BaseEntity {
     @Column(name = "decision_guid", length = 2147483647)
     private String decisionGuid;
     
-    @Column(name = "import_status", length = 20)
     @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     

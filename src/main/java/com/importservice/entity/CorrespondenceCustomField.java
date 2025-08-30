@@ -68,7 +68,6 @@ public class CorrespondenceCustomField extends BaseEntity {
     @Column(name = "comdate", length = 2147483647)
     private String comdate;
     
-    @Column(name = "import_status", length = 20)
     @Column(name = "import_status", length = 2147483647)
     private String importStatus = "PENDING";
     
