@@ -418,6 +418,19 @@ public class DataImportController {
         return getResponseEntity(response);
     }
 
+    @PostMapping("/all-correspondences-with-related")
+    @Operation(summary = "Import All Correspondences with Related Data", 
+               description = "Retrieves all correspondences from database and imports all related entities for each")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> importAllCorrespondencesWithRelated() {
+        logger.info("Received request to import all correspondences with related data");
+        ImportResponseDto response = dataImportService.importAllCorrespondencesWithRelated();
+        return getResponseEntity(response);
+    }
     private ResponseEntity<ImportResponseDto> getResponseEntity(ImportResponseDto response) {
         if ("ERROR".equals(response.getStatus())) {
             return ResponseEntity.badRequest().body(response);
