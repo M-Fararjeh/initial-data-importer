@@ -491,12 +491,37 @@ public class DataImportService {
                 logger.info("Processing correspondence: {} ({})", docGuid, correspondence.getSubject());
                 
                 try {
-                    // Call the existing importAllCorrespondenceRelated method
-                    ImportResponseDto result = importAllCorrespondenceRelated(docGuid);
+                    // Import all correspondence-related entities for this document
+                    ImportResponseDto attachmentsResult = importCorrespondenceAttachments(docGuid);
+                    ImportResponseDto commentsResult = importCorrespondenceComments(docGuid);
+                    ImportResponseDto copyTosResult = importCorrespondenceCopyTos(docGuid);
+                    ImportResponseDto currentDepartmentsResult = importCorrespondenceCurrentDepartments(docGuid);
+                    ImportResponseDto currentPositionsResult = importCorrespondenceCurrentPositions(docGuid);
+                    ImportResponseDto currentUsersResult = importCorrespondenceCurrentUsers(docGuid);
+                    ImportResponseDto customFieldsResult = importCorrespondenceCustomFields(docGuid);
+                    ImportResponseDto linksResult = importCorrespondenceLinks(docGuid);
+                    ImportResponseDto sendTosResult = importCorrespondenceSendTos(docGuid);
+                    ImportResponseDto transactionsResult = importCorrespondenceTransactions(docGuid);
                     
-                    if ("ERROR".equals(result.getStatus())) {
+                    // Check if any of the imports failed
+                    List<ImportResponseDto> results = Arrays.asList(
+                        attachmentsResult, commentsResult, copyTosResult, currentDepartmentsResult,
+                        currentPositionsResult, currentUsersResult, customFieldsResult, 
+                        linksResult, sendTosResult, transactionsResult
+                    );
+                    
+                    boolean hasErrors = false;
+                    for (ImportResponseDto result : results) {
+                        if ("ERROR".equals(result.getStatus())) {
+                            hasErrors = true;
+                            if (result.getErrors() != null) {
+                                errors.addAll(result.getErrors());
+                            }
+                        }
+                    }
+                    
+                    if (hasErrors) {
                         failedImports++;
-                        errors.addAll(result.getErrors());
                         logger.warn("Failed to import related data for correspondence: {}", docGuid);
                     } else {
                         successfulImports++;
