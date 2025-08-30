@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -381,7 +383,7 @@ public class DataImportService {
                     ImportResponseDto transactionsResult = importCorrespondenceTransactions(docGuid);
                     
                     // Aggregate results
-                    List<ImportResponseDto> results = List.of(
+                    List<ImportResponseDto> results = Arrays.asList(
                         attachmentsResult, commentsResult, copyTosResult, currentDepartmentsResult,
                         currentPositionsResult, currentUsersResult, customFieldsResult, 
                         linksResult, sendTosResult, transactionsResult
@@ -431,7 +433,8 @@ public class DataImportService {
                 
         } catch (Exception e) {
             logger.error("Failed to execute bulk correspondence import", e);
-            return createErrorResponse("Failed to execute bulk correspondence import: " + e.getMessage());
+            return new ImportResponseDto("ERROR", "Failed to execute bulk correspondence import: " + e.getMessage(), 
+                0, 0, 0, Arrays.asList("Failed to execute bulk correspondence import: " + e.getMessage()));
         }
     }
 
@@ -613,7 +616,4 @@ public class DataImportService {
         return headers;
     }
 
-    private ImportResponseDto createErrorResponse(String message) {
-        return new ImportResponseDto("ERROR", message, 0, 0, 0, List.of(message));
-    }
 }
