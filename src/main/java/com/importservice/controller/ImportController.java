@@ -44,7 +44,7 @@ public class ImportController {
             errorResponse.setSuccessfulImports(0);
             errorResponse.setFailedImports(0);
             
-            return ResponseEntity.internalServerError().body(errorResponse);
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
 }
