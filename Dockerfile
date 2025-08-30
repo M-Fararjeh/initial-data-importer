@@ -25,4 +25,4 @@ RUN mkdir -p /app/logs
 EXPOSE 8080
 
 # Run the application
-CMD ["java", "-jar", "target/data-import-service-1.0.0.jar"]
+CMD ["java", "-Xms512m", "-Xmx2g", "-XX:+UseG1GC", "-XX:MaxGCPauseMillis=200", "-jar", "target/data-import-service-1.0.0.jar"]

@@ -468,57 +468,98 @@ public class DataImportService {
         logger.debug("Starting bulk import of all correspondences with related data");
         
         List<String> errors = new ArrayList<>();
-        int totalRecords = 0;
+        int totalProcessed = 0;
         int successfulImports = 0;
         int failedImports = 0;
         
+        // Pagination settings
+        int pageSize = 50; // Process 50 correspondences at a time
+        int pageNumber = 0;
+        boolean hasMoreData = true;
+        
         try {
-            // Get all correspondences from database
-            List<Correspondence> correspondences = correspondenceRepository.findAll();
-            totalRecords = correspondences.size();
+            logger.info("Starting paginated bulk import with page size: {}", pageSize);
             
-            logger.info("Found {} correspondences in database to process", totalRecords);
+            while (hasMoreData) {
+                // Get correspondences in batches using pagination
+                org.springframework.data.domain.Pageable pageable = 
+                    org.springframework.data.domain.PageRequest.of(pageNumber, pageSize);
+                org.springframework.data.domain.Page<Correspondence> page = 
+                    correspondenceRepository.findAll(pageable);
+                
+                List<Correspondence> correspondences = page.getContent();
+                hasMoreData = page.hasNext();
+                
+                if (correspondences.isEmpty()) {
+                    logger.info("No more correspondences found on page {}", pageNumber);
+                    break;
+                }
+                
+                logger.info("Processing page {} with {} correspondences (Total processed so far: {})", 
+                    pageNumber + 1, correspondences.size(), totalProcessed);
+                
+                // Process each correspondence in the current batch
+                for (Correspondence correspondence : correspondences) {
+                    String docGuid = correspondence.getGuid();
+                    logger.debug("Processing correspondence: {} ({})", docGuid, 
+                        correspondence.getSubject() != null ? correspondence.getSubject().substring(0, Math.min(50, correspondence.getSubject().length())) : "No subject");
+                    
+                    try {
+                        // Call the existing method that handles all related entities
+                        ImportResponseDto result = importAllCorrespondenceRelated(docGuid);
+                        
+                        if ("ERROR".equals(result.getStatus())) {
+                            failedImports++;
+                            if (result.getErrors() != null) {
+                                errors.addAll(result.getErrors());
+                            }
+                            logger.warn("Failed to import related data for correspondence: {} - {}", docGuid, result.getMessage());
+                        } else {
+                            successfulImports++;
+                            logger.debug("Successfully imported all related data for correspondence: {}", docGuid);
+                        }
+                        
+                        totalProcessed++;
+                        
+                        // Force garbage collection every 10 records to prevent memory buildup
+                        if (totalProcessed % 10 == 0) {
+                            System.gc();
+                            logger.debug("Processed {} correspondences, triggered garbage collection", totalProcessed);
+                        }
+                        
+                    } catch (Exception e) {
+                        failedImports++;
+                        totalProcessed++;
+                        String errorMsg = "Error processing correspondence " + docGuid + ": " + e.getMessage();
+                        errors.add(errorMsg);
+                        logger.error(errorMsg, e);
+                    }
+                }
+                
+                pageNumber++;
+                
+                // Add a small delay between pages to prevent overwhelming the system
+                try {
+                    Thread.sleep(100); // 100ms delay between pages
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    logger.warn("Thread interrupted during page processing delay");
+                }
+            }
             
-            if (correspondences.isEmpty()) {
+            if (totalProcessed == 0) {
                 return new ImportResponseDto("SUCCESS", 
                     "No correspondences found in database. Import correspondences first.", 
                     0, 0, 0, new ArrayList<>());
             }
             
-            for (Correspondence correspondence : correspondences) {
-                String docGuid = correspondence.getGuid();
-                logger.info("Processing correspondence: {} ({})", docGuid, correspondence.getSubject());
-                
-                try {
-                    // Call the helper method that handles all related entities
-                    ImportResponseDto result = importAllCorrespondenceRelated(docGuid);
-                    
-                    if ("ERROR".equals(result.getStatus()) || "PARTIAL_SUCCESS".equals(result.getStatus())) {
-                        failedImports++;
-                        if (result.getErrors() != null) {
-                            errors.addAll(result.getErrors());
-                        }
-                        logger.warn("Failed to import related data for correspondence: {} - {}", docGuid, result.getMessage());
-                    } else {
-                        successfulImports++;
-                        logger.debug("Successfully imported all related data for correspondence: {}", docGuid);
-                    }
-                    
-                } catch (Exception e) {
-                    failedImports++;
-                    String errorMsg = "Error processing correspondence " + docGuid + ": " + e.getMessage();
-                    errors.add(errorMsg);
-                    logger.error(errorMsg, e);
-                }
-            }
-            
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
             String message = String.format(
                 "Bulk import completed. Correspondences processed: %d (Success: %d, Failed: %d)", 
-                totalRecords, successfulImports, failedImports
+                totalProcessed, successfulImports, failedImports
             );
             
-            return new ImportResponseDto(status, message, totalRecords, successfulImports, failedImports, errors);
+            return new ImportResponseDto(status, message, totalProcessed, successfulImports, failedImports, errors);
                 
         } catch (Exception e) {
             logger.error("Failed to execute bulk correspondence import", e);
