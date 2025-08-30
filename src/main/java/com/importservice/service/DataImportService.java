@@ -200,13 +200,66 @@ public class DataImportService {
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public ImportResponseDto importUsers() {
         logger.info("Starting users import");
-        return importGenericData("/Users", User.class, userRepository, "Users");
+        return importUsersData();
     }
 
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     public ImportResponseDto importCorrespondences() {
         logger.info("Starting correspondences import");
         return importCorrespondenceData();
+    }
+
+    private ImportResponseDto importUsersData() {
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
+        int totalRecords = 0;
+
+        try {
+            String url = sourceApiBaseUrl + "/Users";
+            HttpHeaders headers = createHeaders();
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            
+            // Create specific TypeReference for Users
+            TypeReference<ApiResponseDto<User>> typeRef = new TypeReference<ApiResponseDto<User>>() {};
+            ApiResponseDto<User> apiResponse = objectMapper.readValue(response.getBody(), typeRef);
+
+            if (!apiResponse.getSuccess()) {
+                return new ImportResponseDto("ERROR", "API returned failure: " + apiResponse.getMessage(), 
+                    0, 0, 0, Arrays.asList("API returned failure: " + apiResponse.getMessage()));
+            }
+
+            List<User> users = apiResponse.getData();
+            totalRecords = users != null ? users.size() : 0;
+            logger.info("Found {} Users to import", totalRecords);
+
+            if (users != null) {
+                for (User user : users) {
+                    try {
+                        userRepository.save(user);
+                        successfulImports++;
+                        logger.debug("Successfully saved user: {}", user.getGuid());
+                    } catch (Exception e) {
+                        failedImports++;
+                        errors.add("Failed to save User " + user.getGuid() + ": " + e.getMessage());
+                        logger.error("Error saving User {}: {}", user.getGuid(), e.getMessage());
+                    }
+                }
+            }
+
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("Users import completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
+
+            return new ImportResponseDto(status, message, totalRecords, successfulImports, failedImports, errors);
+
+        } catch (Exception e) {
+            logger.error("Failed to import Users", e);
+            return new ImportResponseDto("ERROR", "Failed to import Users: " + e.getMessage(), 
+                0, 0, 0, Arrays.asList("Failed to import Users: " + e.getMessage()));
+        }
     }
 
     // Correspondence-related import methods
