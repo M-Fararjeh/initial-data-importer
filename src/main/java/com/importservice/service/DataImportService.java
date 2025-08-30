@@ -795,11 +795,11 @@ public class DataImportService {
                     // Special handling for CorrespondenceAttachment with large file data
                     if (entityData instanceof CorrespondenceAttachment) {
                         CorrespondenceAttachment attachment = (CorrespondenceAttachment) entityData;
-                        if (attachment.getFileData() != null && attachment.getFileData().length() > 50_000_000) { // 50MB
+                        if (attachment.getFileData() != null && attachment.getFileData().length() > 200_000_000) { // 200MB
                             logger.warn("Skipping attachment {} due to large file size: {} bytes", 
                                       attachment.getGuid(), attachment.getFileData().length());
                             attachment.setFileData(null);
-                            attachment.setFileDataErrorMessage("File too large for import (>50MB)");
+                            attachment.setFileDataErrorMessage("File too large for import (>200MB)");
                         }
                     }
                     
