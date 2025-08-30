@@ -465,6 +465,7 @@ public class DataImportService {
     }
 
     @Transactional(timeout = 600, readOnly = true)
+    @Transactional(timeout = 600)
     public ImportResponseDto importAllCorrespondencesWithRelated() {
         logger.info("Starting bulk import of all correspondences with related data");
         
