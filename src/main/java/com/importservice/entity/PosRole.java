@@ -9,15 +9,15 @@ public class PosRole extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 2147483647)
+    @Column(name = "guid", length = 255)
     private String guid;
     
     @JsonProperty("RoleGUId")
-    @Column(name = "role_guid", length = 2147483647)
+    @Column(name = "role_guid", length = 255)
     private String roleGuid;
     
     @JsonProperty("PosGUId")
-    @Column(name = "pos_guid", length = 2147483647)
+    @Column(name = "pos_guid", length = 255)
     private String posGuid;
     
     // Constructors

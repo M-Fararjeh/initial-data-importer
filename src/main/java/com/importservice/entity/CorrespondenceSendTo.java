@@ -9,19 +9,19 @@ public class CorrespondenceSendTo extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 2147483647)
+    @Column(name = "guid", length = 255)
     private String guid;
     
     @JsonProperty("DocGUId")
-    @Column(name = "doc_guid", length = 2147483647)
+    @Column(name = "doc_guid", length = 255)
     private String docGuid;
     
     @JsonProperty("SendToGUId")
-    @Column(name = "send_to_guid", length = 2147483647)
+    @Column(name = "send_to_guid", length = 255)
     private String sendToGuid;
     
     @JsonProperty("SendToType")
-    @Column(name = "send_to_type", length = 2147483647)
+    @Column(name = "send_to_type", length = 255)
     private String sendToType;
     
     @JsonProperty("IsBCC")
@@ -29,10 +29,10 @@ public class CorrespondenceSendTo extends BaseEntity {
     private Boolean isBcc;
     
     @JsonProperty("DecisionGUId")
-    @Column(name = "decision_guid", length = 2147483647)
+    @Column(name = "decision_guid", length = 255)
     private String decisionGuid;
     
-    @Column(name = "import_status", length = 2147483647)
+    @Column(name = "import_status", length = 255)
     private String importStatus = "PENDING";
     
     // Constructors

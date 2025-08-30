@@ -10,11 +10,11 @@ public class CorrespondenceComment extends BaseEntity {
     
     @Id
     @JsonProperty("CommentGUId")
-    @Column(name = "comment_guid", length = 2147483647)
+    @Column(name = "comment_guid", length = 255)
     private String commentGuid;
     
     @JsonProperty("DocGUId")
-    @Column(name = "doc_guid", length = 2147483647)
+    @Column(name = "doc_guid", length = 255)
     private String docGuid;
     
     @JsonProperty("CreationDate")
@@ -26,19 +26,19 @@ public class CorrespondenceComment extends BaseEntity {
     private String comment;
     
     @JsonProperty("CommentType")
-    @Column(name = "comment_type", length = 2147483647)
+    @Column(name = "comment_type", length = 255)
     private String commentType;
     
     @JsonProperty("CreationUserGUId")
-    @Column(name = "creation_user_guid", length = 2147483647)
+    @Column(name = "creation_user_guid", length = 255)
     private String creationUserGuid;
     
     @JsonProperty("RoleGUId")
-    @Column(name = "role_guid", length = 2147483647)
+    @Column(name = "role_guid", length = 255)
     private String roleGuid;
     
     @JsonProperty("AttachmentCaption")
-    @Column(name = "attachment_caption", length = 2147483647)
+    @Column(name = "attachment_caption", length = 500)
     private String attachmentCaption;
     
     @JsonProperty("AttachmentFileData")
@@ -49,7 +49,7 @@ public class CorrespondenceComment extends BaseEntity {
     @Column(name = "attachment_file_data_error_message", columnDefinition = "TEXT")
     private String attachmentFileDataErrorMessage;
     
-    @Column(name = "import_status", length = 2147483647)
+    @Column(name = "import_status", length = 255)
     private String importStatus = "PENDING";
     
     // Constructors

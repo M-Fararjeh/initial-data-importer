@@ -9,27 +9,27 @@ public class Position extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 2147483647)
+    @Column(name = "guid", length = 255)
     private String guid;
     
     @JsonProperty("DepartmentGUId")
-    @Column(name = "department_guid", length = 2147483647)
+    @Column(name = "department_guid", length = 255)
     private String departmentGuid;
     
     @JsonProperty("EnglishPositionName")
-    @Column(name = "english_position_name", length = 2147483647)
+    @Column(name = "english_position_name", columnDefinition = "TEXT")
     private String englishPositionName;
     
     @JsonProperty("LocalPositionName")
-    @Column(name = "local_position_name", length = 2147483647)
+    @Column(name = "local_position_name", columnDefinition = "TEXT")
     private String localPositionName;
     
     @JsonProperty("EnglishPositionTitle")
-    @Column(name = "english_position_title", length = 2147483647)
+    @Column(name = "english_position_title", columnDefinition = "TEXT")
     private String englishPositionTitle;
     
     @JsonProperty("LocalPositionTitle")
-    @Column(name = "local_position_title", length = 2147483647)
+    @Column(name = "local_position_title", columnDefinition = "TEXT")
     private String localPositionTitle;
     
     @JsonProperty("IsManager")
@@ -41,19 +41,19 @@ public class Position extends BaseEntity {
     private Boolean isHidden;
     
     @JsonProperty("EnglishPrefix")
-    @Column(name = "english_prefix", length = 2147483647)
+    @Column(name = "english_prefix", length = 255)
     private String englishPrefix;
     
     @JsonProperty("EnglishSuffix")
-    @Column(name = "english_suffix", length = 2147483647)
+    @Column(name = "english_suffix", length = 255)
     private String englishSuffix;
     
     @JsonProperty("LocalPrefix")
-    @Column(name = "local_prefix", length = 2147483647)
+    @Column(name = "local_prefix", length = 255)
     private String localPrefix;
     
     @JsonProperty("LocalSuffix")
-    @Column(name = "local_suffix", length = 2147483647)
+    @Column(name = "local_suffix", length = 255)
     private String localSuffix;
     
     // Constructors

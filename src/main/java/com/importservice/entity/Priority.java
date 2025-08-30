@@ -13,11 +13,11 @@ public class Priority extends BaseEntity {
     private Integer id;
     
     @JsonProperty("EnglishName")
-    @Column(name = "english_name", length = 2147483647)
+    @Column(name = "english_name", columnDefinition = "TEXT")
     private String englishName;
     
     @JsonProperty("LocalName")
-    @Column(name = "local_name", length = 2147483647)
+    @Column(name = "local_name", columnDefinition = "TEXT")
     private String localName;
     
     @JsonProperty("Order")

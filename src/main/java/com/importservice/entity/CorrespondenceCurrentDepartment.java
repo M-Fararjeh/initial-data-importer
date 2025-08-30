@@ -12,13 +12,13 @@ public class CorrespondenceCurrentDepartment extends BaseEntity {
     private Long id;
     
     @JsonProperty("DepGUID")
-    @Column(name = "dep_guid", length = 2147483647)
+    @Column(name = "dep_guid", length = 255)
     private String depGuid;
     
-    @Column(name = "doc_guid", length = 2147483647)
+    @Column(name = "doc_guid", length = 255)
     private String docGuid;
     
-    @Column(name = "import_status", length = 2147483647)
+    @Column(name = "import_status", length = 255)
     private String importStatus = "PENDING";
     
     // Constructors

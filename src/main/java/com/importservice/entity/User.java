@@ -10,15 +10,15 @@ public class User extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 255)
     private String guid;
     
     @JsonProperty("LoginName")
-    @Column(name = "login_name", length = 2147483647)
+    @Column(name = "login_name", length = 500)
     private String loginName;
     
     @JsonProperty("CellPhonNumber")
-    @Column(name = "cell_phone_number", length = 2147483647)
+    @Column(name = "cell_phone_number", length = 50)
     private String cellPhoneNumber;
     
     @JsonProperty("Description")
@@ -26,43 +26,43 @@ public class User extends BaseEntity {
     private String description;
     
     @JsonProperty("EMail")
-    @Column(name = "email", length = 2147483647)
+    @Column(name = "email", length = 500)
     private String email;
     
     @JsonProperty("EnglishFirstName")
-    @Column(name = "english_first_name", length = 2147483647)
+    @Column(name = "english_first_name", length = 500)
     private String englishFirstName;
     
     @JsonProperty("EnglishFamilyName")
-    @Column(name = "english_family_name", length = 2147483647)
+    @Column(name = "english_family_name", length = 500)
     private String englishFamilyName;
     
     @JsonProperty("LocalFirstName")
-    @Column(name = "local_first_name", length = 2147483647)
+    @Column(name = "local_first_name", length = 500)
     private String localFirstName;
     
     @JsonProperty("LocalFamilyName")
-    @Column(name = "local_family_name", length = 2147483647)
+    @Column(name = "local_family_name", length = 500)
     private String localFamilyName;
     
     @JsonProperty("EnglishTitle")
-    @Column(name = "english_title", length = 2147483647)
+    @Column(name = "english_title", columnDefinition = "TEXT")
     private String englishTitle;
     
     @JsonProperty("EnglishLocalTitle")
-    @Column(name = "english_local_title", length = 2147483647)
+    @Column(name = "english_local_title", columnDefinition = "TEXT")
     private String englishLocalTitle;
     
     @JsonProperty("DisplayName")
-    @Column(name = "display_name", length = 2147483647)
+    @Column(name = "display_name", length = 500)
     private String displayName;
     
     @JsonProperty("UserCode")
-    @Column(name = "user_code", length = 2147483647)
+    @Column(name = "user_code", length = 255)
     private String userCode;
     
     @JsonProperty("NickName")
-    @Column(name = "nick_name", length = 2147483647)
+    @Column(name = "nick_name", length = 255)
     private String nickName;
     
     @JsonProperty("Notes")

@@ -10,7 +10,7 @@ public class Correspondence extends BaseEntity {
     
     @Id
     @JsonProperty("GUId")
-    @Column(name = "guid", length = 36)
+    @Column(name = "guid", length = 255)
     private String guid;
     
     @JsonProperty("SystemNo")
@@ -18,7 +18,7 @@ public class Correspondence extends BaseEntity {
     private Integer systemNo;
     
     @JsonProperty("SerialNumber")
-    @Column(name = "serial_number", length = 2147483647)
+    @Column(name = "serial_number", length = 500)
     private String serialNumber;
     
     @JsonProperty("DbCreationDate")
@@ -46,11 +46,11 @@ public class Correspondence extends BaseEntity {
     private Integer correspondenceTypeId;
     
     @JsonProperty("CorrespondenceFormTypeGUId")
-    @Column(name = "correspondence_form_type_guid", length = 2147483647)
+    @Column(name = "correspondence_form_type_guid", length = 255)
     private String correspondenceFormTypeGuid;
     
     @JsonProperty("ClassificationGUId")
-    @Column(name = "classification_guid", length = 2147483647)
+    @Column(name = "classification_guid", length = 255)
     private String classificationGuid;
     
     @JsonProperty("Subject")
@@ -58,11 +58,11 @@ public class Correspondence extends BaseEntity {
     private String subject;
     
     @JsonProperty("ReferenceNo")
-    @Column(name = "reference_no", length = 2147483647)
+    @Column(name = "reference_no", length = 500)
     private String referenceNo;
     
     @JsonProperty("ExternalReferanceNumber")
-    @Column(name = "external_reference_number", length = 2147483647)
+    @Column(name = "external_reference_number", length = 500)
     private String externalReferenceNumber;
     
     @JsonProperty("Notes")
@@ -70,7 +70,7 @@ public class Correspondence extends BaseEntity {
     private String notes;
     
     @JsonProperty("ManualAttacmentsCount")
-    @Column(name = "manual_attachments_count", length = 2147483647)
+    @Column(name = "manual_attachments_count", columnDefinition = "TEXT")
     private String manualAttachmentsCount;
     
     @JsonProperty("ImportanceId")
@@ -86,19 +86,19 @@ public class Correspondence extends BaseEntity {
     private Integer secrecyId;
     
     @JsonProperty("NeedReplyStatus")
-    @Column(name = "need_reply_status", length = 2147483647)
+    @Column(name = "need_reply_status", length = 255)
     private String needReplyStatus;
     
     @JsonProperty("ComingFromGUId")
-    @Column(name = "coming_from_guid", length = 2147483647)
+    @Column(name = "coming_from_guid", length = 255)
     private String comingFromGuid;
     
     @JsonProperty("ComingFromType")
-    @Column(name = "coming_from_type", length = 2147483647)
+    @Column(name = "coming_from_type", length = 255)
     private String comingFromType;
     
     @JsonProperty("LastDecisionGUId")
-    @Column(name = "last_decision_guid", length = 2147483647)
+    @Column(name = "last_decision_guid", length = 255)
     private String lastDecisionGuid;
     
     @JsonProperty("IsDraft")
@@ -130,38 +130,38 @@ public class Correspondence extends BaseEntity {
     private Boolean isMigrated;
     
     @JsonProperty("ArchivedDocumentId")
-    @Column(name = "archived_document_id", length = 2147483647)
+    @Column(name = "archived_document_id", length = 500)
     private String archivedDocumentId;
     
     @JsonProperty("CreationUserName")
-    @Column(name = "creation_user_name", length = 2147483647)
+    @Column(name = "creation_user_name", length = 500)
     private String creationUserName;
     
     @JsonProperty("CreationUserGUId")
-    @Column(name = "creation_user_guid", length = 2147483647)
+    @Column(name = "creation_user_guid", length = 255)
     private String creationUserGuid;
     
     @JsonProperty("CreationPositionGUId")
-    @Column(name = "creation_position_guid", length = 2147483647)
+    @Column(name = "creation_position_guid", length = 255)
     private String creationPositionGuid;
     
     @JsonProperty("CreationDepartmentGUId")
-    @Column(name = "creation_department_guid", length = 2147483647)
+    @Column(name = "creation_department_guid", length = 255)
     private String creationDepartmentGuid;
     
     @JsonProperty("FromPositionGUId")
-    @Column(name = "from_position_guid", length = 2147483647)
+    @Column(name = "from_position_guid", length = 255)
     private String fromPositionGuid;
     
     @JsonProperty("FromDepartmentGUId")
-    @Column(name = "from_department_guid", length = 2147483647)
+    @Column(name = "from_department_guid", length = 255)
     private String fromDepartmentGuid;
     
     @JsonProperty("ToPositionGUId")
-    @Column(name = "to_position_guid", length = 2147483647)
+    @Column(name = "to_position_guid", length = 255)
     private String toPositionGuid;
     
-    @Column(name = "import_status", length = 2147483647)
+    @Column(name = "import_status", length = 255)
     private String importStatus = "PENDING";
     
     // Constructors
