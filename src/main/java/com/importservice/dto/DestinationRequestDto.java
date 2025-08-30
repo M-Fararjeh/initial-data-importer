@@ -13,8 +13,8 @@ public class DestinationRequestDto {
     private Map<String, Object> context;
 
     public DestinationRequestDto() {
-        this.params = new HashMap<String, Object>();
-        this.context = new HashMap<String, Object>();
+        this.params = new HashMap<>();
+        this.context = new HashMap<>();
     }
 
     public Map<String, Object> getParams() {

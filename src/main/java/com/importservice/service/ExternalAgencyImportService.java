@@ -20,7 +20,9 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ExternalAgencyImportService {
@@ -44,7 +46,7 @@ public class ExternalAgencyImportService {
     public ImportResponseDto importExternalAgencies() {
         logger.info("Starting external agencies import process");
         
-        List<String> errors = new ArrayList<String>();
+        List<String> errors = new ArrayList<>();
         int successfulImports = 0;
         int failedImports = 0;
         
@@ -79,8 +81,8 @@ public class ExternalAgencyImportService {
                                        
         } catch (IOException e) {
             logger.error("Failed to read external agencies JSON file", e);
-            errors.add("Failed to read JSON file: " + e.getMessage());
-            return new ImportResponseDto("ERROR", "Failed to read source data", 0, 0, 0, errors);
+            return new ImportResponseDto("ERROR", "Failed to read source data", 0, 0, 0, 
+                Collections.singletonList("Failed to read JSON file: " + e.getMessage()));
         }
     }
 

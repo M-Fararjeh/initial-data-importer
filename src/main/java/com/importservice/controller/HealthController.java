@@ -14,7 +14,7 @@ public class HealthController {
 
     @GetMapping
     public ResponseEntity<Map<String, String>> health() {
-        Map<String, String> response = new HashMap<String, String>();
+        Map<String, String> response = new HashMap<>();
         response.put("status", "UP");
         response.put("service", "data-import-service");
         response.put("version", "1.0.0");
