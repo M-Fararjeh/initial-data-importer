@@ -48,7 +48,7 @@ public class ExternalAgencyImportService {
     }
 
     public ImportResponseDto importExternalAgencies() {
-        logger.info("Starting external agencies import process");
+        logger.debug("Starting external agencies import process");
         
         List<String> errors = new ArrayList<>();
         int successfulImports = 0;
@@ -63,7 +63,7 @@ public class ExternalAgencyImportService {
                     boolean success = importSingleAgency(agency);
                     if (success) {
                         successfulImports++;
-                        logger.info("Successfully imported agency: {}", agency.getLabelEn());
+                        logger.debug("Successfully imported agency: {}", agency.getLabelEn());
                     } else {
                         failedImports++;
                         errors.add("Failed to import agency: " + agency.getLabelEn());
