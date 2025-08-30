@@ -488,50 +488,42 @@ public class DataImportService {
                     "No correspondences found in database. Import correspondences first.", 
                     0, 0, 0, new ArrayList<>());
             }
-                    ImportResponseDto attachmentsResult = importAndSaveCorrespondenceAttachments(docGuid);
-                    correspondenceSuccess &= processResult(attachmentsResult, "Attachments", docGuid, errors);
-                    updateCounters(attachmentsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+            
+            for (Correspondence correspondence : correspondences) {
+                String docGuid = correspondence.getGuid();
+                logger.info("Processing correspondence: {} ({})", docGuid, correspondence.getSubject());
+                
+                try {
+                    // Import all related entities for this correspondence
+                    ImportResponseDto attachmentsResult = importCorrespondenceAttachments(docGuid);
+                    ImportResponseDto commentsResult = importCorrespondenceComments(docGuid);
+                    ImportResponseDto copyTosResult = importCorrespondenceCopyTos(docGuid);
+                    ImportResponseDto currentDepartmentsResult = importCorrespondenceCurrentDepartments(docGuid);
+                    ImportResponseDto currentPositionsResult = importCorrespondenceCurrentPositions(docGuid);
+                    ImportResponseDto currentUsersResult = importCorrespondenceCurrentUsers(docGuid);
+                    ImportResponseDto customFieldsResult = importCorrespondenceCustomFields(docGuid);
+                    ImportResponseDto linksResult = importCorrespondenceLinks(docGuid);
+                    ImportResponseDto sendTosResult = importCorrespondenceSendTos(docGuid);
+                    ImportResponseDto transactionsResult = importCorrespondenceTransactions(docGuid);
                     
-                    ImportResponseDto commentsResult = importAndSaveCorrespondenceComments(docGuid);
-                    correspondenceSuccess &= processResult(commentsResult, "Comments", docGuid, errors);
-                    updateCounters(commentsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
+                    // Aggregate results
+                    List<ImportResponseDto> results = Arrays.asList(
+                        attachmentsResult, commentsResult, copyTosResult, currentDepartmentsResult,
+                        currentPositionsResult, currentUsersResult, customFieldsResult, 
+                        linksResult, sendTosResult, transactionsResult
+                    );
                     
-                    ImportResponseDto copyTosResult = importAndSaveCorrespondenceCopyTos(docGuid);
-                    correspondenceSuccess &= processResult(copyTosResult, "CopyTos", docGuid, errors);
-                    updateCounters(copyTosResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
-                    
-                    ImportResponseDto currentDepartmentsResult = importAndSaveCorrespondenceCurrentDepartments(docGuid);
-                    correspondenceSuccess &= processResult(currentDepartmentsResult, "CurrentDepartments", docGuid, errors);
-                    updateCounters(currentDepartmentsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
-                    
-                    ImportResponseDto currentPositionsResult = importAndSaveCorrespondenceCurrentPositions(docGuid);
-                    correspondenceSuccess &= processResult(currentPositionsResult, "CurrentPositions", docGuid, errors);
-                    updateCounters(currentPositionsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
-                    
-                    ImportResponseDto currentUsersResult = importAndSaveCorrespondenceCurrentUsers(docGuid);
-                    correspondenceSuccess &= processResult(currentUsersResult, "CurrentUsers", docGuid, errors);
-                    updateCounters(currentUsersResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
-                    
-                    ImportResponseDto customFieldsResult = importAndSaveCorrespondenceCustomFields(docGuid);
-                    correspondenceSuccess &= processResult(customFieldsResult, "CustomFields", docGuid, errors);
-                    updateCounters(customFieldsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
-                    
-                    ImportResponseDto linksResult = importAndSaveCorrespondenceLinks(docGuid);
-                    correspondenceSuccess &= processResult(linksResult, "Links", docGuid, errors);
-                    updateCounters(linksResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
-                    
-                    ImportResponseDto sendTosResult = importAndSaveCorrespondenceSendTos(docGuid);
-                    correspondenceSuccess &= processResult(sendTosResult, "SendTos", docGuid, errors);
-                    updateCounters(sendTosResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
-                    
-                    ImportResponseDto transactionsResult = importAndSaveCorrespondenceTransactions(docGuid);
-                    correspondenceSuccess &= processResult(transactionsResult, "Transactions", docGuid, errors);
-                    updateCounters(transactionsResult, corrTotalRelated, corrSuccessfulRelated, corrFailedRelated);
-                    
-                    // Update global counters
-                    totalRelatedEntities += corrTotalRelated;
-                    successfulRelatedEntities += corrSuccessfulRelated;
-                    failedRelatedEntities += corrFailedRelated;
+                    boolean correspondenceSuccess = true;
+                    for (ImportResponseDto result : results) {
+                        totalRelatedEntities += result.getTotalRecords();
+                        successfulRelatedEntities += result.getSuccessfulImports();
+                        failedRelatedEntities += result.getFailedImports();
+                        
+                        if ("ERROR".equals(result.getStatus())) {
+                            correspondenceSuccess = false;
+                            errors.addAll(result.getErrors());
+                        }
+                    }
                     
                     if (correspondenceSuccess) {
                         successfulCorrespondences++;
@@ -567,6 +559,50 @@ public class DataImportService {
             logger.error("Failed to execute bulk correspondence import", e);
             return new ImportResponseDto("ERROR", "Failed to execute bulk correspondence import: " + e.getMessage(), 
                 0, 0, 0, Arrays.asList("Failed to execute bulk correspondence import: " + e.getMessage()));
+        }
+    }
+
+    // Helper method to process import results
+    private boolean processResult(ImportResponseDto result, String entityType, String docGuid, List<String> errors) {
+        if ("ERROR".equals(result.getStatus())) {
+            errors.addAll(result.getErrors());
+            logger.warn("Failed to import {} for correspondence {}: {}", entityType, docGuid, result.getMessage());
+            return false;
+        } else {
+            logger.debug("Successfully imported {} {} for correspondence {}", 
+                result.getSuccessfulImports(), entityType, docGuid);
+            return true;
+        }
+    }
+    
+    // Helper method to update counters (simulating pass-by-reference)
+    private void updateCounters(ImportResponseDto result, int total, int successful, int failed) {
+        // Note: Java passes primitives by value, so we need to handle counter updates in the calling method
+        // This method is kept for potential future use with wrapper objects
+    }
+    
+    // Helper method to process related entities with individual error handling  
+    private boolean processRelatedEntitiesForCorrespondence(String docGuid, String entityType, 
+                                                           java.util.function.Supplier<ImportResponseDto> importFunction,
+                                                           List<String> errors) {
+        try {
+            logger.debug("Processing {} for correspondence: {}", entityType, docGuid);
+            ImportResponseDto result = importFunction.get();
+            
+            if ("ERROR".equals(result.getStatus())) {
+                errors.addAll(result.getErrors());
+                logger.warn("Failed to import {} for correspondence {}: {}", entityType, docGuid, result.getMessage());
+                return false;
+            } else {
+                logger.debug("Successfully imported {} {} for correspondence {}", 
+                    result.getSuccessfulImports(), entityType, docGuid);
+                return true;
+            }
+        } catch (Exception e) {
+            String errorMsg = "Exception importing " + entityType + " for correspondence " + docGuid + ": " + e.getMessage();
+            errors.add(errorMsg);
+            logger.error(errorMsg, e);
+            return false;
         }
     }
 
