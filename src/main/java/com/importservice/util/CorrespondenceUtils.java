@@ -23,12 +23,21 @@ public class CorrespondenceUtils {
             return "N";
         }
         
-        String result = switch (priorityId) {
-            case 1 -> "N";  // Normal
-            case 2 -> "H";  // Important
-            case 3 -> "C";  // High
-            default -> "N"; // Default to Normal
-        };
+        String result;
+        switch (priorityId) {
+            case 1:
+                result = "N";  // Normal
+                break;
+            case 2:
+                result = "H";  // Important
+                break;
+            case 3:
+                result = "C";  // High
+                break;
+            default:
+                result = "N"; // Default to Normal
+                break;
+        }
         
         logger.debug("Mapped priorityId {} to priority code '{}'", priorityId, result);
         return result;
@@ -46,12 +55,21 @@ public class CorrespondenceUtils {
             return "Normal";
         }
         
-        String result = switch (secrecyId) {
-            case 1 -> "Normal";
-            case 2 -> "Top_Secret";
-            case 3 -> "Secret";
-            default -> "Normal"; // Default to Normal
-        };
+        String result;
+        switch (secrecyId) {
+            case 1:
+                result = "Normal";
+                break;
+            case 2:
+                result = "Top_Secret";
+                break;
+            case 3:
+                result = "Secret";
+                break;
+            default:
+                result = "Normal"; // Default to Normal
+                break;
+        }
         
         logger.debug("Mapped secrecyId {} to secrecy level '{}'", secrecyId, result);
         return result;
@@ -86,15 +104,24 @@ public class CorrespondenceUtils {
             return "ForAdvice"; // Default action
         }
         
-        String result = switch (actionGuid.toLowerCase().trim()) {
-            case "5ed900bc-a5f1-41cd-8f4f-0f05b7ef67c2" -> "ForInformation";
-            case "11f24280-d287-42ee-a72a-1c91274cfa4a" -> "ForAdvice";
-            case "1225fe27-5841-48e6-a47b-4cc9d9770fa6" -> "Toproceed";
-            case "a93aa474-7a3a-4d9a-8c15-6a3bcd706b51" -> "ToTakeNeededAction";
-            case "5379d40a-2726-4372-ab80-9564586e0458" -> "FYI";
-            case "2fb05e63-896a-4c9b-a99f-bca4deccc6ac" -> "ForSaving";
-            default -> "ForAdvice"; // Default fallback
-        };
+        String result;
+        String lowerActionGuid = actionGuid.toLowerCase().trim();
+        
+        if ("5ed900bc-a5f1-41cd-8f4f-0f05b7ef67c2".equals(lowerActionGuid)) {
+            result = "ForInformation";
+        } else if ("11f24280-d287-42ee-a72a-1c91274cfa4a".equals(lowerActionGuid)) {
+            result = "ForAdvice";
+        } else if ("1225fe27-5841-48e6-a47b-4cc9d9770fa6".equals(lowerActionGuid)) {
+            result = "Toproceed";
+        } else if ("a93aa474-7a3a-4d9a-8c15-6a3bcd706b51".equals(lowerActionGuid)) {
+            result = "ToTakeNeededAction";
+        } else if ("5379d40a-2726-4372-ab80-9564586e0458".equals(lowerActionGuid)) {
+            result = "FYI";
+        } else if ("2fb05e63-896a-4c9b-a99f-bca4deccc6ac".equals(lowerActionGuid)) {
+            result = "ForSaving";
+        } else {
+            result = "ForAdvice"; // Default fallback
+        }
         
         logger.debug("Mapped actionGuid '{}' to action '{}'", actionGuid, result);
         return result;
@@ -112,18 +139,30 @@ public class CorrespondenceUtils {
             return "General"; // Default category
         }
         
-        String result = switch (categoryGuid.toLowerCase().trim()) {
-            case "01b1a89b-dff0-4040-878e-02c3fd4d7925" -> "AwardDecision";
-            case "06841b0a-f569-40c5-91d5-276c7f8c532b" -> "AccessPermit";
-            case "00a91759-734c-4be5-8a11-96e69dfae5a0" -> "WorkAssignment";
-            case "29f2cf7c-3a43-44cb-9ac7-b5570c760c60" -> "Promotion";
-            case "0bfa3e9c-682b-41c4-a275-ba395b52b0f7" -> "Circular";
-            case "26878084-7736-4935-88cb-d4312c2324f9" -> "Private";
-            case "87b623f9-eeeb-4829-8f8e-dc54d1fb242e" -> "PurchaseContract";
-            case "0d00ee38-b289-42a2-a3a9-e0d8421ac1c6" -> "General";
-            case "6dcc58c0-ebca-46b0-afb1-e96a4f1ebb7c" -> "PeriodicReport";
-            default -> "General"; // Default fallback
-        };
+        String result;
+        String lowerCategoryGuid = categoryGuid.toLowerCase().trim();
+        
+        if ("01b1a89b-dff0-4040-878e-02c3fd4d7925".equals(lowerCategoryGuid)) {
+            result = "AwardDecision";
+        } else if ("06841b0a-f569-40c5-91d5-276c7f8c532b".equals(lowerCategoryGuid)) {
+            result = "AccessPermit";
+        } else if ("00a91759-734c-4be5-8a11-96e69dfae5a0".equals(lowerCategoryGuid)) {
+            result = "WorkAssignment";
+        } else if ("29f2cf7c-3a43-44cb-9ac7-b5570c760c60".equals(lowerCategoryGuid)) {
+            result = "Promotion";
+        } else if ("0bfa3e9c-682b-41c4-a275-ba395b52b0f7".equals(lowerCategoryGuid)) {
+            result = "Circular";
+        } else if ("26878084-7736-4935-88cb-d4312c2324f9".equals(lowerCategoryGuid)) {
+            result = "Private";
+        } else if ("87b623f9-eeeb-4829-8f8e-dc54d1fb242e".equals(lowerCategoryGuid)) {
+            result = "PurchaseContract";
+        } else if ("0d00ee38-b289-42a2-a3a9-e0d8421ac1c6".equals(lowerCategoryGuid)) {
+            result = "General";
+        } else if ("6dcc58c0-ebca-46b0-afb1-e96a4f1ebb7c".equals(lowerCategoryGuid)) {
+            result = "PeriodicReport";
+        } else {
+            result = "General"; // Default fallback
+        }
         
         logger.debug("Mapped categoryGuid '{}' to category '{}'", categoryGuid, result);
         return result;
@@ -164,12 +203,21 @@ public class CorrespondenceUtils {
             return "UNKNOWN";
         }
         
-        String result = switch (fileType) {
-            case "Attachment" -> "ATTACHMENT";
-            case "TemplateOfficeFile" -> "OFFICE_TEMPLATE";
-            case "TemplatePdfFile" -> "PDF_TEMPLATE";
-            default -> "OTHER";
-        };
+        String result;
+        switch (fileType) {
+            case "Attachment":
+                result = "ATTACHMENT";
+                break;
+            case "TemplateOfficeFile":
+                result = "OFFICE_TEMPLATE";
+                break;
+            case "TemplatePdfFile":
+                result = "PDF_TEMPLATE";
+                break;
+            default:
+                result = "OTHER";
+                break;
+        }
         
         logger.debug("Mapped fileType '{}' to '{}'", fileType, result);
         return result;
@@ -237,16 +285,23 @@ public class CorrespondenceUtils {
         }
         
         String extension = extractFileExtension(fileName).toLowerCase();
-        String result = switch (extension) {
-            case "pdf" -> "Document";
-            case "jpg", "jpeg", "png", "gif", "bmp" -> "Image";
-            case "doc", "docx" -> "Document";
-            case "xls", "xlsx" -> "Document";
-            case "ppt", "pptx" -> "Document";
-            case "txt" -> "Document";
-            case "zip", "rar", "7z" -> "Archive";
-            default -> "Document";
-        };
+        String result;
+        
+        if ("pdf".equals(extension)) {
+            result = "Document";
+        } else if ("jpg".equals(extension) || "jpeg".equals(extension) || "png".equals(extension) || 
+                   "gif".equals(extension) || "bmp".equals(extension)) {
+            result = "Image";
+        } else if ("doc".equals(extension) || "docx".equals(extension) || 
+                   "xls".equals(extension) || "xlsx".equals(extension) || 
+                   "ppt".equals(extension) || "pptx".equals(extension) || 
+                   "txt".equals(extension)) {
+            result = "Document";
+        } else if ("zip".equals(extension) || "rar".equals(extension) || "7z".equals(extension)) {
+            result = "Archive";
+        } else {
+            result = "Document";
+        }
         
         logger.debug("Mapped fileName '{}' with extension '{}' to classification '{}'", fileName, extension, result);
         return result;
@@ -265,12 +320,21 @@ public class CorrespondenceUtils {
             return "MAIN";
         }
         
-        String result = switch (fileType) {
-            case "Attachment" -> "ATTACHMENT";
-            case "TemplateOfficeFile" -> "TEMPLATE";
-            case "TemplatePdfFile" -> "TEMPLATE";
-            default -> "ATTACHMENT";
-        };
+        String result;
+        switch (fileType) {
+            case "Attachment":
+                result = "ATTACHMENT";
+                break;
+            case "TemplateOfficeFile":
+                result = "TEMPLATE";
+                break;
+            case "TemplatePdfFile":
+                result = "TEMPLATE";
+                break;
+            default:
+                result = "ATTACHMENT";
+                break;
+        }
         
         logger.debug("Mapped non-primary fileType '{}' to category '{}'", fileType, result);
         return result;
@@ -289,16 +353,26 @@ public class CorrespondenceUtils {
         }
         
         String extension = extractFileExtension(fileName).toLowerCase();
-        String result = switch (extension) {
-            case "pdf" -> "PDF";
-            case "jpg", "jpeg", "png", "gif", "bmp" -> "IMAGE";
-            case "doc", "docx" -> "WORD";
-            case "xls", "xlsx" -> "EXCEL";
-            case "ppt", "pptx" -> "POWERPOINT";
-            case "txt" -> "TEXT";
-            case "zip", "rar", "7z" -> "ARCHIVE";
-            default -> "OTHER";
-        };
+        String result;
+        
+        if ("pdf".equals(extension)) {
+            result = "PDF";
+        } else if ("jpg".equals(extension) || "jpeg".equals(extension) || "png".equals(extension) || 
+                   "gif".equals(extension) || "bmp".equals(extension)) {
+            result = "IMAGE";
+        } else if ("doc".equals(extension) || "docx".equals(extension)) {
+            result = "WORD";
+        } else if ("xls".equals(extension) || "xlsx".equals(extension)) {
+            result = "EXCEL";
+        } else if ("ppt".equals(extension) || "pptx".equals(extension)) {
+            result = "POWERPOINT";
+        } else if ("txt".equals(extension)) {
+            result = "TEXT";
+        } else if ("zip".equals(extension) || "rar".equals(extension) || "7z".equals(extension)) {
+            result = "ARCHIVE";
+        } else {
+            result = "OTHER";
+        }
         
         logger.debug("Mapped fileName '{}' with extension '{}' to type '{}'", fileName, extension, result);
         return result;
@@ -317,24 +391,41 @@ public class CorrespondenceUtils {
         }
         
         String extension = extractFileExtension(fileName).toLowerCase();
-        String result = switch (extension) {
-            case "pdf" -> "application/pdf";
-            case "jpg", "jpeg" -> "image/jpeg";
-            case "png" -> "image/png";
-            case "gif" -> "image/gif";
-            case "bmp" -> "image/bmp";
-            case "doc" -> "application/msword";
-            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-            case "xls" -> "application/vnd.ms-excel";
-            case "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            case "ppt" -> "application/vnd.ms-powerpoint";
-            case "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-            case "txt" -> "text/plain";
-            case "zip" -> "application/zip";
-            case "rar" -> "application/x-rar-compressed";
-            case "7z" -> "application/x-7z-compressed";
-            default -> "application/octet-stream";
-        };
+        String result;
+        
+        if ("pdf".equals(extension)) {
+            result = "application/pdf";
+        } else if ("jpg".equals(extension) || "jpeg".equals(extension)) {
+            result = "image/jpeg";
+        } else if ("png".equals(extension)) {
+            result = "image/png";
+        } else if ("gif".equals(extension)) {
+            result = "image/gif";
+        } else if ("bmp".equals(extension)) {
+            result = "image/bmp";
+        } else if ("doc".equals(extension)) {
+            result = "application/msword";
+        } else if ("docx".equals(extension)) {
+            result = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        } else if ("xls".equals(extension)) {
+            result = "application/vnd.ms-excel";
+        } else if ("xlsx".equals(extension)) {
+            result = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        } else if ("ppt".equals(extension)) {
+            result = "application/vnd.ms-powerpoint";
+        } else if ("pptx".equals(extension)) {
+            result = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+        } else if ("txt".equals(extension)) {
+            result = "text/plain";
+        } else if ("zip".equals(extension)) {
+            result = "application/zip";
+        } else if ("rar".equals(extension)) {
+            result = "application/x-rar-compressed";
+        } else if ("7z".equals(extension)) {
+            result = "application/x-7z-compressed";
+        } else {
+            result = "application/octet-stream";
+        }
         
         logger.debug("Mapped fileName '{}' with extension '{}' to MIME type '{}'", fileName, extension, result);
         return result;
