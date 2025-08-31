@@ -27,6 +27,9 @@ public class UserImportService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserImportService.class);
 
+    @Value("${destination.api.url}")
+    private String destinationApiBaseUrl;
+
     @Value("${destination.api.token}")
     private String authToken;
 
@@ -103,7 +106,9 @@ public class UserImportService {
 
     private boolean createUser(UserImportDto user) {
         try {
-            String url = "http://18.206.121.44/nuxeo/api/v1/custom-automation/AC_UA_AddDomainUser";
+            // Extract base URL and construct the create user endpoint
+            String baseUrl = destinationApiBaseUrl.substring(0, destinationApiBaseUrl.lastIndexOf("/"));
+            String url = baseUrl + "/AC_UA_AddDomainUser";
             
             CreateUserRequestDto request = mapToCreateUserRequest(user);
             
@@ -133,7 +138,9 @@ public class UserImportService {
 
     private boolean assignUserToDepartmentAndRoles(UserImportDto user) {
         try {
-            String url = "http://18.206.121.44/nuxeo/api/v1/custom-automation/AC_UA_User_AddToDepartment";
+            // Extract base URL and construct the assign user endpoint
+            String baseUrl = destinationApiBaseUrl.substring(0, destinationApiBaseUrl.lastIndexOf("/"));
+            String url = baseUrl + "/AC_UA_User_AddToDepartment";
             
             AssignUserRequestDto request = mapToAssignUserRequest(user);
             
