@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subject, takeUntil } from 'rxjs';
+import { Subject, takeUntil, Observable } from 'rxjs';
 import { MigrationService, ImportResponse, MigrationStatistics } from '../../services/migration.service';
 
 export interface Phase {
@@ -161,7 +161,7 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
     }
     
     operation.subscribe({
-      next: (response) => {
+      next: (response: ImportResponse) => {
         this.isLoading = false;
         phase.lastResult = response;
         
@@ -175,7 +175,7 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
         
         this.loadStatistics();
       },
-      error: (error) => {
+      error: (error: any) => {
         this.isLoading = false;
         phase.status = 'error';
         console.error(`Error executing phase ${phase.name}:`, error);
@@ -191,12 +191,12 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     
     this.migrationService.retryFailed().subscribe({
-      next: (response) => {
+      next: (response: ImportResponse) => {
         this.isLoading = false;
         this.loadStatistics();
         console.log('Retry completed:', response);
       },
-      error: (error) => {
+      error: (error: any) => {
         this.isLoading = false;
         console.error('Error retrying failed migrations:', error);
       }
