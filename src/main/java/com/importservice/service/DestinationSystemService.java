@@ -24,6 +24,30 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.importservice.dto.AttachmentCreateRequest;
+import com.importservice.dto.BatchCreateResponse;
+import com.importservice.dto.IncomingCorrespondenceCreateRequest;
+import com.importservice.entity.CorrespondenceAttachment;
+import com.importservice.util.AttachmentUtils;
+import com.importservice.util.CorrespondenceUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
 @Service
 public class DestinationSystemService {
     

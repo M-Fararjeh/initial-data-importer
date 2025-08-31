@@ -202,7 +202,7 @@ public class IncomingCorrespondenceMigrationController {
         errorResponse.setTotalRecords(0);
         errorResponse.setSuccessfulImports(0);
         errorResponse.setFailedImports(0);
-        errorResponse.setErrors(Arrays.asList(errorMessage));
+        errorResponse.setErrors(java.util.Arrays.asList(errorMessage));
         return errorResponse;
     }
 }
