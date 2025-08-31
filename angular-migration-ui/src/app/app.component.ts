@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-root',
@@ -26,6 +26,10 @@ import { Component } from '@angular/core';
   `,
   styles: []
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'Incoming Correspondence Migration UI';
+  
+  ngOnInit(): void {
+    console.log('AppComponent initialized');
+  }
 }

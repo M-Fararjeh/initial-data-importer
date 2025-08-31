@@ -1,8 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, BehaviorSubject, of } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
 
 export interface ImportResponse {
   status: string;
@@ -36,20 +35,35 @@ export class MigrationService {
   public statistics$ = this.statisticsSubject.asObservable();
   
   constructor(private http: HttpClient) {
-    // Initialize statistics on service creation
-    this.refreshStatistics();
+    console.log('MigrationService initialized');
+    // Initialize with default statistics
+    this.statisticsSubject.next({
+      prepareData: 0,
+      creation: 0,
+      assignment: 0,
+      businessLog: 0,
+      comment: 0,
+      closing: 0,
+      completed: 0,
+      failed: 0,
+      inProgress: 0
+    });
   }
   
   // Phase execution methods
   prepareData(): Observable<ImportResponse> {
+    console.log('Calling prepareData API');
     return this.http.post<ImportResponse>(`${this.baseUrl}/prepare-data`, {})
       .pipe(
-        tap(() => this.refreshStatistics()),
-        catchError(error => {
+        tap((response) => {
+          console.log('PrepareData response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
           console.error('Error in prepareData:', error);
           return of({
             status: 'ERROR',
-            message: 'Failed to prepare data',
+            message: 'Failed to prepare data: ' + (error.message || 'Unknown error'),
             totalRecords: 0,
             successfulImports: 0,
             failedImports: 0,
@@ -60,14 +74,18 @@ export class MigrationService {
   }
   
   executeCreation(): Observable<ImportResponse> {
+    console.log('Calling executeCreation API');
     return this.http.post<ImportResponse>(`${this.baseUrl}/creation`, {})
       .pipe(
-        tap(() => this.refreshStatistics()),
-        catchError(error => {
+        tap((response) => {
+          console.log('ExecuteCreation response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
           console.error('Error in executeCreation:', error);
           return of({
             status: 'ERROR',
-            message: 'Failed to execute creation',
+            message: 'Failed to execute creation: ' + (error.message || 'Unknown error'),
             totalRecords: 0,
             successfulImports: 0,
             failedImports: 0,
@@ -78,14 +96,18 @@ export class MigrationService {
   }
   
   executeAssignment(): Observable<ImportResponse> {
+    console.log('Calling executeAssignment API');
     return this.http.post<ImportResponse>(`${this.baseUrl}/assignment`, {})
       .pipe(
-        tap(() => this.refreshStatistics()),
-        catchError(error => {
+        tap((response) => {
+          console.log('ExecuteAssignment response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
           console.error('Error in executeAssignment:', error);
           return of({
             status: 'ERROR',
-            message: 'Failed to execute assignment',
+            message: 'Failed to execute assignment: ' + (error.message || 'Unknown error'),
             totalRecords: 0,
             successfulImports: 0,
             failedImports: 0,
@@ -96,14 +118,18 @@ export class MigrationService {
   }
   
   executeBusinessLog(): Observable<ImportResponse> {
+    console.log('Calling executeBusinessLog API');
     return this.http.post<ImportResponse>(`${this.baseUrl}/business-log`, {})
       .pipe(
-        tap(() => this.refreshStatistics()),
-        catchError(error => {
+        tap((response) => {
+          console.log('ExecuteBusinessLog response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
           console.error('Error in executeBusinessLog:', error);
           return of({
             status: 'ERROR',
-            message: 'Failed to execute business log',
+            message: 'Failed to execute business log: ' + (error.message || 'Unknown error'),
             totalRecords: 0,
             successfulImports: 0,
             failedImports: 0,
@@ -114,14 +140,18 @@ export class MigrationService {
   }
   
   executeComment(): Observable<ImportResponse> {
+    console.log('Calling executeComment API');
     return this.http.post<ImportResponse>(`${this.baseUrl}/comment`, {})
       .pipe(
-        tap(() => this.refreshStatistics()),
-        catchError(error => {
+        tap((response) => {
+          console.log('ExecuteComment response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
           console.error('Error in executeComment:', error);
           return of({
             status: 'ERROR',
-            message: 'Failed to execute comment',
+            message: 'Failed to execute comment: ' + (error.message || 'Unknown error'),
             totalRecords: 0,
             successfulImports: 0,
             failedImports: 0,
@@ -132,14 +162,18 @@ export class MigrationService {
   }
   
   executeClosing(): Observable<ImportResponse> {
+    console.log('Calling executeClosing API');
     return this.http.post<ImportResponse>(`${this.baseUrl}/closing`, {})
       .pipe(
-        tap(() => this.refreshStatistics()),
-        catchError(error => {
+        tap((response) => {
+          console.log('ExecuteClosing response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
           console.error('Error in executeClosing:', error);
           return of({
             status: 'ERROR',
-            message: 'Failed to execute closing',
+            message: 'Failed to execute closing: ' + (error.message || 'Unknown error'),
             totalRecords: 0,
             successfulImports: 0,
             failedImports: 0,
@@ -150,14 +184,18 @@ export class MigrationService {
   }
   
   retryFailed(): Observable<ImportResponse> {
+    console.log('Calling retryFailed API');
     return this.http.post<ImportResponse>(`${this.baseUrl}/retry-failed`, {})
       .pipe(
-        tap(() => this.refreshStatistics()),
-        catchError(error => {
+        tap((response) => {
+          console.log('RetryFailed response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
           console.error('Error in retryFailed:', error);
           return of({
             status: 'ERROR',
-            message: 'Failed to retry failed migrations',
+            message: 'Failed to retry failed migrations: ' + (error.message || 'Unknown error'),
             totalRecords: 0,
             successfulImports: 0,
             failedImports: 0,
@@ -169,9 +207,11 @@ export class MigrationService {
   
   // Statistics methods
   getStatistics(): Observable<MigrationStatistics> {
+    console.log('Calling getStatistics API');
     return this.http.get<MigrationStatistics>(`${this.baseUrl}/statistics`)
       .pipe(
-        catchError(error => {
+        tap((stats) => console.log('Statistics response:', stats)),
+        catchError((error: HttpErrorResponse) => {
           console.error('Error getting statistics:', error);
           return of({
             prepareData: 0,
@@ -190,7 +230,10 @@ export class MigrationService {
   
   refreshStatistics(): void {
     this.getStatistics().subscribe({
-      next: (stats) => this.statisticsSubject.next(stats),
+      next: (stats) => {
+        console.log('Refreshed statistics:', stats);
+        this.statisticsSubject.next(stats);
+      },
       error: (error) => console.error('Error refreshing statistics:', error)
     });
   }

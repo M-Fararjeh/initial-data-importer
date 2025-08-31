@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subject, Observable } from 'rxjs';
+import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MigrationService, ImportResponse, MigrationStatistics } from '../../services/migration.service';
 
@@ -79,12 +79,14 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
   constructor(private migrationService: MigrationService) {}
   
   ngOnInit(): void {
+    console.log('MigrationDashboardComponent initialized');
     this.loadStatistics();
     
     // Subscribe to statistics updates
     this.migrationService.statistics$
       .pipe(takeUntil(this.destroy$))
       .subscribe(stats => {
+        console.log('Statistics updated:', stats);
         if (stats) {
           this.statistics = stats;
           this.updatePhaseStatistics(stats);
@@ -98,6 +100,7 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
   }
   
   loadStatistics(): void {
+    console.log('Loading statistics...');
     this.migrationService.refreshStatistics();
   }
   
@@ -131,10 +134,11 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
       return;
     }
     
+    console.log('Executing phase:', phase.name);
     this.isLoading = true;
     phase.status = 'running';
     
-    let operation: Observable<ImportResponse>;
+    let operation;
     
     switch (phase.id) {
       case 'prepare-data':
@@ -163,6 +167,7 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
     
     operation.subscribe({
       next: (response: ImportResponse) => {
+        console.log('Phase completed:', phase.name, response);
         this.isLoading = false;
         phase.lastResult = response;
         
@@ -177,9 +182,9 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
         this.loadStatistics();
       },
       error: (error: any) => {
+        console.error(`Error executing phase ${phase.name}:`, error);
         this.isLoading = false;
         phase.status = 'error';
-        console.error(`Error executing phase ${phase.name}:`, error);
       }
     });
   }
@@ -189,17 +194,18 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
       return;
     }
     
+    console.log('Retrying failed migrations...');
     this.isLoading = true;
     
     this.migrationService.retryFailed().subscribe({
       next: (response: ImportResponse) => {
+        console.log('Retry completed:', response);
         this.isLoading = false;
         this.loadStatistics();
-        console.log('Retry completed:', response);
       },
       error: (error: any) => {
-        this.isLoading = false;
         console.error('Error retrying failed migrations:', error);
+        this.isLoading = false;
       }
     });
   }
@@ -209,34 +215,13 @@ export class MigrationDashboardComponent implements OnInit, OnDestroy {
       return false;
     }
     
+    // First phase can always be executed
+    if (phase.order === 1) {
+      return true;
+    }
+    
     // Check if previous phases are completed
     const previousPhases = this.phases.filter(p => p.order < phase.order);
-    return previousPhases.every(p => p.status === 'completed') && phase.count > 0;
-  }
-  
-  getPhaseStatusClass(phase: Phase): string {
-    switch (phase.status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'running':
-        return 'bg-blue-100 text-blue-800';
-      case 'error':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  }
-  
-  getPhaseStatusIcon(phase: Phase): string {
-    switch (phase.status) {
-      case 'completed':
-        return '✓';
-      case 'running':
-        return '⟳';
-      case 'error':
-        return '✗';
-      default:
-        return '○';
-    }
+    return previousPhases.every(p => p.status === 'completed');
   }
 }
