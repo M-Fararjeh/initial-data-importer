@@ -1,5 +1,6 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 
 import { AppComponent } from './app.component';
@@ -17,7 +18,6 @@ import { MigrationService } from './services/migration.service';
   ],
   imports: [
     BrowserModule,
-    CommonModule,
     HttpClientModule
   ],
   providers: [
