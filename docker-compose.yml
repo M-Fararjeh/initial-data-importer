@@ -20,9 +20,6 @@ services:
       #- ./data/mysql-logs:/var/log/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
     command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-      --max-allowed-packet=200M
       --innodb-buffer-pool-size=1G
       --innodb-redo-log-capacity=512M
       --innodb-flush-log-at-trx-commit=2
@@ -31,11 +28,7 @@ services:
       --table-open-cache=4000
       --tmp-table-size=64M
       --max-heap-table-size=64M
-      --slow-query-log=1
-      --slow-query-log-file=/var/log/mysql/slow.log
-      --long-query-time=2
-      # الخيار التالي مُهمل لكنه شائع؛ إن أردته مؤقتًا:
-      # --default-authentication-plugin=mysql_native_password
+      --max-allowed-packet=200M
     entrypoint: ["/bin/sh","-c","mkdir -p /var/log/mysql && chown -R mysql:mysql /var/log/mysql && exec docker-entrypoint.sh mysqld"]
     networks:
       - data-import-network
@@ -45,25 +38,6 @@ services:
       retries: 10
       interval: 30s
       start_period: 40s
-
-  app:
-    build: .
-    container_name: data-import-app
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/data_import_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      SPRING_DATASOURCE_USERNAME: import_user
-      SPRING_DATASOURCE_PASSWORD: import_password123
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - data-import-network
-    volumes:
-      - app_logs:/app/logs
 
 volumes:
   mysql_data:
