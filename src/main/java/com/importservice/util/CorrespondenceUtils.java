@@ -127,4 +127,215 @@ public class CorrespondenceUtils {
         logger.debug("Mapped categoryGuid '{}' to category '{}'", categoryGuid, result);
         return result;
     }
+    
+    /**
+     * Determines the primary attachment from a list of attachments
+     * 
+     * @param attachments List of attachment data
+     * @return Primary attachment or null if none found
+     */
+    public static Object determinePrimaryAttachment(List<Object> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            logger.debug("No attachments provided");
+            return null;
+        }
+        
+        // Note: This method signature uses Object since SourceAttachmentDto.AttachmentData 
+        // is not defined in the current codebase. Adjust the type as needed.
+        logger.debug("Determining primary attachment from {} attachments", attachments.size());
+        
+        // Implementation would need to be adjusted based on actual attachment DTO structure
+        return attachments.stream()
+                .filter(attachment -> attachment != null)
+                .findFirst()
+                .orElse(null);
+    }
+    
+    /**
+     * Maps file type to standardized attachment file type
+     * 
+     * @param fileType The file type from source system
+     * @return Standardized file type for destination system
+     */
+    public static String mapAttachmentFileType(String fileType) {
+        if (fileType == null) {
+            logger.debug("Null fileType provided, returning 'UNKNOWN'");
+            return "UNKNOWN";
+        }
+        
+        String result = switch (fileType) {
+            case "Attachment" -> "ATTACHMENT";
+            case "TemplateOfficeFile" -> "OFFICE_TEMPLATE";
+            case "TemplatePdfFile" -> "PDF_TEMPLATE";
+            default -> "OTHER";
+        };
+        
+        logger.debug("Mapped fileType '{}' to '{}'", fileType, result);
+        return result;
+    }
+    
+    /**
+     * Extracts file extension from filename
+     * 
+     * @param fileName The filename to extract extension from
+     * @return File extension in lowercase, or empty string if none found
+     */
+    public static String extractFileExtension(String fileName) {
+        if (fileName == null || fileName.trim().isEmpty()) {
+            logger.debug("Null or empty fileName provided");
+            return "";
+        }
+        
+        int lastDotIndex = fileName.lastIndexOf('.');
+        if (lastDotIndex > 0 && lastDotIndex < fileName.length() - 1) {
+            String extension = fileName.substring(lastDotIndex + 1).toLowerCase();
+            logger.debug("Extracted extension '{}' from fileName '{}'", extension, fileName);
+            return extension;
+        }
+        
+        logger.debug("No extension found in fileName '{}'", fileName);
+        return "";
+    }
+    
+    /**
+     * Cleans filename by removing GUID prefix if present
+     * 
+     * @param fileName The filename to clean
+     * @return Cleaned filename without GUID prefix
+     */
+    public static String cleanFileName(String fileName) {
+        if (fileName == null || fileName.trim().isEmpty()) {
+            logger.debug("Null or empty fileName provided, returning default");
+            return "unnamed_file";
+        }
+        
+        // Remove GUID prefix if present (pattern: guid_filename)
+        String cleaned = fileName;
+        if (fileName.contains("_") && fileName.length() > 36) {
+            String[] parts = fileName.split("_", 2);
+            if (parts.length > 1 && parts[0].length() == 36) {
+                cleaned = parts[1];
+                logger.debug("Removed GUID prefix from fileName '{}', result: '{}'", fileName, cleaned);
+            }
+        }
+        
+        return cleaned;
+    }
+    
+    /**
+     * Maps attachment classification based on file type and name
+     * 
+     * @param fileType The file type from source system
+     * @param fileName The filename to analyze
+     * @return Classification for the attachment
+     */
+    public static String mapAttachmentClassification(String fileType, String fileName) {
+        if (fileName == null) {
+            logger.debug("Null fileName provided, returning default 'Document'");
+            return "Document";
+        }
+        
+        String extension = extractFileExtension(fileName).toLowerCase();
+        String result = switch (extension) {
+            case "pdf" -> "Document";
+            case "jpg", "jpeg", "png", "gif", "bmp" -> "Image";
+            case "doc", "docx" -> "Document";
+            case "xls", "xlsx" -> "Document";
+            case "ppt", "pptx" -> "Document";
+            case "txt" -> "Document";
+            case "zip", "rar", "7z" -> "Archive";
+            default -> "Document";
+        };
+        
+        logger.debug("Mapped fileName '{}' with extension '{}' to classification '{}'", fileName, extension, result);
+        return result;
+    }
+    
+    /**
+     * Maps attachment category based on primary status and file type
+     * 
+     * @param isPrimary Whether this is the primary attachment
+     * @param fileType The file type from source system
+     * @return Category for the attachment
+     */
+    public static String mapAttachmentCategory(boolean isPrimary, String fileType) {
+        if (isPrimary) {
+            logger.debug("Primary attachment detected, returning 'MAIN'");
+            return "MAIN";
+        }
+        
+        String result = switch (fileType) {
+            case "Attachment" -> "ATTACHMENT";
+            case "TemplateOfficeFile" -> "TEMPLATE";
+            case "TemplatePdfFile" -> "TEMPLATE";
+            default -> "ATTACHMENT";
+        };
+        
+        logger.debug("Mapped non-primary fileType '{}' to category '{}'", fileType, result);
+        return result;
+    }
+    
+    /**
+     * Maps attachment type based on filename extension
+     * 
+     * @param fileName The filename to analyze
+     * @return Attachment type based on file extension
+     */
+    public static String mapAttachmentType(String fileName) {
+        if (fileName == null) {
+            logger.debug("Null fileName provided, returning 'OTHER'");
+            return "OTHER";
+        }
+        
+        String extension = extractFileExtension(fileName).toLowerCase();
+        String result = switch (extension) {
+            case "pdf" -> "PDF";
+            case "jpg", "jpeg", "png", "gif", "bmp" -> "IMAGE";
+            case "doc", "docx" -> "WORD";
+            case "xls", "xlsx" -> "EXCEL";
+            case "ppt", "pptx" -> "POWERPOINT";
+            case "txt" -> "TEXT";
+            case "zip", "rar", "7z" -> "ARCHIVE";
+            default -> "OTHER";
+        };
+        
+        logger.debug("Mapped fileName '{}' with extension '{}' to type '{}'", fileName, extension, result);
+        return result;
+    }
+    
+    /**
+     * Gets MIME type based on filename extension
+     * 
+     * @param fileName The filename to analyze
+     * @return MIME type for the file
+     */
+    public static String getMimeType(String fileName) {
+        if (fileName == null) {
+            logger.debug("Null fileName provided, returning default MIME type");
+            return "application/octet-stream";
+        }
+        
+        String extension = extractFileExtension(fileName).toLowerCase();
+        String result = switch (extension) {
+            case "pdf" -> "application/pdf";
+            case "jpg", "jpeg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "gif" -> "image/gif";
+            case "bmp" -> "image/bmp";
+            case "doc" -> "application/msword";
+            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case "xls" -> "application/vnd.ms-excel";
+            case "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "ppt" -> "application/vnd.ms-powerpoint";
+            case "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            case "txt" -> "text/plain";
+            case "zip" -> "application/zip";
+            case "rar" -> "application/x-rar-compressed";
+            case "7z" -> "application/x-7z-compressed";
+            default -> "application/octet-stream";
+        };
+        
+        logger.debug("Mapped fileName '{}' with extension '{}' to MIME type '{}'", fileName, extension, result);
+        return result;
+    }
 }
