@@ -187,7 +187,7 @@ public class UserImportDto {
     }
     
     public boolean isCeoDepartment() {
-        return "CEO".equalsIgnoreCase(departmentCode);
+        return "COF".equalsIgnoreCase(departmentCode);
     }
     
     public String getUsernameFromEmail() {

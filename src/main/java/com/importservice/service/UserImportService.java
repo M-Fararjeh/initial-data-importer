@@ -176,8 +176,10 @@ public class UserImportService {
         request.setUsername(username);
         
         // Set phone number
-        request.setPhoneNumber(user.getMobileNumber());
-        
+        //TODO change to original
+        //request.setPhoneNumber(user.getMobileNumber());
+        request.setPhoneNumber("5456545");
+
         // Set email
         request.setEmail(user.getEmail());
         
