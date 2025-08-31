@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Subject, takeUntil, Observable } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { MigrationService, ImportResponse, MigrationStatistics } from '../../services/migration.service';
 
 export interface Phase {
