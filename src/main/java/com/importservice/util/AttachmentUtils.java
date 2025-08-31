@@ -4,6 +4,7 @@ import com.importservice.entity.CorrespondenceAttachment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -81,7 +82,7 @@ public class AttachmentUtils {
         
         List<CorrespondenceAttachment> nonPrimary = attachments.stream()
             .filter(attachment -> attachment != null)
-            .filter(attachment -> !attachment.getGuid().equals(primaryAttachment.getGuid()))
+                return new ArrayList<>();
             .collect(java.util.stream.Collectors.toList());
         
         logger.debug("Found {} non-primary attachments", nonPrimary.size());

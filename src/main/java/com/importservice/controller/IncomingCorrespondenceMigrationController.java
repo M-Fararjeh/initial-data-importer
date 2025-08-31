@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -179,7 +181,9 @@ public class IncomingCorrespondenceMigrationController {
             return ResponseEntity.ok(statistics);
         } catch (Exception e) {
             logger.error("Error getting migration statistics", e);
-            return ResponseEntity.status(500).body(Map.of("error", "Failed to get statistics: " + e.getMessage()));
+            Map<String, Object> errorMap = new HashMap<>();
+            errorMap.put("error", "Failed to get statistics: " + e.getMessage());
+            return ResponseEntity.status(500).body(errorMap);
         }
     }
     
@@ -198,7 +202,7 @@ public class IncomingCorrespondenceMigrationController {
         errorResponse.setTotalRecords(0);
         errorResponse.setSuccessfulImports(0);
         errorResponse.setFailedImports(0);
-        errorResponse.setErrors(List.of(errorMessage));
+        errorResponse.setErrors(Arrays.asList(errorMessage));
         return errorResponse;
     }
 }
