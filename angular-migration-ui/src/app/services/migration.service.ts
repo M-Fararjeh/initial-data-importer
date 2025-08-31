@@ -29,7 +29,7 @@ export interface MigrationStatistics {
 })
 export class MigrationService {
   
-  private baseUrl = 'http://localhost:8080/data-import/api/incoming-migration';
+  private baseUrl = 'http://localhost:8080/api/incoming-migration';
   
   private statisticsSubject = new BehaviorSubject<MigrationStatistics | null>(null);
   public statistics$ = this.statisticsSubject.asObservable();
