@@ -8,15 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import com.importservice.entity.CorrespondenceAttachment;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class AttachmentUtils {
     
@@ -86,108 +78,13 @@ public class AttachmentUtils {
         
         if (primaryAttachment == null) {
             logger.debug("No primary attachment specified, returning all attachments");
-            return attachments;
+            return new ArrayList<>(attachments);
         }
         
         List<CorrespondenceAttachment> nonPrimary = attachments.stream()
             .filter(attachment -> attachment != null)
             .filter(attachment -> !attachment.getGuid().equals(primaryAttachment.getGuid()))
-            .collect(java.util.stream.Collectors.toList());
-        
-        logger.debug("Found {} non-primary attachments", nonPrimary.size());
-        return nonPrimary;
-    }
-    
-    /**
-     * Generates a barcode for an attachment
-     * 
-     * @param attachmentGuid The attachment GUID
-     * @return Generated barcode
-     */
-    public static String generateAttachmentBarcode(String attachmentGuid) {
-        if (attachmentGuid == null || attachmentGuid.trim().isEmpty()) {
-            logger.debug("Null or empty attachmentGuid provided, generating random barcode");
-            return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-        }
-        
-        // Use the first 12 characters of the GUID (removing hyphens)
-        String barcode = attachmentGuid.replace("-", "").substring(0, 12);
-        logger.debug("Generated barcode '{}' for attachmentGuid '{}'", barcode, attachmentGuid);
-        return barcode;
-    }
-    
-    /**
-     * Validates if attachment has required data for upload
-     * 
-     * @param attachment The attachment to validate
-     * @return true if attachment is valid for upload
-     */
-    public static boolean isValidForUpload(CorrespondenceAttachment attachment) {
-        if (attachment == null) {
-            logger.debug("Null attachment provided");
-            return false;
-        }
-        
-        if (attachment.getFileData() == null || attachment.getFileData().trim().isEmpty()) {
-            logger.debug("Attachment {} has no file data", attachment.getGuid());
-            return false;
-        }
-        
-        if (attachment.getName() == null || attachment.getName().trim().isEmpty()) {
-            logger.debug("Attachment {} has no name", attachment.getGuid());
-            return false;
-        }
-        
-        logger.debug("Attachment {} is valid for upload", attachment.getGuid());
-        return true;
-    }
-    
-    /**
-     * Gets the clean file name for upload
-     * 
-     * @param originalName The original file name
-     * @param isPrimary Whether this is the primary attachment
-     * @return Clean file name suitable for upload
-     */
-    public static String getFileNameForUpload(String originalName, boolean isPrimary) {
-        if (originalName == null || originalName.trim().isEmpty()) {
-            return isPrimary ? "primary_document.pdf" : "attachment.pdf";
-        }
-        
-        String cleanName = CorrespondenceUtils.cleanFileName(originalName);
-        logger.debug("Cleaned file name from '{}' to '{}'", originalName, cleanName);
-        return cleanName;
-    }
-    
-    /**
-     * Determines if file data should be uploaded based on size and configuration
-     * 
-     * @param fileData The base64 file data
-     * @param fileName The file name
-     * @param isPrimary Whether this is the primary attachment
-     * @return The file data to upload or null if should be skipped
-     */
-    public static String getFileDataForUpload(String fileData, String fileName, boolean isPrimary) {
-        if (fileData == null || fileData.trim().isEmpty()) {
-            logger.debug("No file data provided for {}", fileName);
-            return null;
-        }
-        
-        // Check file size (base64 encoded size is roughly 4/3 of original)
-        long estimatedSize = (fileData.length() * 3) / 4;
-        long maxSize = 200_000_000; // 200MB
-        
-        if (estimatedSize > maxSize) {
-            logger.warn("File {} is too large ({} bytes), skipping upload", fileName, estimatedSize);
-            return null;
-        }
-        
-        logger.debug("File {} is valid for upload ({} bytes)", fileName, estimatedSize);
-        return fileData;
-    }
-}
-                return new ArrayList<>();
-            .collect(java.util.stream.Collectors.toList());
+            .collect(Collectors.toList());
         
         logger.debug("Found {} non-primary attachments", nonPrimary.size());
         return nonPrimary;
