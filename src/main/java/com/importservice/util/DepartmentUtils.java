@@ -6,6 +6,7 @@ import com.importservice.dto.DepartmentMappingDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -14,6 +15,16 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+
+import com.importservice.repository.UserRepository;
+import com.importservice.repository.UserPositionRepository;
+import com.importservice.repository.PositionRepository;
+import com.importservice.repository.DepartmentRepository;
+import com.importservice.entity.User;
+import com.importservice.entity.UserPosition;
+import com.importservice.entity.Position;
+import com.importservice.entity.Department;
 
 @Component
 public class DepartmentUtils {
@@ -23,6 +34,18 @@ public class DepartmentUtils {
     private static final Map<String, String> departmentMappings = new HashMap<>();
     
     private final ObjectMapper objectMapper;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private UserPositionRepository userPositionRepository;
+    
+    @Autowired
+    private PositionRepository positionRepository;
+    
+    @Autowired
+    private DepartmentRepository departmentRepository;
     
     public DepartmentUtils(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -113,5 +136,65 @@ public class DepartmentUtils {
      */
     public static int getMappingsCount() {
         return departmentMappings.size();
+    }
+    
+    /**
+     * Get department GUID by user email
+     * 
+     * @param userEmail The user email to look up
+     * @return The department GUID, or null if not found
+     */
+    public String getDepartmentGuidByUserEmail(String userEmail) {
+        if (userEmail == null || userEmail.trim().isEmpty()) {
+            logger.debug("Null or empty userEmail provided");
+            return null;
+        }
+        
+        try {
+            // Use native query for better performance
+            String departmentGuid = userRepository.findDepartmentGuidByUserEmail(userEmail.trim());
+            
+            if (departmentGuid == null) {
+                logger.debug("No department found for user email: {}", userEmail);
+            } else {
+                logger.debug("Found department GUID '{}' for user email: {}", departmentGuid, userEmail);
+            }
+            
+            return departmentGuid;
+            
+        } catch (Exception e) {
+            logger.error("Error getting department GUID by user email: {}", userEmail, e);
+            return null;
+        }
+    }
+    
+    /**
+     * Get department GUID by user GUID
+     * 
+     * @param userGuid The user GUID to look up
+     * @return The department GUID, or null if not found
+     */
+    public String getDepartmentGuidByUserGuid(String userGuid) {
+        if (userGuid == null || userGuid.trim().isEmpty()) {
+            logger.debug("Null or empty userGuid provided");
+            return null;
+        }
+        
+        try {
+            // Use native query for better performance
+            String departmentGuid = userRepository.findDepartmentGuidByUserGuid(userGuid.trim());
+            
+            if (departmentGuid == null) {
+                logger.debug("No department found for userGuid: {}", userGuid);
+            } else {
+                logger.debug("Found department GUID '{}' for userGuid: {}", departmentGuid, userGuid);
+            }
+            
+            return departmentGuid;
+            
+        } catch (Exception e) {
+            logger.error("Error getting department GUID by user GUID: {}", userGuid, e);
+            return null;
+        }
     }
 }
