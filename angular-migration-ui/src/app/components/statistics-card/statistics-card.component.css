@@ -1,0 +1,14 @@
+/* Statistics card hover effects */
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Number animation */
+.text-2xl {
+  transition: color 0.2s ease;
+}

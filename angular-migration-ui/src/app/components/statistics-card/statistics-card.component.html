@@ -1,0 +1,19 @@
+<div class="bg-white border rounded-lg shadow-sm p-6 transition-all duration-300 hover:shadow-md hover:scale-105"
+     [ngClass]="getColorClasses()">
+  
+  <div class="flex items-center">
+    <div class="flex-shrink-0">
+      <span class="text-3xl">{{ icon }}</span>
+    </div>
+    <div class="ml-4 flex-1">
+      <div class="flex items-baseline">
+        <p class="text-2xl font-bold" [ngClass]="getTextColorClass()">
+          {{ value | number }}
+        </p>
+      </div>
+      <p class="text-sm font-medium" [ngClass]="getSubtitleColorClass()">
+        {{ title }}
+      </p>
+    </div>
+  </div>
+</div>

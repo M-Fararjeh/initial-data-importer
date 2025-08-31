@@ -1,0 +1,70 @@
+<div class="space-y-6">
+  <!-- Header Section -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-xl font-semibold text-gray-900">Migration Progress</h2>
+        <p class="text-sm text-gray-600 mt-1">Execute migration phases in sequence</p>
+      </div>
+      <div class="flex space-x-3">
+        <button 
+          (click)="loadStatistics()"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+          [disabled]="isLoading">
+          <span class="mr-2">🔄</span>
+          Refresh
+        </button>
+        <button 
+          (click)="retryFailed()"
+          class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+          [disabled]="isLoading">
+          <span class="mr-2">⚠️</span>
+          Retry Failed
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Overview -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6" *ngIf="statistics">
+    <app-statistics-card 
+      title="Completed" 
+      [value]="statistics.completed" 
+      icon="✅" 
+      color="green">
+    </app-statistics-card>
+    <app-statistics-card 
+      title="In Progress" 
+      [value]="statistics.inProgress" 
+      icon="⏳" 
+      color="blue">
+    </app-statistics-card>
+    <app-statistics-card 
+      title="Failed" 
+      [value]="statistics.failed" 
+      icon="❌" 
+      color="red">
+    </app-statistics-card>
+  </div>
+
+  <!-- Migration Phases -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <app-phase-card 
+      *ngFor="let phase of phases" 
+      [phase]="phase"
+      [canExecute]="canExecutePhase(phase)"
+      [isLoading]="isLoading"
+      (execute)="executePhase(phase)">
+    </app-phase-card>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div *ngIf="isLoading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+      <div class="flex items-center space-x-3">
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+        <span class="text-gray-900 font-medium">Processing migration phase...</span>
+      </div>
+    </div>
+  </div>
+</div>
