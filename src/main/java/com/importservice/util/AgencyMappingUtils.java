@@ -2,7 +2,7 @@ package com.importservice.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.importservice.dto.ExternalAgencyDto;
+import com.importservice.dto.AgencyMappingDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -29,39 +29,42 @@ public class AgencyMappingUtils {
      * Loads agency mappings from externalAgencies.json
      */
     private static void loadAgencyMappings() {
-        logger.info("Loading agency mappings from externalAgencies.json");
+        logger.info("Loading agency mappings from agency mapping.json");
         
         try {
-            ClassPathResource resource = new ClassPathResource("externalAgencies.json");
+            ClassPathResource resource = new ClassPathResource("agency mapping.json");
             InputStream inputStream = resource.getInputStream();
             
-            TypeReference<List<ExternalAgencyDto>> typeReference = 
-                new TypeReference<List<ExternalAgencyDto>>() {};
+            TypeReference<List<AgencyMappingDto>> typeReference = 
+                new TypeReference<List<AgencyMappingDto>>() {};
             
-            List<ExternalAgencyDto> agencies = objectMapper.readValue(inputStream, typeReference);
+            List<AgencyMappingDto> agencies = objectMapper.readValue(inputStream, typeReference);
             
             // Clear existing mappings and populate with new data
             agencyMappings.clear();
             
-            for (ExternalAgencyDto agency : agencies) {
-                if (agency.getId() != null) {
-                    // Map both ID and formatted ID to agency code
-                    String agencyCode = "out" + agency.getId();
-                    agencyMappings.put(agency.getId().toString(), agencyCode);
-                    agencyMappings.put(String.format("%03d", agency.getId()), agencyCode);
+            for (AgencyMappingDto agency : agencies) {
+                if (agency.getAgencyGuid() != null && agency.getAgencyCode() != null) {
+                    // Format agency code to 3 digits with leading zeros
+                    String formattedAgencyCode = String.format("%03d", agency.getAgencyCode());
                     
-                    logger.debug("Loaded agency mapping: {} -> {}", agency.getId(), agencyCode);
+                    // Map agency GUID to formatted agency code
+                    agencyMappings.put(agency.getAgencyGuid(), formattedAgencyCode);
+                    
+                    logger.debug("Loaded agency mapping: {} -> {}", agency.getAgencyGuid(), formattedAgencyCode);
+                } else {
+                    logger.warn("Skipping invalid agency mapping: AgencyGUID={}, AgencyCode={}", 
+                              agency.getAgencyGuid(), agency.getAgencyCode());
                 }
             }
             
             logger.info("Successfully loaded {} agency mappings", agencyMappings.size());
             
         } catch (IOException e) {
-            logger.error("Failed to load agency mappings from externalAgencies.json", e);
+            logger.error("Failed to load agency mappings from agency mapping.json", e);
             // Add some default mappings as fallback
-            agencyMappings.put("1", "out1");
-            agencyMappings.put("2", "out2");
-            agencyMappings.put("3", "out3");
+            agencyMappings.put("1a47e08f-b054-4eee-b426-d6c8fbb997a3", "001");
+            logger.warn("Using fallback agency mappings due to file loading error");
         }
     }
     
@@ -85,24 +88,8 @@ public class AgencyMappingUtils {
             return agencyCode;
         }
         
-        // Try to extract numeric ID from GUID and lookup
-        try {
-            // If the GUID contains numeric characters, try to extract them
-            String numericPart = agencyGuid.replaceAll("[^0-9]", "");
-            if (!numericPart.isEmpty()) {
-                agencyCode = agencyMappings.get(numericPart);
-                if (agencyCode != null) {
-                    logger.debug("Found agency code '{}' for extracted numeric part '{}' from agencyGuid '{}'", 
-                               agencyCode, numericPart, agencyGuid);
-                    return agencyCode;
-                }
-            }
-        } catch (Exception e) {
-            logger.debug("Error extracting numeric part from agencyGuid: {}", agencyGuid, e);
-        }
-        
-        logger.debug("No agency code found for agencyGuid '{}', returning default 'out1'", agencyGuid);
-        return "out1"; // Default fallback
+        logger.debug("No agency code found for agencyGuid '{}', returning default '001'", agencyGuid);
+        return "001"; // Default fallback
     }
     
     /**
