@@ -147,45 +147,6 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     this.loadAssignmentMigrations();
   }
   
-  // Keep this method for any remaining client-side filtering needs
-  applyClientSideFilters(): void {
-    // This method is now primarily used for selection management
-    // since filtering is done on the backend
-    this.filteredAssignments = [...this.assignments];
-    this.clearSelection();
-  }
-  
-  // Remove the old client-side filtering logic since it's now done on backend
-  /*
-  applyClientSideFilters(): void {
-    let filtered = [...this.assignments];
-    
-    // Status filter
-    if (this.statusFilter !== 'all') {
-      filtered = filtered.filter(a => a.migrateStatus === this.statusFilter);
-    }
-    
-    // Search filter
-    if (this.searchTerm.trim()) {
-      const term = this.searchTerm.toLowerCase();
-      filtered = filtered.filter(a => 
-        a.correspondenceGuid.toLowerCase().includes(term) ||
-        a.transactionGuid.toLowerCase().includes(term) ||
-        (a.correspondenceSubject && a.correspondenceSubject.toLowerCase().includes(term)) ||
-        (a.correspondenceReferenceNo && a.correspondenceReferenceNo.toLowerCase().includes(term)) ||
-        (a.fromUserName && a.fromUserName.toLowerCase().includes(term)) ||
-        (a.toUserName && a.toUserName.toLowerCase().includes(term))
-      );
-    }
-    
-    this.filteredAssignments = filtered;
-    this.clearSelection();
-  
-  getPaginatedAssignments(): AssignmentMigration[] {
-    // Since we're using server-side pagination, return filtered results directly
-    return this.filteredAssignments;
-  }
-  
   toggleSelection(assignment: AssignmentMigration): void {
     assignment.selected = !assignment.selected;
     this.updateSelectedAssignments();
@@ -199,9 +160,8 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
   
   updateSelectedAssignments(): void {
     this.selectedAssignments = this.assignments.filter(a => a.selected);
-    const currentPageAssignments = this.getPaginatedAssignments();
-    this.allSelected = currentPageAssignments.length > 0 && 
-                      currentPageAssignments.every(a => a.selected);
+    this.allSelected = this.filteredAssignments.length > 0 && 
+                      this.filteredAssignments.every(a => a.selected);
   }
   
   clearSelection(): void {
@@ -283,6 +243,15 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     this.executeAssignmentForSingle(assignment);
   }
   
+  trackByGuid(index: number, item: AssignmentMigration): string {
+    return item.transactionGuid;
+  }
+  
+  truncateText(text: string, maxLength: number = 50): string {
+    if (!text) return '-';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+  }
+  
   getStatusIcon(status: string): string {
     switch (status) {
       case 'SUCCESS':
@@ -344,8 +313,3 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     return pages;
   }
   
-  trackByGuid(index: number, item: AssignmentMigration): string {
-    return item.transactionGuid;
-  }
-}
-}
