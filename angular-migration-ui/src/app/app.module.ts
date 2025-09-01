@@ -25,7 +25,7 @@ const routes: Routes = [
     MigrationDashboardComponent,
     PhaseCardComponent,
     StatisticsCardComponent,
-    CreationDetailsComponent
+    CreationDetailsComponent,
     AssignmentDetailsComponent
   ],
   imports: [
