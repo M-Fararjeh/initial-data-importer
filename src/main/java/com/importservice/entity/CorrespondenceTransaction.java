@@ -103,6 +103,9 @@ public class CorrespondenceTransaction extends BaseEntity {
     @Column(name = "import_status", length = 255)
     private String importStatus = "PENDING";
     
+    @Column(name = "retry_count")
+    private Integer retryCount = 0;
+    
     // Constructors
     public CorrespondenceTransaction() {}
     
@@ -297,5 +300,13 @@ public class CorrespondenceTransaction extends BaseEntity {
     
     public void setMigrateStatus(String migrateStatus) {
         this.migrateStatus = migrateStatus;
+    }
+    
+    public Integer getRetryCount() {
+        return retryCount;
+    }
+    
+    public void setRetryCount(Integer retryCount) {
+        this.retryCount = retryCount;
     }
 }
