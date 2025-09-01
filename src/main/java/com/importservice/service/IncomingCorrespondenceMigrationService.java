@@ -718,15 +718,267 @@ public class IncomingCorrespondenceMigrationService {
     }
     
     /**
-     * Phase 6: Closing (Placeholder)
+     * Execute closing phase for correspondences that need to be closed
      */
     @Transactional
     public ImportResponseDto executeClosingPhase() {
-        logger.info("Starting Phase 6: Closing");
+        logger.info("Starting closing phase execution");
         
-        // Placeholder implementation
-        return new ImportResponseDto("SUCCESS", "Closing phase not yet implemented", 
-            0, 0, 0, new ArrayList<>());
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
+        
+        try {
+            // Get all migrations that need to be closed and have created document IDs
+            List<IncomingCorrespondenceMigration> migrationsToClose = migrationRepository
+                .findByIsNeedToCloseAndCreatedDocumentIdIsNotNull(true);
+            
+            logger.info("Found {} correspondences that need to be closed", migrationsToClose.size());
+            
+            if (migrationsToClose.isEmpty()) {
+                return new ImportResponseDto("SUCCESS", "No correspondences need to be closed", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
+            for (IncomingCorrespondenceMigration migration : migrationsToClose) {
+                try {
+                    // Skip if already completed or failed with max retries
+                    if ("COMPLETED".equals(migration.getClosingStatus()) || 
+                        ("FAILED".equals(migration.getClosingStatus()) && !migration.canRetry())) {
+                        continue;
+                    }
+                    
+                    boolean success = executeClosingForCorrespondence(migration);
+                    
+                    if (success) {
+                        migration.setClosingStatus("COMPLETED");
+                        migration.setClosingError(null);
+                        migration.markPhaseCompleted("CLOSING");
+                        successfulImports++;
+                        logger.info("Successfully closed correspondence: {}", migration.getCorrespondenceGuid());
+                    } else {
+                        migration.incrementRetryCount();
+                        migration.setClosingStatus("FAILED");
+                        migration.setClosingError("Failed to close correspondence in destination system");
+                        migration.markPhaseError("CLOSING", "Failed to close correspondence in destination system");
+                        failedImports++;
+                        logger.error("Failed to close correspondence: {}", migration.getCorrespondenceGuid());
+                    }
+                    
+                    migrationRepository.save(migration);
+                    
+                } catch (Exception e) {
+                    migration.incrementRetryCount();
+                    migration.setClosingStatus("FAILED");
+                    migration.setClosingError("Exception during closing: " + e.getMessage());
+                    migration.markPhaseError("CLOSING", "Exception during closing: " + e.getMessage());
+                    migrationRepository.save(migration);
+                    
+                    failedImports++;
+                    String errorMsg = "Error closing correspondence " + migration.getCorrespondenceGuid() + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("Closing phase completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
+            
+            return new ImportResponseDto(status, message, migrationsToClose.size(), 
+                                       successfulImports, failedImports, errors);
+            
+        } catch (Exception e) {
+            logger.error("Failed to execute closing phase", e);
+            return new ImportResponseDto("ERROR", "Failed to execute closing phase: " + e.getMessage(), 
+                0, 0, 0, Arrays.asList("Failed to execute closing phase: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Execute closing for specific correspondences
+     */
+    @Transactional
+    public ImportResponseDto executeClosingForSpecific(List<String> correspondenceGuids) {
+        logger.info("Starting closing execution for {} specific correspondences", 
+                   correspondenceGuids != null ? correspondenceGuids.size() : 0);
+        
+        if (correspondenceGuids == null || correspondenceGuids.isEmpty()) {
+            return new ImportResponseDto("ERROR", "No correspondence GUIDs provided", 
+                0, 0, 0, Arrays.asList("No correspondence GUIDs provided"));
+        }
+        
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
+        
+        try {
+            for (String correspondenceGuid : correspondenceGuids) {
+                try {
+                    Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                        migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                    
+                    if (!migrationOpt.isPresent()) {
+                        failedImports++;
+                        errors.add("Migration record not found for correspondence: " + correspondenceGuid);
+                        continue;
+                    }
+                    
+                    IncomingCorrespondenceMigration migration = migrationOpt.get();
+                    
+                    // Check if correspondence needs to be closed
+                    if (!Boolean.TRUE.equals(migration.getIsNeedToClose())) {
+                        failedImports++;
+                        errors.add("Correspondence does not need to be closed: " + correspondenceGuid);
+                        continue;
+                    }
+                    
+                    // Check if document was created in destination system
+                    if (migration.getCreatedDocumentId() == null || migration.getCreatedDocumentId().trim().isEmpty()) {
+                        failedImports++;
+                        errors.add("No created document ID found for correspondence: " + correspondenceGuid);
+                        continue;
+                    }
+                    
+                    boolean success = executeClosingForCorrespondence(migration);
+                    
+                    if (success) {
+                        migration.setClosingStatus("COMPLETED");
+                        migration.setClosingError(null);
+                        migration.markPhaseCompleted("CLOSING");
+                        successfulImports++;
+                        logger.info("Successfully closed correspondence: {}", correspondenceGuid);
+                    } else {
+                        migration.incrementRetryCount();
+                        migration.setClosingStatus("FAILED");
+                        migration.setClosingError("Failed to close correspondence in destination system");
+                        migration.markPhaseError("CLOSING", "Failed to close correspondence in destination system");
+                        failedImports++;
+                        logger.error("Failed to close correspondence: {}", correspondenceGuid);
+                    }
+                    
+                    migrationRepository.save(migration);
+                    
+                } catch (Exception e) {
+                    failedImports++;
+                    String errorMsg = "Error closing correspondence " + correspondenceGuid + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("Closing execution completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
+            
+            return new ImportResponseDto(status, message, correspondenceGuids.size(), 
+                                       successfulImports, failedImports, errors);
+            
+        } catch (Exception e) {
+            logger.error("Failed to execute closing for specific correspondences", e);
+            return new ImportResponseDto("ERROR", "Failed to execute closing: " + e.getMessage(), 
+                0, 0, 0, Arrays.asList("Failed to execute closing: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Execute closing for a single correspondence
+     */
+    private boolean executeClosingForCorrespondence(IncomingCorrespondenceMigration migration) {
+        try {
+            logger.debug("Executing closing for correspondence: {}", migration.getCorrespondenceGuid());
+            
+            // Get correspondence details
+            Optional<Correspondence> correspondenceOpt = correspondenceRepository.findById(migration.getCorrespondenceGuid());
+            if (!correspondenceOpt.isPresent()) {
+                logger.error("Correspondence not found: {}", migration.getCorrespondenceGuid());
+                return false;
+            }
+            
+            Correspondence correspondence = correspondenceOpt.get();
+            
+            // Call destination system to close correspondence
+            boolean success = destinationSystemService.closeCorrespondence(
+                migration.getCorrespondenceGuid(),
+                migration.getCreatedDocumentId(),
+                correspondence.getCreationUserName(),
+                correspondence.getCorrespondenceLastModifiedDate()
+            );
+            
+            if (success) {
+                logger.info("Successfully closed correspondence in destination system: {}", 
+                          migration.getCorrespondenceGuid());
+                return true;
+            } else {
+                logger.error("Failed to close correspondence in destination system: {}", 
+                           migration.getCorrespondenceGuid());
+                return false;
+            }
+            
+        } catch (Exception e) {
+            logger.error("Exception during closing execution for correspondence: {}", 
+                       migration.getCorrespondenceGuid(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Get closing migrations with pagination and search
+     */
+    public Map<String, Object> getClosingMigrations(int page, int size, String status, String needToClose, String search) {
+        logger.debug("Getting closing migrations - page: {}, size: {}, status: {}, needToClose: {}, search: '{}'", 
+                    page, size, status, needToClose, search);
+        
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            
+            // Convert filter parameters
+            String statusParam = "all".equals(status) ? null : status;
+            Boolean needToCloseParam = "all".equals(needToClose) ? null : Boolean.valueOf(needToClose);
+            String searchParam = (search == null || search.trim().isEmpty()) ? null : search.trim();
+            
+            Page<Object[]> resultPage = migrationRepository.findClosingMigrationsWithSearchAndPagination(
+                statusParam, needToCloseParam, searchParam, pageable);
+            
+            List<Map<String, Object>> closingMigrations = new ArrayList<>();
+            
+            for (Object[] row : resultPage.getContent()) {
+                Map<String, Object> closingMigration = new HashMap<>();
+                closingMigration.put("id", row[0]);
+                closingMigration.put("correspondenceGuid", row[1]);
+                closingMigration.put("isNeedToClose", row[2]);
+                closingMigration.put("closingStatus", row[3]);
+                closingMigration.put("closingError", row[4]);
+                closingMigration.put("createdDocumentId", row[5]);
+                closingMigration.put("retryCount", row[6]);
+                closingMigration.put("lastModifiedDate", row[7]);
+                closingMigration.put("correspondenceSubject", row[8]);
+                closingMigration.put("correspondenceReferenceNo", row[9]);
+                closingMigration.put("correspondenceLastModifiedDate", row[10]);
+                closingMigration.put("creationUserName", row[11]);
+                
+                closingMigrations.add(closingMigration);
+            }
+            
+            // Get count of correspondences that need to be closed
+            Long needToCloseCount = migrationRepository.countByIsNeedToClose(true);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("content", closingMigrations);
+            response.put("totalElements", resultPage.getTotalElements());
+            response.put("totalPages", resultPage.getTotalPages());
+            response.put("currentPage", resultPage.getNumber());
+            response.put("pageSize", resultPage.getSize());
+            response.put("hasNext", resultPage.hasNext());
+            response.put("hasPrevious", resultPage.hasPrevious());
+            response.put("needToCloseCount", needToCloseCount);
+            
+            return response;
+            
+        } catch (Exception e) {
+            logger.error("Error getting closing migrations", e);
+            throw new RuntimeException("Failed to get closing migrations", e);
+        }
     }
     
     /**
