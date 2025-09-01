@@ -656,11 +656,13 @@ public class DestinationSystemService {
             assignment.put("assign:action", CorrespondenceUtils.mapAction(decisionGuid));
             assignment.put("assign:private", false);
             assignment.put("assign:canReAssign", false);
-            assignment.put("isReadOnly", true);
-            assignment.put("tenantId", "ITBAr ps ");
+            //assignment.put("isReadOnly", true);
+            //assignment.put("tenantId", "ITBA");
             
             request.setAssignment(assignment);
-            
+            request.getContext().put("tenantId", "ITBA");
+            request.getContext().put("isReadOnly", "true");
+
             logApiCall("CREATE_ASSIGNMENT", url, request);
             
             HttpHeaders headers = createHeaders();
