@@ -343,7 +343,12 @@ public class IncomingCorrespondenceMigrationService {
             result.put("pageSize", size);
             result.put("hasNext", assignmentPage.hasNext());
             result.put("hasPrevious", assignmentPage.hasPrevious());
-            result.put("appliedFilters", Map.of("status", normalizedStatus, "search", normalizedSearch));
+            
+            // Create applied filters map (Java 8 compatible)
+            Map<String, Object> appliedFilters = new HashMap<>();
+            appliedFilters.put("status", normalizedStatus);
+            appliedFilters.put("search", normalizedSearch);
+            result.put("appliedFilters", appliedFilters);
             
             logger.info("Retrieved {} assignments for page {} with filters (status: {}, search: '{}')", 
                        assignments.size(), page, normalizedStatus, normalizedSearch);
