@@ -1,7 +1,11 @@
 package com.importservice.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.List;
+import java.util.Map;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CorrespondenceCreateResponse {
     
     @JsonProperty("entity-type")
@@ -27,6 +31,42 @@ public class CorrespondenceCreateResponse {
     
     @JsonProperty("lastModified")
     private String lastModified;
+    
+    @JsonProperty("parentRef")
+    private String parentRef;
+    
+    @JsonProperty("isCheckedOut")
+    private Boolean isCheckedOut;
+    
+    @JsonProperty("isRecord")
+    private Boolean isRecord;
+    
+    @JsonProperty("retainUntil")
+    private String retainUntil;
+    
+    @JsonProperty("hasLegalHold")
+    private Boolean hasLegalHold;
+    
+    @JsonProperty("isUnderRetentionOrLegalHold")
+    private Boolean isUnderRetentionOrLegalHold;
+    
+    @JsonProperty("isVersion")
+    private Boolean isVersion;
+    
+    @JsonProperty("isProxy")
+    private Boolean isProxy;
+    
+    @JsonProperty("changeToken")
+    private String changeToken;
+    
+    @JsonProperty("isTrashed")
+    private Boolean isTrashed;
+    
+    @JsonProperty("facets")
+    private List<String> facets;
+    
+    @JsonProperty("schemas")
+    private List<Map<String, Object>> schemas;
     
     // Constructors
     public CorrespondenceCreateResponse() {}
@@ -96,6 +136,102 @@ public class CorrespondenceCreateResponse {
         this.lastModified = lastModified;
     }
     
+    public String getParentRef() {
+        return parentRef;
+    }
+    
+    public void setParentRef(String parentRef) {
+        this.parentRef = parentRef;
+    }
+    
+    public Boolean getIsCheckedOut() {
+        return isCheckedOut;
+    }
+    
+    public void setIsCheckedOut(Boolean isCheckedOut) {
+        this.isCheckedOut = isCheckedOut;
+    }
+    
+    public Boolean getIsRecord() {
+        return isRecord;
+    }
+    
+    public void setIsRecord(Boolean isRecord) {
+        this.isRecord = isRecord;
+    }
+    
+    public String getRetainUntil() {
+        return retainUntil;
+    }
+    
+    public void setRetainUntil(String retainUntil) {
+        this.retainUntil = retainUntil;
+    }
+    
+    public Boolean getHasLegalHold() {
+        return hasLegalHold;
+    }
+    
+    public void setHasLegalHold(Boolean hasLegalHold) {
+        this.hasLegalHold = hasLegalHold;
+    }
+    
+    public Boolean getIsUnderRetentionOrLegalHold() {
+        return isUnderRetentionOrLegalHold;
+    }
+    
+    public void setIsUnderRetentionOrLegalHold(Boolean isUnderRetentionOrLegalHold) {
+        this.isUnderRetentionOrLegalHold = isUnderRetentionOrLegalHold;
+    }
+    
+    public Boolean getIsVersion() {
+        return isVersion;
+    }
+    
+    public void setIsVersion(Boolean isVersion) {
+        this.isVersion = isVersion;
+    }
+    
+    public Boolean getIsProxy() {
+        return isProxy;
+    }
+    
+    public void setIsProxy(Boolean isProxy) {
+        this.isProxy = isProxy;
+    }
+    
+    public String getChangeToken() {
+        return changeToken;
+    }
+    
+    public void setChangeToken(String changeToken) {
+        this.changeToken = changeToken;
+    }
+    
+    public Boolean getIsTrashed() {
+        return isTrashed;
+    }
+    
+    public void setIsTrashed(Boolean isTrashed) {
+        this.isTrashed = isTrashed;
+    }
+    
+    public List<String> getFacets() {
+        return facets;
+    }
+    
+    public void setFacets(List<String> facets) {
+        this.facets = facets;
+    }
+    
+    public List<Map<String, Object>> getSchemas() {
+        return schemas;
+    }
+    
+    public void setSchemas(List<Map<String, Object>> schemas) {
+        this.schemas = schemas;
+    }
+    
     @Override
     public String toString() {
         return "CorrespondenceCreateResponse{" +
@@ -107,6 +243,9 @@ public class CorrespondenceCreateResponse {
                 ", state='" + state + '\'' +
                 ", title='" + title + '\'' +
                 ", lastModified='" + lastModified + '\'' +
+                ", parentRef='" + parentRef + '\'' +
+                ", isCheckedOut=" + isCheckedOut +
+                ", changeToken='" + changeToken + '\'' +
                 '}';
     }
 }
