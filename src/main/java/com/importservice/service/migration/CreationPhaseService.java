@@ -223,7 +223,9 @@ public class CreationPhaseService {
             
             // Step 7: Set ready to register
             updateCreationStep(migration, "SET_READY_TO_REGISTER");
-            destinationService.setIncomingReadyToRegister(documentId, "itba-emp1");
+            setIncomingReadyToRegister(correspondence, documentId);
+                          correspondence.getCreationUserName() : "itba-emp1";
+            destinationService.setIncomingReadyToRegister(documentId, asUser);
             
             // Step 8: Register with reference
             updateCreationStep(migration, "REGISTER_WITH_REFERENCE");
@@ -231,11 +233,15 @@ public class CreationPhaseService {
             
             // Step 9: Start work
             updateCreationStep(migration, "START_WORK");
-            destinationService.startIncomingCorrespondenceWork(documentId, "itba-emp1");
+            startIncomingCorrespondenceWork(correspondence, documentId);
+                          correspondence.getCreationUserName() : "itba-emp1";
+            destinationService.startIncomingCorrespondenceWork(documentId, asUser);
             
             // Step 10: Set owner
             updateCreationStep(migration, "SET_OWNER");
-            destinationService.setCorrespondenceOwner(documentId, "itba-emp1");
+            setCorrespondenceOwner(correspondence, documentId);
+                          correspondence.getCreationUserName() : "itba-emp1";
+            destinationService.setCorrespondenceOwner(documentId, asUser);
             
             // Mark as completed
             updateCreationStep(migration, "COMPLETED");
@@ -268,6 +274,10 @@ public class CreationPhaseService {
      */
     private String createCorrespondenceInDestination(Correspondence correspondence, String batchId) {
         try {
+            // Get the actual user from correspondence data
+            String asUser = correspondence.getCreationUserName() != null ? 
+                          correspondence.getCreationUserName() : "itba-emp1";
+            
             // Map correspondence data for destination system
             String subject = correspondence.getSubject() != null ? correspondence.getSubject() : "";
             String externalRef = correspondence.getExternalReferenceNumber() != null ? 
@@ -312,7 +322,7 @@ public class CreationPhaseService {
             
             return destinationService.createIncomingCorrespondence(
                 correspondence.getGuid(),
-                "itba-emp1",
+                asUser,
                 gDate,
                 subject,
                 externalRef,
@@ -410,6 +420,9 @@ public class CreationPhaseService {
      */
     private void registerCorrespondenceWithReference(Correspondence correspondence, String documentId) {
         try {
+            String asUser = correspondence.getCreationUserName() != null ? 
+                          correspondence.getCreationUserName() : "itba-emp1";
+            
             // Build the same context that was used in correspondence creation
             Map<String, Object> incCorrespondenceContext = buildCorrespondenceContext(correspondence);
             
@@ -422,7 +435,7 @@ public class CreationPhaseService {
             
             destinationService.registerWithReference(
                 documentId, 
-                "itba-emp1", 
+                asUser, 
                 incCorrespondenceContext,
                 action,
                 toDepartment

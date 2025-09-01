@@ -178,13 +178,17 @@ public class AssignmentPhaseService {
                 departmentCode = "COF"; // Default department
             }
             
+            // Use actual user names from transaction data
+            String fromUser = assignment.getFromUserName() != null ? assignment.getFromUserName() : "itba-emp1";
+            String toUser = assignment.getToUserName() != null ? assignment.getToUserName() : "itba-emp1";
+            
             // Create assignment in destination system
             return destinationService.createAssignment(
                 assignment.getGuid(),
-                assignment.getFromUserName() != null ? assignment.getFromUserName() : "itba-emp1",
+                fromUser,
                 documentId,
                 assignment.getActionDate(),
-                assignment.getToUserName() != null ? assignment.getToUserName() : "itba-emp1",
+                toUser,
                 departmentCode,
                 assignment.getDecisionGuid()
             );

@@ -167,6 +167,9 @@ public class BusinessLogPhaseService {
             
             String documentId = migrationOpt.get().getCreatedDocumentId();
             
+            // Use actual user name from transaction data
+            String fromUser = transaction.getFromUserName() != null ? transaction.getFromUserName() : "itba-emp1";
+            
             // Create business log in destination system
             return destinationService.createBusinessLog(
                 transaction.getGuid(),
@@ -174,7 +177,7 @@ public class BusinessLogPhaseService {
                 transaction.getActionDate(),
                 transaction.getActionEnglishName(),
                 transaction.getNotes(),
-                transaction.getFromUserName()
+                fromUser
             );
             
         } catch (Exception e) {

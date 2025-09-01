@@ -4,6 +4,8 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.entity.IncomingCorrespondenceMigration;
+import com.importservice.entity.Correspondence;
+import com.importservice.repository.CorrespondenceRepository;
 import com.importservice.repository.IncomingCorrespondenceMigrationRepository;
 import com.importservice.service.DestinationSystemService;
 import org.slf4j.Logger;
@@ -36,6 +38,9 @@ public class ClosingPhaseService {
     
     @Autowired
     private IncomingCorrespondenceMigrationRepository migrationRepository;
+    
+    @Autowired
+    private CorrespondenceRepository correspondenceRepository;
     
     @Autowired
     private DestinationSystemService destinationService;
@@ -170,11 +175,18 @@ public class ClosingPhaseService {
                 return false;
             }
             
+            // Get the correspondence to extract the creation user
+            Optional<Correspondence> correspondenceOpt = correspondenceRepository.findById(migration.getCorrespondenceGuid());
+            String asUser = "itba-emp1"; // Default fallback
+            if (correspondenceOpt.isPresent() && correspondenceOpt.get().getCreationUserName() != null) {
+                asUser = correspondenceOpt.get().getCreationUserName();
+            }
+            
             // Close correspondence in destination system
             return destinationService.closeCorrespondence(
                 migration.getCorrespondenceGuid(),
                 migration.getCreatedDocumentId(),
-                "itba-emp1",
+                asUser,
                 LocalDateTime.now()
             );
             

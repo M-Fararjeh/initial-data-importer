@@ -168,13 +168,16 @@ public class CommentPhaseService {
             
             String documentId = migrationOpt.get().getCreatedDocumentId();
             
+            // Use actual user GUID from comment data
+            String creationUser = comment.getCreationUserGuid() != null ? comment.getCreationUserGuid() : "itba-emp1";
+            
             // Create comment in destination system
             return destinationService.createComment(
                 comment.getCommentGuid(),
                 documentId,
                 comment.getCommentCreationDate(),
                 comment.getComment(),
-                comment.getCreationUserGuid()
+                creationUser
             );
             
         } catch (Exception e) {
