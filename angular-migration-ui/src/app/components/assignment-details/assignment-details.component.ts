@@ -313,3 +313,4 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     return pages;
   }
   
+}
