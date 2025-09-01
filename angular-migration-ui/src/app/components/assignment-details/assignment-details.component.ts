@@ -348,3 +348,4 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     return item.transactionGuid;
   }
 }
+}
