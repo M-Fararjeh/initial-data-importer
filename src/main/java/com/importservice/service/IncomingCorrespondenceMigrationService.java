@@ -520,8 +520,12 @@ public class IncomingCorrespondenceMigrationService {
                     incCorrespondenceContext = buildCorrespondenceContext(correspondence, batchId);
                 }
                 
+                // Create a copy of the context without file:content for register with reference
+                Map<String, Object> registerContext = new HashMap<>(incCorrespondenceContext);
+                registerContext.remove("file:content");
+                
                 boolean registered = destinationSystemService.registerWithReference(
-                    documentId, correspondence.getCreationUserName(), incCorrespondenceContext);
+                    documentId, correspondence.getCreationUserName(), registerContext);
                 if (!registered) {
                     migration.markPhaseError("CREATION", "Failed to register with reference");
                     return false;
