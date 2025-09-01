@@ -317,4 +317,41 @@ export class MigrationService {
   trackByGuid(index: number, item: CreationMigration): string {
     return item.correspondenceGuid;
   }
+  
+  // Assignment phase methods
+  getAssignmentMigrations(): Observable<any[]> {
+    console.log('Calling getAssignmentMigrations API');
+    return this.http.get<any[]>(`${this.baseUrl}/assignment/details`)
+      .pipe(
+        tap((assignments) => console.log('Assignment migrations response:', assignments)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting assignment migrations:', error);
+          return of([]);
+        })
+      );
+  }
+  
+  executeAssignmentForSpecific(transactionGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeAssignmentForSpecific API with GUIDs:', transactionGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/assignment/execute-specific`, {
+      transactionGuids: transactionGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteAssignmentForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeAssignmentForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute assignment for specific transactions: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
 }

@@ -520,9 +520,13 @@ public class IncomingCorrespondenceMigrationService {
                     incCorrespondenceContext = buildCorrespondenceContext(correspondence, batchId);
                 }
                 
-                // Create a copy of the context without file:content for register with reference
-                Map<String, Object> registerContext = new HashMap<>(incCorrespondenceContext);
-                registerContext.remove("file:content");
+                // Create a copy of the context and remove file:content for register with reference
+                Map<String, Object> registerContext = new HashMap<>();
+                for (Map.Entry<String, Object> entry : incCorrespondenceContext.entrySet()) {
+                    if (!"file:content".equals(entry.getKey())) {
+                        registerContext.put(entry.getKey(), entry.getValue());
+                    }
+                }
                 
                 boolean registered = destinationSystemService.registerWithReference(
                     documentId, correspondence.getCreationUserName(), registerContext);
@@ -825,17 +829,281 @@ public class IncomingCorrespondenceMigrationService {
     public ImportResponseDto executeAssignmentPhase() {
         logger.info("Starting Phase 3: Assignment");
         
-        List<IncomingCorrespondenceMigration> migrations = 
-            migrationRepository.findByCurrentPhase("ASSIGNMENT");
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
         
-        // TODO: Implement assignment logic
-        for (IncomingCorrespondenceMigration migration : migrations) {
-            migration.markPhaseCompleted("ASSIGNMENT");
-            migrationRepository.save(migration);
+        try {
+            // Get all correspondence transactions with action_id = 12 and migrate_status = PENDING or FAILED
+            List<CorrespondenceTransaction> pendingAssignments = correspondenceTransactionRepository
+                .findByActionIdAndMigrateStatusIn(12, Arrays.asList("PENDING", "FAILED"));
+            
+            logger.info("Found {} pending/failed assignments to process", pendingAssignments.size());
+            
+            for (CorrespondenceTransaction transaction : pendingAssignments) {
+                try {
+                    boolean success = executeAssignmentForTransaction(transaction);
+                    
+                    if (success) {
+                        transaction.setMigrateStatus("SUCCESS");
+                        correspondenceTransactionRepository.save(transaction);
+                        successfulImports++;
+                        logger.info("Successfully completed assignment for transaction: {}", 
+                                  transaction.getGuid());
+                    } else {
+                        transaction.setMigrateStatus("FAILED");
+                        correspondenceTransactionRepository.save(transaction);
+                        failedImports++;
+                        errors.add("Failed assignment for transaction: " + transaction.getGuid());
+                    }
+                    
+                } catch (Exception e) {
+                    failedImports++;
+                    String errorMsg = "Error in assignment for transaction " + 
+                                    transaction.getGuid() + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    
+                    transaction.setMigrateStatus("FAILED");
+                    correspondenceTransactionRepository.save(transaction);
+                    
+                    logger.error(errorMsg, e);
+                }
+            }
+            
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("Assignment phase completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
+            
+            return new ImportResponseDto(status, message, pendingAssignments.size(), 
+                                       successfulImports, failedImports, errors);
+            
+        } catch (Exception e) {
+            logger.error("Failed to execute Assignment phase", e);
+            return new ImportResponseDto("ERROR", "Failed to execute Assignment phase: " + e.getMessage(), 
+                0, 0, 0, Collections.singletonList("Failed to execute Assignment phase: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Gets assignment phase migrations with correspondence details
+     */
+    public List<Map<String, Object>> getAssignmentMigrations() {
+        try {
+            // Get all correspondence transactions with action_id = 12
+            List<CorrespondenceTransaction> transactions = correspondenceTransactionRepository
+                .findByActionId(12);
+            
+            List<Map<String, Object>> assignmentMigrations = new ArrayList<>();
+            
+            for (CorrespondenceTransaction transaction : transactions) {
+                try {
+                    Map<String, Object> assignmentData = new HashMap<>();
+                    
+                    // Basic transaction data
+                    assignmentData.put("id", transaction.getGuid());
+                    assignmentData.put("correspondenceGuid", transaction.getDocGuid());
+                    assignmentData.put("transactionGuid", transaction.getGuid());
+                    assignmentData.put("fromUserName", transaction.getFromUserName());
+                    assignmentData.put("toUserName", transaction.getToUserName());
+                    assignmentData.put("actionDate", transaction.getActionDate());
+                    assignmentData.put("decisionGuid", transaction.getDecisionGuid());
+                    assignmentData.put("notes", transaction.getNotes());
+                    assignmentData.put("migrateStatus", transaction.getMigrateStatus());
+                    assignmentData.put("retryCount", 0); // TODO: Add retry tracking if needed
+                    assignmentData.put("lastModifiedDate", transaction.getLastModifiedDate());
+                    
+                    // Get correspondence details
+                    Optional<Correspondence> correspondenceOpt = 
+                        correspondenceRepository.findById(transaction.getDocGuid());
+                    
+                    if (correspondenceOpt.isPresent()) {
+                        Correspondence correspondence = correspondenceOpt.get();
+                        assignmentData.put("correspondenceSubject", correspondence.getSubject());
+                        assignmentData.put("correspondenceReferenceNo", correspondence.getReferenceNo());
+                        
+                        // Get created document ID from migration table
+                        Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                            migrationRepository.findByCorrespondenceGuid(transaction.getDocGuid());
+                        
+                        if (migrationOpt.isPresent()) {
+                            assignmentData.put("createdDocumentId", migrationOpt.get().getCreatedDocumentId());
+                        }
+                    }
+                    
+                    // Get department code for to_user_name
+                    String departmentCode = getDepartmentCodeByUserName(transaction.getToUserName());
+                    assignmentData.put("departmentCode", departmentCode);
+                    
+                    assignmentMigrations.add(assignmentData);
+                    
+                } catch (Exception e) {
+                    logger.warn("Could not load assignment details for transaction: {}", 
+                              transaction.getGuid(), e);
+                }
+            }
+            
+            logger.info("Found {} assignment migrations", assignmentMigrations.size());
+            return assignmentMigrations;
+            
+        } catch (Exception e) {
+            logger.error("Error getting assignment migrations", e);
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * Executes assignment phase for specific transaction GUIDs
+     */
+    @Transactional
+    public ImportResponseDto executeAssignmentForSpecific(List<String> transactionGuids) {
+        logger.info("Starting assignment execution for {} specific transactions", 
+                   transactionGuids != null ? transactionGuids.size() : 0);
+        
+        if (transactionGuids == null || transactionGuids.isEmpty()) {
+            return new ImportResponseDto("ERROR", "No transaction GUIDs provided", 
+                0, 0, 0, Collections.singletonList("No transaction GUIDs provided"));
         }
         
-        return new ImportResponseDto("SUCCESS", "Assignment phase completed", 
-            migrations.size(), migrations.size(), 0, new ArrayList<>());
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
+        
+        try {
+            for (String transactionGuid : transactionGuids) {
+                try {
+                    // Find transaction
+                    Optional<CorrespondenceTransaction> transactionOpt = 
+                        correspondenceTransactionRepository.findById(transactionGuid);
+                    
+                    if (!transactionOpt.isPresent()) {
+                        failedImports++;
+                        errors.add("Transaction not found: " + transactionGuid);
+                        continue;
+                    }
+                    
+                    CorrespondenceTransaction transaction = transactionOpt.get();
+                    
+                    // Execute assignment
+                    boolean success = executeAssignmentForTransaction(transaction);
+                    
+                    if (success) {
+                        transaction.setMigrateStatus("SUCCESS");
+                        correspondenceTransactionRepository.save(transaction);
+                        successfulImports++;
+                        logger.info("Successfully completed assignment for transaction: {}", 
+                                  transactionGuid);
+                    } else {
+                        transaction.setMigrateStatus("FAILED");
+                        correspondenceTransactionRepository.save(transaction);
+                        failedImports++;
+                        errors.add("Failed assignment for transaction: " + transactionGuid);
+                    }
+                    
+                } catch (Exception e) {
+                    failedImports++;
+                    String errorMsg = "Error in assignment for transaction " + 
+                                    transactionGuid + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("Assignment execution completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
+            
+            return new ImportResponseDto(status, message, transactionGuids.size(), 
+                                       successfulImports, failedImports, errors);
+            
+        } catch (Exception e) {
+            logger.error("Failed to execute assignment for specific transactions", e);
+            return new ImportResponseDto("ERROR", "Failed to execute assignment: " + e.getMessage(), 
+                0, 0, 0, Collections.singletonList("Failed to execute assignment: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Executes assignment for a single transaction
+     */
+    private boolean executeAssignmentForTransaction(CorrespondenceTransaction transaction) {
+        try {
+            // Get the created document ID from migration table
+            Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                migrationRepository.findByCorrespondenceGuid(transaction.getDocGuid());
+            
+            if (!migrationOpt.isPresent()) {
+                logger.error("No migration record found for correspondence: {}", transaction.getDocGuid());
+                return false;
+            }
+            
+            IncomingCorrespondenceMigration migration = migrationOpt.get();
+            String createdDocumentId = migration.getCreatedDocumentId();
+            
+            if (createdDocumentId == null || createdDocumentId.trim().isEmpty()) {
+                logger.error("No created document ID found for correspondence: {}", transaction.getDocGuid());
+                return false;
+            }
+            
+            // Get department code for to_user_name
+            String departmentCode = getDepartmentCodeByUserName(transaction.getToUserName());
+            if (departmentCode == null) {
+                logger.warn("No department code found for user: {}, using default", transaction.getToUserName());
+                departmentCode = "CEO"; // Default fallback
+            }
+            
+            // Call destination system to create assignment
+            return destinationSystemService.createAssignment(
+                transaction.getGuid(),
+                transaction.getFromUserName(),
+                createdDocumentId,
+                transaction.getActionDate(),
+                transaction.getToUserName(),
+                departmentCode,
+                transaction.getDecisionGuid()
+            );
+            
+        } catch (Exception e) {
+            logger.error("Error executing assignment for transaction: {}", transaction.getGuid(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Gets department code by user name from users.json
+     */
+    private String getDepartmentCodeByUserName(String userName) {
+        if (userName == null || userName.trim().isEmpty()) {
+            return null;
+        }
+        
+        try {
+            // Load users from JSON file
+            ClassPathResource resource = new ClassPathResource("users.json");
+            InputStream inputStream = resource.getInputStream();
+            
+            TypeReference<List<Map<String, Object>>> typeReference = 
+                new TypeReference<List<Map<String, Object>>>() {};
+            
+            List<Map<String, Object>> users = objectMapper.readValue(inputStream, typeReference);
+            
+            // Find user by email (userName@domain)
+            for (Map<String, Object> user : users) {
+                String email = (String) user.get("email");
+                if (email != null && email.contains("@")) {
+                    String emailUsername = email.substring(0, email.indexOf("@"));
+                    if (userName.equalsIgnoreCase(emailUsername)) {
+                        return (String) user.get("Department code");
+                    }
+                }
+            }
+            
+            logger.debug("No department code found for user: {}", userName);
+            return null;
+            
+        } catch (Exception e) {
+            logger.error("Error getting department code for user: {}", userName, e);
+            return null;
+        }
     }
     
     /**

@@ -129,6 +129,46 @@ public class IncomingCorrespondenceMigrationController {
         }
     }
     
+    @GetMapping("/assignment/details")
+    @Operation(summary = "Get Assignment Phase Details", 
+               description = "Returns detailed information about assignment phase migrations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
+    })
+    public ResponseEntity<List<Map<String, Object>>> getAssignmentDetails() {
+        logger.info("Received request for assignment phase details");
+        
+        try {
+            List<Map<String, Object>> assignments = migrationService.getAssignmentMigrations();
+            return ResponseEntity.ok(assignments);
+        } catch (Exception e) {
+            logger.error("Error getting assignment details", e);
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+    
+    @PostMapping("/assignment/execute-specific")
+    @Operation(summary = "Execute Assignment for Specific Transactions", 
+               description = "Executes assignment phase for specified transaction GUIDs")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> executeAssignmentForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> transactionGuids = request.get("transactionGuids");
+        logger.info("Received request to execute assignment for {} specific transactions", 
+                   transactionGuids != null ? transactionGuids.size() : 0);
+        
+        try {
+            ImportResponseDto response = migrationService.executeAssignmentForSpecific(transactionGuids);
+            return getResponseEntity(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error in execute assignment for specific", e);
+            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
+    }
+    
     @PostMapping("/business-log")
     @Operation(summary = "Phase 4: Business Log", 
                description = "Processes business logic for correspondences")

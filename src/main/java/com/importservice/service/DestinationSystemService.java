@@ -9,6 +9,7 @@ import com.importservice.dto.ReadyToRegisterRequest;
 import com.importservice.dto.RegisterWithReferenceRequest;
 import com.importservice.dto.StartWorkRequest;
 import com.importservice.dto.SetOwnerRequest;
+import com.importservice.dto.AssignmentCreateRequest;
 import com.importservice.entity.CorrespondenceAttachment;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
@@ -607,6 +608,70 @@ public class DestinationSystemService {
             
         } catch (Exception e) {
             logger.error("Error setting owner for correspondence: {}", correspondenceGuid, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Creates assignment in destination system
+     */
+    public boolean createAssignment(String transactionGuid, String asUser, String documentId, 
+                                  LocalDateTime actionDate, String toUserName, String departmentCode, 
+                                  String decisionGuid) {
+        try {
+            String url = getAutomationEndpoint();
+            
+            AssignmentCreateRequest request = new AssignmentCreateRequest();
+            
+            // Set params
+            request.setOperationName("AC_UA_Assignment_Create");
+            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setDocID(documentId);
+            request.setDocDate(actionDate != null ? 
+                             actionDate.toString() + "Z" : 
+                             LocalDateTime.now().toString() + "Z");
+            request.setGuid(transactionGuid);
+            
+            // Build assignment context
+            Map<String, Object> assignment = new HashMap<>();
+            assignment.put("title", "assignment-" + transactionGuid);
+            assignment.put("assign:assignee", Arrays.asList(toUserName != null ? toUserName : "itba-emp1"));
+            assignment.put("assign:department", Arrays.asList(departmentCode != null ? departmentCode : "CEO"));
+            assignment.put("assign:dueDate", actionDate != null ? 
+                         actionDate.toString() + "Z" : 
+                         LocalDateTime.now().toString() + "Z");
+            assignment.put("assign:action", CorrespondenceUtils.mapAction(decisionGuid));
+            assignment.put("assign:private", false);
+            assignment.put("assign:canReAssign", false);
+            assignment.put("isReadOnly", true);
+            
+            request.setAssignment(assignment);
+            
+            logApiCall("CREATE_ASSIGNMENT", url, request);
+            
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<AssignmentCreateRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            boolean success = response.getStatusCode().is2xxSuccessful();
+            if (success) {
+                logger.info("Successfully created assignment: {}", transactionGuid);
+            } else {
+                logger.error("Failed to create assignment {} - Status: {}", transactionGuid, response.getStatusCode());
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("Error creating assignment: {}", transactionGuid, e);
             return false;
         }
     }

@@ -9,11 +9,13 @@ import { MigrationDashboardComponent } from './components/migration-dashboard/mi
 import { PhaseCardComponent } from './components/phase-card/phase-card.component';
 import { StatisticsCardComponent } from './components/statistics-card/statistics-card.component';
 import { CreationDetailsComponent } from './components/creation-details/creation-details.component';
+import { AssignmentDetailsComponent } from './components/assignment-details/assignment-details.component';
 import { MigrationService } from './services/migration.service';
 
 const routes: Routes = [
   { path: '', component: MigrationDashboardComponent },
   { path: 'creation-details', component: CreationDetailsComponent },
+  { path: 'assignment-details', component: AssignmentDetailsComponent },
   { path: '**', redirectTo: '' }
 ];
 
@@ -24,6 +26,7 @@ const routes: Routes = [
     PhaseCardComponent,
     StatisticsCardComponent,
     CreationDetailsComponent
+    AssignmentDetailsComponent
   ],
   imports: [
     BrowserModule,

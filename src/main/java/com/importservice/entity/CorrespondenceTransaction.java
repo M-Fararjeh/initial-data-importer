@@ -97,6 +97,9 @@ public class CorrespondenceTransaction extends BaseEntity {
     @Column(name = "is_hidden")
     private Boolean isHidden;
     
+    @Column(name = "migrate_status", length = 255)
+    private String migrateStatus = "PENDING";
+    
     @Column(name = "import_status", length = 255)
     private String importStatus = "PENDING";
     
@@ -286,5 +289,13 @@ public class CorrespondenceTransaction extends BaseEntity {
     
     public void setImportStatus(String importStatus) {
         this.importStatus = importStatus;
+    }
+    
+    public String getMigrateStatus() {
+        return migrateStatus;
+    }
+    
+    public void setMigrateStatus(String migrateStatus) {
+        this.migrateStatus = migrateStatus;
     }
 }
