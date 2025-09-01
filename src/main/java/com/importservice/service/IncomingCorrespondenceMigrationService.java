@@ -1,43 +1,30 @@
 package com.importservice.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.entity.Correspondence;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import com.importservice.entity.CorrespondenceAttachment;
 import com.importservice.entity.CorrespondenceTransaction;
 import com.importservice.entity.IncomingCorrespondenceMigration;
-import com.importservice.dto.UserImportDto;
-import com.importservice.repository.CorrespondenceAttachmentRepository;
 import com.importservice.repository.CorrespondenceRepository;
+import com.importservice.repository.CorrespondenceAttachmentRepository;
 import com.importservice.repository.CorrespondenceTransactionRepository;
 import com.importservice.repository.IncomingCorrespondenceMigrationRepository;
+import com.importservice.util.AgencyMappingUtils;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
 import com.importservice.util.DepartmentUtils;
-import com.importservice.util.AgencyMappingUtils;
 import com.importservice.util.HijriDateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.InputStream;
-import java.util.Map;
-import java.util.HashMap;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Collections;
-
-import com.importservice.entity.IncomingCorrespondenceMigration;
+import java.util.*;
 
 @Service
 public class IncomingCorrespondenceMigrationService {
@@ -48,13 +35,13 @@ public class IncomingCorrespondenceMigrationService {
     private IncomingCorrespondenceMigrationRepository migrationRepository;
     
     @Autowired
-    private CorrespondenceTransactionRepository correspondenceTransactionRepository;
-    
-    @Autowired
     private CorrespondenceRepository correspondenceRepository;
     
     @Autowired
     private CorrespondenceAttachmentRepository attachmentRepository;
+    
+    @Autowired
+    private CorrespondenceTransactionRepository transactionRepository;
     
     @Autowired
     private DestinationSystemService destinationSystemService;
@@ -62,15 +49,12 @@ public class IncomingCorrespondenceMigrationService {
     @Autowired
     private DepartmentUtils departmentUtils;
     
-    @Autowired
-    private CorrespondenceTransactionRepository correspondenceTransactionRepository;
-    
-    @Autowired
-    private ObjectMapper objectMapper;
+    // Cache for user department mappings to improve performance
+    private final Map<String, String> userDepartmentCache = new HashMap<>();
     
     /**
      * Phase 1: Prepare Data
-     * Selects incoming correspondences and creates migration records
+     * Selects incoming correspondences and creates migration tracking records
      */
     @Transactional
     public ImportResponseDto prepareData() {
@@ -81,7 +65,8 @@ public class IncomingCorrespondenceMigrationService {
         int failedImports = 0;
         
         try {
-            // Find incoming correspondences (CorrespondenceTypeId = 2)
+            // Get incoming correspondences (CorrespondenceTypeId = 2)
+            // Filter out deleted, draft, and cancelled correspondences
             List<Correspondence> incomingCorrespondences = correspondenceRepository
                 .findByCorrespondenceTypeIdAndIsDeletedAndIsDraft(2, false, false);
             
@@ -89,29 +74,22 @@ public class IncomingCorrespondenceMigrationService {
             
             for (Correspondence correspondence : incomingCorrespondences) {
                 try {
-                    // Skip if already exists in migration table
+                    // Check if migration record already exists
                     Optional<IncomingCorrespondenceMigration> existing = 
                         migrationRepository.findByCorrespondenceGuid(correspondence.getGuid());
                     
                     if (existing.isPresent()) {
                         logger.debug("Migration record already exists for correspondence: {}", correspondence.getGuid());
+                        successfulImports++;
                         continue;
                     }
                     
-                    // Skip if cancelled
-                    if (correspondence.getIsCanceled() != null && correspondence.getIsCanceled() != 0) {
-                        logger.debug("Skipping cancelled correspondence: {}", correspondence.getGuid());
-                        continue;
-                    }
+                    // Determine if correspondence needs to be closed
+                    boolean needToClose = determineIfNeedToClose(correspondence);
                     
-                    // Create migration record
+                    // Create migration tracking record
                     IncomingCorrespondenceMigration migration = new IncomingCorrespondenceMigration(
-                        correspondence.getGuid(),
-                        correspondence.getIsArchive() != null ? correspondence.getIsArchive() : false
-                    );
-                    
-                    migration.setPrepareDataStatus("COMPLETED");
-                    migration.markPhaseCompleted("PREPARE_DATA");
+                        correspondence.getGuid(), needToClose);
                     
                     migrationRepository.save(migration);
                     successfulImports++;
@@ -127,16 +105,16 @@ public class IncomingCorrespondenceMigrationService {
             }
             
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Prepare Data phase completed. Success: %d, Failed: %d", 
+            String message = String.format("Phase 1 completed. Prepared: %d, Failed: %d", 
                                          successfulImports, failedImports);
             
             return new ImportResponseDto(status, message, incomingCorrespondences.size(), 
                                        successfulImports, failedImports, errors);
-            
+                                       
         } catch (Exception e) {
-            logger.error("Failed to execute Prepare Data phase", e);
-            return new ImportResponseDto("ERROR", "Failed to execute Prepare Data phase: " + e.getMessage(), 
-                0, 0, 0, Collections.singletonList("Failed to execute Prepare Data phase: " + e.getMessage()));
+            logger.error("Failed to execute Phase 1: Prepare Data", e);
+            return new ImportResponseDto("ERROR", "Failed to prepare data: " + e.getMessage(), 
+                0, 0, 0, Arrays.asList("Failed to prepare data: " + e.getMessage()));
         }
     }
     
@@ -148,1141 +126,681 @@ public class IncomingCorrespondenceMigrationService {
     public ImportResponseDto executeCreationPhase() {
         logger.info("Starting Phase 2: Creation");
         
-        List<String> errors = new ArrayList<>();
-        int successfulImports = 0;
-        int failedImports = 0;
+        List<IncomingCorrespondenceMigration> pendingMigrations = 
+            migrationRepository.findByCurrentPhase("CREATION");
         
-        try {
-            // Get migrations ready for creation phase
-            List<IncomingCorrespondenceMigration> migrations = 
-                migrationRepository.findByCurrentPhase("CREATION");
-            
-            logger.info("Found {} correspondences ready for creation", migrations.size());
-            
-            for (IncomingCorrespondenceMigration migration : migrations) {
-                try {
-                    boolean success = executeCreationSteps(migration);
-                    
-                    if (success) {
-                        migration.markPhaseCompleted("CREATION");
-                        migrationRepository.save(migration);
-                        successfulImports++;
-                        logger.info("Successfully completed creation for correspondence: {}", 
-                                  migration.getCorrespondenceGuid());
-                    } else {
-                        failedImports++;
-                        migration.incrementRetryCount();
-                        migrationRepository.save(migration);
-                        errors.add("Failed creation for correspondence: " + migration.getCorrespondenceGuid());
-                    }
-                    
-                } catch (Exception e) {
-                    failedImports++;
-                    String errorMsg = "Error in creation phase for correspondence " + 
-                                    migration.getCorrespondenceGuid() + ": " + e.getMessage();
-                    errors.add(errorMsg);
-                    
-                    migration.markPhaseError("CREATION", errorMsg);
-                    migration.incrementRetryCount();
-                    migrationRepository.save(migration);
-                    
-                    logger.error(errorMsg, e);
-                }
-            }
-            
-            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Creation phase completed. Success: %d, Failed: %d", 
-                                         successfulImports, failedImports);
-            
-            return new ImportResponseDto(status, message, migrations.size(), 
-                                       successfulImports, failedImports, errors);
-            
-        } catch (Exception e) {
-            logger.error("Failed to execute Creation phase", e);
-            return new ImportResponseDto("ERROR", "Failed to execute Creation phase: " + e.getMessage(), 
-                0, 0, 0, Collections.singletonList("Failed to execute Creation phase: " + e.getMessage()));
-        }
+        return executeCreationForSpecific(
+            pendingMigrations.stream()
+                .map(IncomingCorrespondenceMigration::getCorrespondenceGuid)
+                .collect(java.util.stream.Collectors.toList())
+        );
     }
     
     /**
-     * Gets creation phase migrations with correspondence details
-     */
-    public List<IncomingCorrespondenceMigration> getCreationMigrations() {
-        try {
-            // Get all migrations that are in creation phase or have creation data
-            List<IncomingCorrespondenceMigration> migrations = migrationRepository.findAll();
-            
-            // Filter to only include migrations that have reached creation phase
-            List<IncomingCorrespondenceMigration> creationMigrations = new ArrayList<>();
-            
-            for (IncomingCorrespondenceMigration migration : migrations) {
-                // Include if current phase is CREATION or if creation has been attempted
-                if ("CREATION".equals(migration.getCurrentPhase()) || 
-                    migration.getCreationStatus() != null) {
-                    
-                    // Enrich with correspondence details
-                    try {
-                        Optional<Correspondence> correspondenceOpt = 
-                            correspondenceRepository.findById(migration.getCorrespondenceGuid());
-                        
-                        if (correspondenceOpt.isPresent()) {
-                            Correspondence correspondence = correspondenceOpt.get();
-                            // Note: We can't add these fields directly to the entity
-                            // The frontend will need to handle this or we need DTOs
-                            creationMigrations.add(migration);
-                        }
-                    } catch (Exception e) {
-                        logger.warn("Could not load correspondence details for migration: {}", 
-                                  migration.getCorrespondenceGuid(), e);
-                        creationMigrations.add(migration); // Add anyway
-                    }
-                }
-            }
-            
-            logger.info("Found {} creation phase migrations", creationMigrations.size());
-            return creationMigrations;
-            
-        } catch (Exception e) {
-            logger.error("Error getting creation migrations", e);
-            return new ArrayList<>();
-        }
-    }
-    
-    /**
-     * Executes creation phase for specific correspondence GUIDs
+     * Execute creation for specific correspondence GUIDs
      */
     @Transactional
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
-        logger.info("Starting creation execution for {} specific correspondences", 
-                   correspondenceGuids != null ? correspondenceGuids.size() : 0);
-        
-        if (correspondenceGuids == null || correspondenceGuids.isEmpty()) {
-            return new ImportResponseDto("ERROR", "No correspondence GUIDs provided", 
-                0, 0, 0, Collections.singletonList("No correspondence GUIDs provided"));
-        }
+        logger.info("Executing creation for {} specific correspondences", correspondenceGuids.size());
         
         List<String> errors = new ArrayList<>();
         int successfulImports = 0;
         int failedImports = 0;
         
-        try {
-            for (String correspondenceGuid : correspondenceGuids) {
-                try {
-                    // Find or create migration record
-                    Optional<IncomingCorrespondenceMigration> migrationOpt = 
-                        migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
-                    
-                    IncomingCorrespondenceMigration migration;
-                    if (migrationOpt.isPresent()) {
-                        migration = migrationOpt.get();
-                    } else {
-                        // Create new migration record if it doesn't exist
-                        Optional<Correspondence> correspondenceOpt = 
-                            correspondenceRepository.findById(correspondenceGuid);
-                        
-                        if (!correspondenceOpt.isPresent()) {
-                            failedImports++;
-                            errors.add("Correspondence not found: " + correspondenceGuid);
-                            continue;
-                        }
-                        
-                        Correspondence correspondence = correspondenceOpt.get();
-                        migration = new IncomingCorrespondenceMigration(
-                            correspondenceGuid,
-                            correspondence.getIsArchive() != null ? correspondence.getIsArchive() : false
-                        );
-                        migration.setPrepareDataStatus("COMPLETED");
-                        migration.markPhaseCompleted("PREPARE_DATA");
-                        migrationRepository.save(migration);
-                    }
-                    
-                    // Execute creation steps
-                    boolean success = executeCreationSteps(migration);
-                    
-                    if (success) {
-                        migration.markPhaseCompleted("CREATION");
-                        migrationRepository.save(migration);
-                        successfulImports++;
-                        logger.info("Successfully completed creation for correspondence: {}", 
-                                  correspondenceGuid);
-                    } else {
-                        failedImports++;
-                        migration.incrementRetryCount();
-                        migrationRepository.save(migration);
-                        errors.add("Failed creation for correspondence: " + correspondenceGuid);
-                    }
-                    
-                } catch (Exception e) {
+        for (String correspondenceGuid : correspondenceGuids) {
+            try {
+                Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                
+                if (!migrationOpt.isPresent()) {
                     failedImports++;
-                    String errorMsg = "Error in creation for correspondence " + 
-                                    correspondenceGuid + ": " + e.getMessage();
-                    errors.add(errorMsg);
-                    logger.error(errorMsg, e);
+                    errors.add("Migration record not found for correspondence: " + correspondenceGuid);
+                    continue;
                 }
+                
+                IncomingCorrespondenceMigration migration = migrationOpt.get();
+                
+                // Execute creation steps
+                boolean success = executeCreationSteps(migration);
+                
+                if (success) {
+                    successfulImports++;
+                    migration.markPhaseCompleted("CREATION");
+                } else {
+                    failedImports++;
+                    migration.markPhaseError("CREATION", "Creation steps failed");
+                }
+                
+                migrationRepository.save(migration);
+                
+            } catch (Exception e) {
+                failedImports++;
+                String errorMsg = "Error creating correspondence " + correspondenceGuid + ": " + e.getMessage();
+                errors.add(errorMsg);
+                logger.error(errorMsg, e);
             }
-            
-            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Creation execution completed. Success: %d, Failed: %d", 
-                                         successfulImports, failedImports);
-            
-            return new ImportResponseDto(status, message, correspondenceGuids.size(), 
-                                       successfulImports, failedImports, errors);
-            
-        } catch (Exception e) {
-            logger.error("Failed to execute creation for specific correspondences", e);
-            return new ImportResponseDto("ERROR", "Failed to execute creation: " + e.getMessage(), 
-                0, 0, 0, Collections.singletonList("Failed to execute creation: " + e.getMessage()));
         }
+        
+        String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+        String message = String.format("Creation completed. Success: %d, Failed: %d", 
+                                     successfulImports, failedImports);
+        
+        return new ImportResponseDto(status, message, correspondenceGuids.size(), 
+                                   successfulImports, failedImports, errors);
     }
     
     /**
-     * Executes all creation steps for a single correspondence
-     */
-    private boolean executeCreationSteps(IncomingCorrespondenceMigration migration) {
-        // Refresh migration from database to get latest state
-        migration = migrationRepository.findById(migration.getId()).orElse(migration);
-        
-        String currentStep = migration.getCreationStep();
-        if (currentStep == null) {
-            currentStep = "GET_DETAILS";
-        }
-        
-        logger.info("Resuming creation steps from step: {} for correspondence: {}", 
-                   currentStep, migration.getCorrespondenceGuid());
-        
-        Map<String, Object> incCorrespondenceContext = null; // Store context for step 8
-        
-        try {
-            String correspondenceGuid = migration.getCorrespondenceGuid();
-            Correspondence correspondence = null;
-            List<CorrespondenceAttachment> attachments = null;
-            CorrespondenceAttachment primaryAttachment = null;
-            String batchId = migration.getBatchId(); // Get existing batch ID if available
-            String documentId = migration.getCreatedDocumentId(); // Get existing document ID if available
-            
-            // Step 1: Get correspondence details (if not already done)
-            if ("GET_DETAILS".equals(currentStep)) {
-                logger.debug("Executing Step 1: Get correspondence details");
-                migration.setCreationStep("GET_DETAILS");
-                migrationRepository.save(migration);
-                
-                Optional<Correspondence> correspondenceOpt = correspondenceRepository.findById(correspondenceGuid);
-                if (!correspondenceOpt.isPresent()) {
-                    migration.markPhaseError("CREATION", "Correspondence not found: " + correspondenceGuid);
-                    return false;
-                }
-                
-                correspondence = correspondenceOpt.get();
-                
-                // Validate correspondence
-                if (correspondence.getIsDeleted() != null && correspondence.getIsDeleted()) {
-                    migration.markPhaseError("CREATION", "Correspondence is deleted");
-                    return false;
-                }
-                
-                if (correspondence.getIsDraft() != null && correspondence.getIsDraft()) {
-                    migration.markPhaseError("CREATION", "Correspondence is draft");
-                    return false;
-                }
-                
-                if (correspondence.getIsCanceled() != null && correspondence.getIsCanceled() != 0) {
-                    migration.markPhaseError("CREATION", "Correspondence is cancelled");
-                    return false;
-                }
-                
-                migration.setCreationStep("GET_ATTACHMENTS");
-                migrationRepository.save(migration);
-                currentStep = "GET_ATTACHMENTS";
-            }
-            
-            // Load correspondence if not already loaded
-            if (correspondence == null) {
-                Optional<Correspondence> correspondenceOpt = correspondenceRepository.findById(correspondenceGuid);
-                if (!correspondenceOpt.isPresent()) {
-                    migration.markPhaseError("CREATION", "Correspondence not found: " + correspondenceGuid);
-                    return false;
-                }
-                correspondence = correspondenceOpt.get();
-            }
-            
-            // Step 2: Get attachments (if not already done)
-            if ("GET_ATTACHMENTS".equals(currentStep)) {
-                logger.debug("Executing Step 2: Get attachments");
-                migration.setCreationStep("GET_ATTACHMENTS");
-                migrationRepository.save(migration);
-                
-                attachments = attachmentRepository.findByDocGuid(correspondenceGuid);
-                primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
-                
-                migration.setCreationStep("UPLOAD_MAIN_ATTACHMENT");
-                migrationRepository.save(migration);
-                currentStep = "UPLOAD_MAIN_ATTACHMENT";
-            }
-            
-            // Load attachments if not already loaded
-            if (attachments == null) {
-                attachments = attachmentRepository.findByDocGuid(correspondenceGuid);
-                primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
-            }
-            
-            // Step 3: Upload main attachment (if not already done)
-            if ("UPLOAD_MAIN_ATTACHMENT".equals(currentStep)) {
-                logger.debug("Executing Step 3: Upload main attachment");
-                migration.setCreationStep("UPLOAD_MAIN_ATTACHMENT");
-                migrationRepository.save(migration);
-                
-                if (batchId == null && primaryAttachment != null && AttachmentUtils.isValidForUpload(primaryAttachment)) {
-                    batchId = uploadPrimaryAttachment(primaryAttachment);
-                    if (batchId == null) {
-                        migration.markPhaseError("CREATION", "Failed to upload primary attachment");
-                        return false;
-                    }
-                    migration.setBatchId(batchId);
-                    migrationRepository.save(migration);
-                }
-                
-                migration.setCreationStep("CREATE_CORRESPONDENCE");
-                migrationRepository.save(migration);
-                currentStep = "CREATE_CORRESPONDENCE";
-            }
-            
-            // Step 4: Create correspondence (if not already done)
-            if ("CREATE_CORRESPONDENCE".equals(currentStep)) {
-                logger.debug("Executing Step 4: Create correspondence");
-                migration.setCreationStep("CREATE_CORRESPONDENCE");
-                migrationRepository.save(migration);
-                
-                if (documentId == null) {
-                    // Build and store the correspondence context for later use
-                    incCorrespondenceContext = buildCorrespondenceContext(correspondence, batchId);
-                    
-                    documentId = createIncomingCorrespondence(correspondence, batchId, incCorrespondenceContext);
-                    if (documentId == null) {
-                        migration.markPhaseError("CREATION", "Failed to create correspondence in destination system");
-                        return false;
-                    }
-                    migration.setCreatedDocumentId(documentId);
-                    migrationRepository.save(migration);
-                }
-                
-                migration.setCreationStep("UPLOAD_OTHER_ATTACHMENTS");
-                migrationRepository.save(migration);
-                currentStep = "UPLOAD_OTHER_ATTACHMENTS";
-            }
-            
-            // Step 5: Upload other attachments (if not already done)
-            if ("UPLOAD_OTHER_ATTACHMENTS".equals(currentStep)) {
-                logger.debug("Executing Step 5: Upload other attachments");
-                migration.setCreationStep("UPLOAD_OTHER_ATTACHMENTS");
-                migrationRepository.save(migration);
-                
-                List<CorrespondenceAttachment> otherAttachments = 
-                    AttachmentUtils.getNonPrimaryAttachments(attachments, primaryAttachment);
-                
-                for (CorrespondenceAttachment attachment : otherAttachments) {
-                    if (AttachmentUtils.isValidForUpload(attachment)) {
-                        boolean uploaded = uploadOtherAttachment(attachment, documentId);
-                        if (!uploaded) {
-                            logger.warn("Failed to upload attachment: {}", attachment.getName());
-                            // Continue with other attachments - don't fail the entire process
-                        }
-                    }
-                }
-                
-                migration.setCreationStep("CREATE_PHYSICAL_ATTACHMENT");
-                migrationRepository.save(migration);
-                currentStep = "CREATE_PHYSICAL_ATTACHMENT";
-            }
-            
-            // Step 6: Create physical attachment (if not already done)
-            if ("CREATE_PHYSICAL_ATTACHMENT".equals(currentStep)) {
-                logger.debug("Executing Step 6: Create physical attachment");
-                migration.setCreationStep("CREATE_PHYSICAL_ATTACHMENT");
-                migrationRepository.save(migration);
-                
-                boolean physicalAttachmentCreated = createPhysicalAttachment(correspondence, documentId);
-                if (!physicalAttachmentCreated) {
-                    migration.markPhaseError("CREATION", "Failed to create physical attachment");
-                    return false;
-                }
-                
-                migration.setCreationStep("SET_READY_TO_REGISTER");
-                migrationRepository.save(migration);
-                currentStep = "SET_READY_TO_REGISTER";
-            }
-            
-            // Step 7: Set Incoming Ready To Register (if not already done)
-            if ("SET_READY_TO_REGISTER".equals(currentStep)) {
-                logger.debug("Executing Step 7: Set ready to register");
-                migration.setCreationStep("SET_READY_TO_REGISTER");
-                migrationRepository.save(migration);
-                
-                boolean readyToRegister = destinationSystemService.setIncomingReadyToRegister(
-                    documentId, correspondence.getCreationUserName());
-                if (!readyToRegister) {
-                    migration.markPhaseError("CREATION", "Failed to set ready to register");
-                    return false;
-                }
-                
-                migration.setCreationStep("REGISTER_WITH_REFERENCE");
-                migrationRepository.save(migration);
-                currentStep = "REGISTER_WITH_REFERENCE";
-            }
-            
-            // Step 8: Register With Reference (if not already done)
-            if ("REGISTER_WITH_REFERENCE".equals(currentStep)) {
-                logger.debug("Executing Step 8: Register with reference");
-                migration.setCreationStep("REGISTER_WITH_REFERENCE");
-                migrationRepository.save(migration);
-                
-                // Rebuild context if needed for step 8
-                if (incCorrespondenceContext == null) {
-                    incCorrespondenceContext = buildCorrespondenceContext(correspondence, batchId);
-                }
-                
-                // Create a copy of the context and remove file:content for register with reference
-                Map<String, Object> registerContext = new HashMap<>();
-                for (Map.Entry<String, Object> entry : incCorrespondenceContext.entrySet()) {
-                    if (!"file:content".equals(entry.getKey())) {
-                        registerContext.put(entry.getKey(), entry.getValue());
-                    }
-                }
-                
-                boolean registered = destinationSystemService.registerWithReference(
-                    documentId, correspondence.getCreationUserName(), registerContext);
-                if (!registered) {
-                    migration.markPhaseError("CREATION", "Failed to register with reference");
-                    return false;
-                }
-                
-                migration.setCreationStep("START_WORK");
-                migrationRepository.save(migration);
-                currentStep = "START_WORK";
-            }
-            
-            // Step 9: Incoming Correspondence Start Work (if not already done)
-            if ("START_WORK".equals(currentStep)) {
-                logger.debug("Executing Step 9: Start work (send)");
-                migration.setCreationStep("START_WORK");
-                migrationRepository.save(migration);
-                
-                boolean workStarted = destinationSystemService.startIncomingCorrespondenceWork(
-                    documentId, correspondence.getCreationUserName());
-                if (!workStarted) {
-                    migration.markPhaseError("CREATION", "Failed to start work");
-                    return false;
-                }
-                
-                migration.setCreationStep("SET_OWNER");
-                migrationRepository.save(migration);
-                currentStep = "SET_OWNER";
-            }
-            
-            // Step 10: Set Owner (if not already done)
-            if ("SET_OWNER".equals(currentStep)) {
-                logger.debug("Executing Step 10: Set owner (claim)");
-                migration.setCreationStep("SET_OWNER");
-                migrationRepository.save(migration);
-                
-                boolean ownerSet = destinationSystemService.setCorrespondenceOwner(
-                    documentId, correspondence.getCreationUserName());
-                if (!ownerSet) {
-                    migration.markPhaseError("CREATION", "Failed to set owner");
-                    return false;
-                }
-                
-                migration.setCreationStep("COMPLETED");
-                migrationRepository.save(migration);
-            }
-            
-            logger.info("All creation steps completed successfully for correspondence: {}", correspondenceGuid);
-            
-            return true;
-            
-        } catch (Exception e) {
-            logger.error("Error executing creation steps for correspondence: {}", 
-                        migration.getCorrespondenceGuid(), e);
-            migration.markPhaseError("CREATION", "Unexpected error: " + e.getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Uploads primary attachment and returns batch ID
-     */
-    private String uploadPrimaryAttachment(CorrespondenceAttachment attachment) {
-        try {
-            // Create batch
-            String batchId = destinationSystemService.createBatch();
-            if (batchId == null) {
-                logger.error("Failed to create batch for primary attachment");
-                return null;
-            }
-            
-            // Get file data for upload
-            String fileData = AttachmentUtils.getFileDataForUpload(
-                attachment.getFileData(), 
-                attachment.getName(), 
-                true
-            );
-            
-            // Always proceed with upload - either real data or sample data
-            if (fileData == null) {
-                logger.warn("No file data for primary attachment: {}, using sample data", attachment.getName());
-                fileData = "testbase64";
-            }
-            
-            String cleanName = AttachmentUtils.getFileNameForUpload(attachment.getName(), true);
-            
-            // Upload file to batch
-            boolean uploaded = destinationSystemService.uploadBase64FileToBatch(
-                batchId, "0", fileData, cleanName
-            );
-            
-            if (!uploaded) {
-                logger.error("Failed to upload primary attachment to batch");
-                return null;
-            }
-            
-            logger.debug("Successfully uploaded primary attachment: {}", cleanName);
-            return batchId;
-            
-        } catch (Exception e) {
-            logger.error("Error uploading primary attachment: {}", attachment.getName(), e);
-            return null;
-        }
-    }
-    
-    /**
-     * Builds the correspondence context for API calls
-     */
-    private Map<String, Object> buildCorrespondenceContext(Correspondence correspondence, String batchId) {
-        Map<String, Object> incCorrespondence = new HashMap<>();
-        
-        incCorrespondence.put("corr:subject", correspondence.getSubject() != null ? correspondence.getSubject() : "");
-        incCorrespondence.put("corr:externalCorrespondenceNumber", 
-                            correspondence.getExternalReferenceNumber() != null ? correspondence.getExternalReferenceNumber() : "");
-        incCorrespondence.put("corr:remarks", 
-                            cleanHtmlTags(correspondence.getNotes()) != null ? cleanHtmlTags(correspondence.getNotes()) : "");
-        incCorrespondence.put("corr:referenceNumber", 
-                            correspondence.getReferenceNo() != null ? correspondence.getReferenceNo() : "");
-        incCorrespondence.put("corr:category", CorrespondenceUtils.mapCategory(correspondence.getClassificationGuid()));
-        incCorrespondence.put("corr:secrecyLevel", CorrespondenceUtils.mapSecrecyLevel(correspondence.getSecrecyId()));
-        incCorrespondence.put("corr:priority", CorrespondenceUtils.mapPriority(correspondence.getPriorityId()));
-        
-        // Calculate due date (always add 5 years to creation date)
-        LocalDateTime dueDate = HijriDateUtils.addYears(correspondence.getCorrespondenceCreationDate(), 5);
-        incCorrespondence.put("corr:gDueDate", HijriDateUtils.formatToIsoString(dueDate));
-        incCorrespondence.put("corr:hDueDate", HijriDateUtils.convertToHijri(dueDate));
-        
-        incCorrespondence.put("corr:requireReply", CorrespondenceUtils.mapRequireReply(correspondence.getNeedReplyStatus()));
-        incCorrespondence.put("corr:from", "");
-        incCorrespondence.put("corr:fromAgency", AgencyMappingUtils.mapAgencyGuidToCode(correspondence.getComingFromGuid()));
-        
-        LocalDateTime documentDate = correspondence.getIncomingDate();
-        if (documentDate == null) {
-            documentDate = correspondence.getCorrespondenceCreationDate();
-        }
-        
-        incCorrespondence.put("corr:gDocumentDate", HijriDateUtils.formatToIsoString(documentDate));
-        incCorrespondence.put("corr:hDocumentDate", HijriDateUtils.convertToHijri(documentDate));
-        incCorrespondence.put("corr:gDate", HijriDateUtils.formatToIsoString(documentDate));
-        incCorrespondence.put("corr:hDate", HijriDateUtils.convertToHijri(documentDate));
-        incCorrespondence.put("corr:delivery", "unknown");
-        
-        String toDepartment = DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getCreationDepartmentGuid());
-        incCorrespondence.put("corr:to", toDepartment != null ? toDepartment : "CEO");
-        incCorrespondence.put("corr:toAgency", "ITBA");
-        incCorrespondence.put("corr:action", CorrespondenceUtils.mapAction(correspondence.getLastDecisionGuid()));
-        
-        // Add file content if batch exists
-        if (batchId != null) {
-            Map<String, Object> fileContent = new HashMap<>();
-            fileContent.put("upload-batch", batchId);
-            fileContent.put("upload-fileId", "0");
-            incCorrespondence.put("file:content", fileContent);
-        }
-        
-        return incCorrespondence;
-    }
-    
-    /**
-     * Creates physical attachment for correspondence
-     */
-    private boolean createPhysicalAttachment(Correspondence correspondence, String documentId) {
-        try {
-            String physicalAttachments = correspondence.getManualAttachmentsCount();
-            if (physicalAttachments == null || physicalAttachments.trim().isEmpty()) {
-                logger.debug("No manual attachments count for correspondence: {}, skipping physical attachment creation", 
-                           correspondence.getGuid());
-                return true; // Not an error if no physical attachments
-            }
-            
-            return destinationSystemService.createPhysicalAttachment(
-                documentId,
-                correspondence.getCreationUserName(),
-                physicalAttachments
-            );
-            
-        } catch (Exception e) {
-            logger.error("Error creating physical attachment for correspondence: {}", correspondence.getGuid(), e);
-            return false;
-        }
-    }
-    
-    /**
-     * Creates incoming correspondence in destination system
-     */
-    private String createIncomingCorrespondence(Correspondence correspondence, String batchId, Map<String, Object> incCorrespondenceContext) {
-        try {
-            // Use the pre-built context and extract individual values for the service call
-            String subject = (String) incCorrespondenceContext.get("corr:subject");
-            String externalRef = (String) incCorrespondenceContext.get("corr:externalCorrespondenceNumber");
-            String notes = (String) incCorrespondenceContext.get("corr:remarks");
-            String referenceNo = (String) incCorrespondenceContext.get("corr:referenceNumber");
-            String category = (String) incCorrespondenceContext.get("corr:category");
-            String secrecyLevel = (String) incCorrespondenceContext.get("corr:secrecyLevel");
-            String priority = (String) incCorrespondenceContext.get("corr:priority");
-            String gDueDate = (String) incCorrespondenceContext.get("corr:gDueDate");
-            String hDueDate = (String) incCorrespondenceContext.get("corr:hDueDate");
-            Boolean requireReply = (Boolean) incCorrespondenceContext.get("corr:requireReply");
-            String fromAgency = (String) incCorrespondenceContext.get("corr:fromAgency");
-            String gDocumentDate = (String) incCorrespondenceContext.get("corr:gDocumentDate");
-            String hDocumentDate = (String) incCorrespondenceContext.get("corr:hDocumentDate");
-            String gDate = (String) incCorrespondenceContext.get("corr:gDate");
-            String hDate = (String) incCorrespondenceContext.get("corr:hDate");
-            String toDepartment = (String) incCorrespondenceContext.get("corr:to");
-            String action = (String) incCorrespondenceContext.get("corr:action");
-            
-            return destinationSystemService.createIncomingCorrespondence(
-                correspondence.getGuid(),
-                correspondence.getCreationUserName(),
-                HijriDateUtils.formatToIsoString(correspondence.getCorrespondenceCreationDate()),
-                subject,
-                externalRef,
-                notes,
-                referenceNo,
-                category,
-                secrecyLevel,
-                priority,
-                gDueDate,
-                hDueDate,
-                requireReply,
-                fromAgency,
-                gDocumentDate,
-                hDocumentDate,
-                gDate,
-                hDate,
-                toDepartment,
-                batchId,
-                action
-            );
-            
-        } catch (Exception e) {
-            logger.error("Error creating incoming correspondence: {}", correspondence.getGuid(), e);
-            return null;
-        }
-    }
-    
-    /**
-     * Uploads other (non-primary) attachments
-     */
-    private boolean uploadOtherAttachment(CorrespondenceAttachment attachment, String correspondenceDocumentId) {
-        try {
-            // Create batch for this attachment
-            String batchId = destinationSystemService.createBatch();
-            if (batchId == null) {
-                logger.error("Failed to create batch for attachment: {}", attachment.getName());
-                return false;
-            }
-            
-            // Get file data for upload
-            String fileData = AttachmentUtils.getFileDataForUpload(
-                attachment.getFileData(),
-                attachment.getName(),
-                false
-            );
-            
-            // Always proceed with upload - either real data or sample data
-            if (fileData == null) {
-                logger.warn("No file data for attachment: {}, using sample data", attachment.getName());
-                fileData = "testbase64";
-            }
-            
-            String cleanName = AttachmentUtils.getFileNameForUpload(attachment.getName(), false);
-            
-            // Upload file to batch
-            boolean uploaded = destinationSystemService.uploadBase64FileToBatch(
-                batchId, "0", fileData, cleanName
-            );
-            
-            if (!uploaded) {
-                logger.error("Failed to upload attachment to batch: {}", attachment.getName());
-                return false;
-            }
-            
-            // Create attachment in destination system
-            boolean created = destinationSystemService.createAttachment(
-                attachment,
-                batchId,
-                correspondenceDocumentId
-            );
-            
-            if (created) {
-                logger.debug("Successfully uploaded and created attachment: {}", cleanName);
-                return true;
-            } else {
-                logger.error("Failed to create attachment in destination system: {}", attachment.getName());
-                return false;
-            }
-            
-        } catch (Exception e) {
-            logger.error("Error uploading other attachment: {}", attachment.getName(), e);
-            return false;
-        }
-    }
-    
-    /**
-     * Phase 3: Assignment (placeholder)
+     * Phase 3: Assignment - Optimized for large datasets
      */
     @Transactional
     public ImportResponseDto executeAssignmentPhase() {
-        logger.info("Starting Phase 3: Assignment");
+        logger.info("Starting Phase 3: Assignment (Optimized)");
         
-        List<String> errors = new ArrayList<>();
-        int successfulImports = 0;
-        int failedImports = 0;
+        // Get assignments that need processing using optimized query
+        List<CorrespondenceTransaction> assignments = transactionRepository.findAssignmentsNeedingProcessing();
         
-        try {
-            // Get all correspondence transactions with action_id = 12 and migrate_status = PENDING or FAILED
-            List<CorrespondenceTransaction> pendingAssignments = correspondenceTransactionRepository
-                .findByActionIdAndMigrateStatusIn(12, Arrays.asList("PENDING", "FAILED"));
-            
-            logger.info("Found {} pending/failed assignments to process", pendingAssignments.size());
-            
-            for (CorrespondenceTransaction transaction : pendingAssignments) {
-                try {
-                    boolean success = executeAssignmentForTransaction(transaction);
-                    
-                    if (success) {
-                        transaction.setMigrateStatus("SUCCESS");
-                        correspondenceTransactionRepository.save(transaction);
-                        successfulImports++;
-                        logger.info("Successfully completed assignment for transaction: {}", 
-                                  transaction.getGuid());
-                    } else {
-                        transaction.setMigrateStatus("FAILED");
-                        correspondenceTransactionRepository.save(transaction);
-                        failedImports++;
-                        errors.add("Failed assignment for transaction: " + transaction.getGuid());
-                    }
-                    
-                } catch (Exception e) {
-                    failedImports++;
-                    String errorMsg = "Error in assignment for transaction " + 
-                                    transaction.getGuid() + ": " + e.getMessage();
-                    errors.add(errorMsg);
-                    
-                    transaction.setMigrateStatus("FAILED");
-                    correspondenceTransactionRepository.save(transaction);
-                    
-                    logger.error(errorMsg, e);
-                }
-            }
-            
-            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Assignment phase completed. Success: %d, Failed: %d", 
-                                         successfulImports, failedImports);
-            
-            return new ImportResponseDto(status, message, pendingAssignments.size(), 
-                                       successfulImports, failedImports, errors);
-            
-        } catch (Exception e) {
-            logger.error("Failed to execute Assignment phase", e);
-            return new ImportResponseDto("ERROR", "Failed to execute Assignment phase: " + e.getMessage(), 
-                0, 0, 0, Collections.singletonList("Failed to execute Assignment phase: " + e.getMessage()));
-        }
+        logger.info("Found {} assignments to process", assignments.size());
+        
+        return executeAssignmentForSpecific(
+            assignments.stream()
+                .map(CorrespondenceTransaction::getGuid)
+                .collect(java.util.stream.Collectors.toList())
+        );
     }
     
     /**
-     * Gets assignment phase migrations with correspondence details
-     */
-    public List<Map<String, Object>> getAssignmentMigrations() {
-        try {
-            // Get all correspondence transactions with action_id = 12
-            List<CorrespondenceTransaction> transactions = correspondenceTransactionRepository
-                .findByActionId(12);
-            
-            List<Map<String, Object>> assignmentMigrations = new ArrayList<>();
-            
-            for (CorrespondenceTransaction transaction : transactions) {
-                try {
-                    Map<String, Object> assignmentData = new HashMap<>();
-                    
-                    // Basic transaction data
-                    assignmentData.put("id", transaction.getGuid());
-                    assignmentData.put("correspondenceGuid", transaction.getDocGuid());
-                    assignmentData.put("transactionGuid", transaction.getGuid());
-                    assignmentData.put("fromUserName", transaction.getFromUserName());
-                    assignmentData.put("toUserName", transaction.getToUserName());
-                    assignmentData.put("actionDate", transaction.getActionDate());
-                    assignmentData.put("decisionGuid", transaction.getDecisionGuid());
-                    assignmentData.put("notes", transaction.getNotes());
-                    assignmentData.put("migrateStatus", transaction.getMigrateStatus());
-                    assignmentData.put("retryCount", 0); // TODO: Add retry tracking if needed
-                    assignmentData.put("lastModifiedDate", transaction.getLastModifiedDate());
-                    
-                    // Get correspondence details
-                    Optional<Correspondence> correspondenceOpt = 
-                        correspondenceRepository.findById(transaction.getDocGuid());
-                    
-                    if (correspondenceOpt.isPresent()) {
-                        Correspondence correspondence = correspondenceOpt.get();
-                        assignmentData.put("correspondenceSubject", correspondence.getSubject());
-                        assignmentData.put("correspondenceReferenceNo", correspondence.getReferenceNo());
-                        
-                        // Get created document ID from migration table
-                        Optional<IncomingCorrespondenceMigration> migrationOpt = 
-                            migrationRepository.findByCorrespondenceGuid(transaction.getDocGuid());
-                        
-                        if (migrationOpt.isPresent()) {
-                            assignmentData.put("createdDocumentId", migrationOpt.get().getCreatedDocumentId());
-                        }
-                    }
-                    
-                    // Get department code for to_user_name
-                    String departmentCode = getDepartmentCodeByUserName(transaction.getToUserName());
-                    assignmentData.put("departmentCode", departmentCode);
-                    
-                    assignmentMigrations.add(assignmentData);
-                    
-                } catch (Exception e) {
-                    logger.warn("Could not load assignment details for transaction: {}", 
-                              transaction.getGuid(), e);
-                }
-            }
-            
-            logger.info("Found {} assignment migrations", assignmentMigrations.size());
-            return assignmentMigrations;
-            
-        } catch (Exception e) {
-            logger.error("Error getting assignment migrations", e);
-            return new ArrayList<>();
-        }
-    }
-    
-    /**
-     * Executes assignment phase for specific transaction GUIDs
+     * Execute assignment for specific transaction GUIDs - Optimized
      */
     @Transactional
     public ImportResponseDto executeAssignmentForSpecific(List<String> transactionGuids) {
-        logger.info("Starting assignment execution for {} specific transactions", 
-                   transactionGuids != null ? transactionGuids.size() : 0);
-        
-        if (transactionGuids == null || transactionGuids.isEmpty()) {
-            return new ImportResponseDto("ERROR", "No transaction GUIDs provided", 
-                0, 0, 0, Collections.singletonList("No transaction GUIDs provided"));
-        }
+        logger.info("Executing assignment for {} specific transactions", transactionGuids.size());
         
         List<String> errors = new ArrayList<>();
         int successfulImports = 0;
         int failedImports = 0;
         
-        try {
-            for (String transactionGuid : transactionGuids) {
-                try {
-                    // Find transaction
-                    Optional<CorrespondenceTransaction> transactionOpt = 
-                        correspondenceTransactionRepository.findById(transactionGuid);
-                    
-                    if (!transactionOpt.isPresent()) {
-                        failedImports++;
-                        errors.add("Transaction not found: " + transactionGuid);
-                        continue;
-                    }
-                    
-                    CorrespondenceTransaction transaction = transactionOpt.get();
-                    
-                    // Execute assignment
-                    boolean success = executeAssignmentForTransaction(transaction);
-                    
-                    if (success) {
-                        transaction.setMigrateStatus("SUCCESS");
-                        correspondenceTransactionRepository.save(transaction);
-                        successfulImports++;
-                        logger.info("Successfully completed assignment for transaction: {}", 
-                                  transactionGuid);
-                    } else {
-                        transaction.setMigrateStatus("FAILED");
-                        correspondenceTransactionRepository.save(transaction);
-                        failedImports++;
-                        errors.add("Failed assignment for transaction: " + transactionGuid);
-                    }
-                    
-                } catch (Exception e) {
+        // Load user department cache for performance
+        loadUserDepartmentCache();
+        
+        for (String transactionGuid : transactionGuids) {
+            try {
+                Optional<CorrespondenceTransaction> transactionOpt = 
+                    transactionRepository.findById(transactionGuid);
+                
+                if (!transactionOpt.isPresent()) {
                     failedImports++;
-                    String errorMsg = "Error in assignment for transaction " + 
-                                    transactionGuid + ": " + e.getMessage();
-                    errors.add(errorMsg);
-                    logger.error(errorMsg, e);
+                    errors.add("Transaction not found: " + transactionGuid);
+                    continue;
                 }
+                
+                CorrespondenceTransaction transaction = transactionOpt.get();
+                
+                // Get the created document ID from migration record
+                Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(transaction.getDocGuid());
+                
+                if (!migrationOpt.isPresent() || migrationOpt.get().getCreatedDocumentId() == null) {
+                    failedImports++;
+                    errors.add("No created document ID found for transaction: " + transactionGuid);
+                    continue;
+                }
+                
+                String documentId = migrationOpt.get().getCreatedDocumentId();
+                
+                // Get department code using cached lookup
+                String departmentCode = getCachedDepartmentCode(transaction.getToUserName());
+                
+                // Create assignment in destination system
+                boolean success = destinationSystemService.createAssignment(
+                    transactionGuid,
+                    transaction.getFromUserName(),
+                    documentId,
+                    transaction.getActionDate(),
+                    transaction.getToUserName(),
+                    departmentCode,
+                    transaction.getDecisionGuid()
+                );
+                
+                if (success) {
+                    transaction.setMigrateStatus("SUCCESS");
+                    successfulImports++;
+                    logger.debug("Successfully created assignment: {}", transactionGuid);
+                } else {
+                    transaction.setMigrateStatus("FAILED");
+                    transaction.setRetryCount(transaction.getRetryCount() + 1);
+                    failedImports++;
+                    errors.add("Failed to create assignment in destination system: " + transactionGuid);
+                }
+                
+                transactionRepository.save(transaction);
+                
+            } catch (Exception e) {
+                failedImports++;
+                String errorMsg = "Error processing assignment " + transactionGuid + ": " + e.getMessage();
+                errors.add(errorMsg);
+                logger.error(errorMsg, e);
             }
-            
-            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Assignment execution completed. Success: %d, Failed: %d", 
-                                         successfulImports, failedImports);
-            
-            return new ImportResponseDto(status, message, transactionGuids.size(), 
-                                       successfulImports, failedImports, errors);
-            
-        } catch (Exception e) {
-            logger.error("Failed to execute assignment for specific transactions", e);
-            return new ImportResponseDto("ERROR", "Failed to execute assignment: " + e.getMessage(), 
-                0, 0, 0, Collections.singletonList("Failed to execute assignment: " + e.getMessage()));
-        }
-    }
-    
-    /**
-     * Executes assignment for a single transaction
-     */
-    private boolean executeAssignmentForTransaction(CorrespondenceTransaction transaction) {
-        try {
-            // Get the created document ID from migration table
-            Optional<IncomingCorrespondenceMigration> migrationOpt = 
-                migrationRepository.findByCorrespondenceGuid(transaction.getDocGuid());
-            
-            if (!migrationOpt.isPresent()) {
-                logger.error("No migration record found for correspondence: {}", transaction.getDocGuid());
-                return false;
-            }
-            
-            IncomingCorrespondenceMigration migration = migrationOpt.get();
-            String createdDocumentId = migration.getCreatedDocumentId();
-            
-            if (createdDocumentId == null || createdDocumentId.trim().isEmpty()) {
-                logger.error("No created document ID found for correspondence: {}", transaction.getDocGuid());
-                return false;
-            }
-            
-            // Get department code for to_user_name
-            String departmentCode = getDepartmentCodeByUserName(transaction.getToUserName());
-            if (departmentCode == null) {
-                logger.warn("No department code found for user: {}, using default", transaction.getToUserName());
-                departmentCode = "CEO"; // Default fallback
-            }
-            
-            // Call destination system to create assignment
-            return destinationSystemService.createAssignment(
-                transaction.getGuid(),
-                transaction.getFromUserName(),
-                createdDocumentId,
-                transaction.getActionDate(),
-                transaction.getToUserName(),
-                departmentCode,
-                transaction.getDecisionGuid()
-            );
-            
-        } catch (Exception e) {
-            logger.error("Error executing assignment for transaction: {}", transaction.getGuid(), e);
-            return false;
-        }
-    }
-    
-    /**
-     * Gets department code by user name from users.json
-     */
-    private String getDepartmentCodeByUserName(String userName) {
-        if (userName == null || userName.trim().isEmpty()) {
-            return null;
         }
         
+        String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+        String message = String.format("Assignment completed. Success: %d, Failed: %d", 
+                                     successfulImports, failedImports);
+        
+        return new ImportResponseDto(status, message, transactionGuids.size(), 
+                                   successfulImports, failedImports, errors);
+    }
+    
+    /**
+     * Get assignment migrations with pagination - Optimized for large datasets
+     */
+    public Map<String, Object> getAssignmentMigrations(int page, int size) {
+        logger.info("Getting assignment migrations - page: {}, size: {}", page, size);
+        
         try {
-            // Load users from JSON file
-            ClassPathResource resource = new ClassPathResource("users.json");
-            InputStream inputStream = resource.getInputStream();
+            Pageable pageable = PageRequest.of(page, size);
+            Page<Object[]> assignmentPage = transactionRepository.findAssignmentMigrationsWithPagination(pageable);
             
-            TypeReference<List<Map<String, Object>>> typeReference = 
-                new TypeReference<List<Map<String, Object>>>() {};
+            List<Map<String, Object>> assignments = new ArrayList<>();
             
-            List<Map<String, Object>> users = objectMapper.readValue(inputStream, typeReference);
+            // Load user department cache for performance
+            loadUserDepartmentCache();
             
-            // Find user by email (userName@domain)
-            for (Map<String, Object> user : users) {
-                String email = (String) user.get("email");
-                if (email != null && email.contains("@")) {
-                    String emailUsername = email.substring(0, email.indexOf("@"));
-                    if (userName.equalsIgnoreCase(emailUsername)) {
-                        return (String) user.get("Department code");
-                    }
-                }
+            for (Object[] row : assignmentPage.getContent()) {
+                Map<String, Object> assignment = new HashMap<>();
+                assignment.put("transactionGuid", row[0]);
+                assignment.put("correspondenceGuid", row[1]);
+                assignment.put("fromUserName", row[2]);
+                assignment.put("toUserName", row[3]);
+                assignment.put("actionDate", row[4]);
+                assignment.put("decisionGuid", row[5]);
+                assignment.put("notes", row[6]);
+                assignment.put("migrateStatus", row[7]);
+                assignment.put("retryCount", row[8]);
+                assignment.put("lastModifiedDate", row[9]);
+                assignment.put("correspondenceSubject", row[10]);
+                assignment.put("correspondenceReferenceNo", row[11]);
+                assignment.put("createdDocumentId", row[12]);
+                
+                // Add department code using cached lookup
+                String departmentCode = getCachedDepartmentCode((String) row[3]); // toUserName
+                assignment.put("departmentCode", departmentCode);
+                
+                assignments.add(assignment);
             }
             
-            logger.debug("No department code found for user: {}", userName);
-            return null;
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", assignments);
+            result.put("totalElements", assignmentPage.getTotalElements());
+            result.put("totalPages", assignmentPage.getTotalPages());
+            result.put("currentPage", page);
+            result.put("pageSize", size);
+            result.put("hasNext", assignmentPage.hasNext());
+            result.put("hasPrevious", assignmentPage.hasPrevious());
+            
+            logger.info("Retrieved {} assignments for page {}", assignments.size(), page);
+            return result;
             
         } catch (Exception e) {
-            logger.error("Error getting department code for user: {}", userName, e);
-            return null;
+            logger.error("Error getting assignment migrations", e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("content", new ArrayList<>());
+            errorResult.put("totalElements", 0L);
+            errorResult.put("totalPages", 0);
+            errorResult.put("currentPage", page);
+            errorResult.put("pageSize", size);
+            errorResult.put("hasNext", false);
+            errorResult.put("hasPrevious", false);
+            errorResult.put("error", e.getMessage());
+            return errorResult;
         }
     }
     
     /**
-     * Phase 4: Business Log (placeholder)
+     * Get creation migrations for detailed view
+     */
+    public List<IncomingCorrespondenceMigration> getCreationMigrations() {
+        logger.info("Getting creation migrations");
+        return migrationRepository.findByCurrentPhase("CREATION");
+    }
+    
+    /**
+     * Phase 4: Business Log (Placeholder)
      */
     @Transactional
     public ImportResponseDto executeBusinessLogPhase() {
         logger.info("Starting Phase 4: Business Log");
         
-        List<IncomingCorrespondenceMigration> migrations = 
-            migrationRepository.findByCurrentPhase("BUSINESS_LOG");
-        
-        // TODO: Implement business log logic
-        for (IncomingCorrespondenceMigration migration : migrations) {
-            migration.markPhaseCompleted("BUSINESS_LOG");
-            migrationRepository.save(migration);
-        }
-        
-        return new ImportResponseDto("SUCCESS", "Business Log phase completed", 
-            migrations.size(), migrations.size(), 0, new ArrayList<>());
+        // Placeholder implementation
+        return new ImportResponseDto("SUCCESS", "Business Log phase not yet implemented", 
+            0, 0, 0, new ArrayList<>());
     }
     
     /**
-     * Phase 5: Comment (placeholder)
+     * Phase 5: Comment (Placeholder)
      */
     @Transactional
     public ImportResponseDto executeCommentPhase() {
         logger.info("Starting Phase 5: Comment");
         
-        List<IncomingCorrespondenceMigration> migrations = 
-            migrationRepository.findByCurrentPhase("COMMENT");
-        
-        // TODO: Implement comment logic
-        for (IncomingCorrespondenceMigration migration : migrations) {
-            migration.markPhaseCompleted("COMMENT");
-            migrationRepository.save(migration);
-        }
-        
-        return new ImportResponseDto("SUCCESS", "Comment phase completed", 
-            migrations.size(), migrations.size(), 0, new ArrayList<>());
+        // Placeholder implementation
+        return new ImportResponseDto("SUCCESS", "Comment phase not yet implemented", 
+            0, 0, 0, new ArrayList<>());
     }
     
     /**
-     * Phase 6: Closing (placeholder)
+     * Phase 6: Closing (Placeholder)
      */
     @Transactional
     public ImportResponseDto executeClosingPhase() {
         logger.info("Starting Phase 6: Closing");
         
-        List<IncomingCorrespondenceMigration> migrations = 
-            migrationRepository.findByCurrentPhase("CLOSING");
-        
-        // TODO: Implement closing logic
-        for (IncomingCorrespondenceMigration migration : migrations) {
-            if (migration.getIsNeedToClose() != null && migration.getIsNeedToClose()) {
-                // Execute closing logic for correspondences that need to be closed
-                // TODO: Implement actual closing API calls
-            }
-            
-            migration.markPhaseCompleted("CLOSING");
-            migrationRepository.save(migration);
-        }
-        
-        return new ImportResponseDto("SUCCESS", "Closing phase completed", 
-            migrations.size(), migrations.size(), 0, new ArrayList<>());
+        // Placeholder implementation
+        return new ImportResponseDto("SUCCESS", "Closing phase not yet implemented", 
+            0, 0, 0, new ArrayList<>());
     }
     
     /**
-     * Gets migration statistics
-     */
-    public Map<String, Object> getMigrationStatistics() {
-        Map<String, Object> stats = new HashMap<>();
-        
-        stats.put("prepareData", migrationRepository.countByCurrentPhase("PREPARE_DATA"));
-        stats.put("creation", migrationRepository.countByCurrentPhase("CREATION"));
-        stats.put("assignment", migrationRepository.countByCurrentPhase("ASSIGNMENT"));
-        stats.put("businessLog", migrationRepository.countByCurrentPhase("BUSINESS_LOG"));
-        stats.put("comment", migrationRepository.countByCurrentPhase("COMMENT"));
-        stats.put("closing", migrationRepository.countByCurrentPhase("CLOSING"));
-        stats.put("completed", migrationRepository.countByOverallStatus("COMPLETED"));
-        stats.put("failed", migrationRepository.countByOverallStatus("FAILED"));
-        stats.put("inProgress", migrationRepository.countByOverallStatus("IN_PROGRESS"));
-        
-        return stats;
-    }
-    
-    /**
-     * Retries failed migrations
+     * Retry failed migrations
      */
     @Transactional
     public ImportResponseDto retryFailedMigrations() {
-        logger.info("Starting retry of failed migrations");
+        logger.info("Retrying failed migrations");
         
         List<IncomingCorrespondenceMigration> retryableMigrations = 
             migrationRepository.findRetryableMigrations();
         
         logger.info("Found {} migrations to retry", retryableMigrations.size());
         
-        int successfulRetries = 0;
-        int failedRetries = 0;
+        // Group by current phase and execute appropriate retry logic
+        Map<String, List<IncomingCorrespondenceMigration>> groupedByPhase = new HashMap<>();
+        for (IncomingCorrespondenceMigration migration : retryableMigrations) {
+            groupedByPhase.computeIfAbsent(migration.getCurrentPhase(), k -> new ArrayList<>()).add(migration);
+        }
+        
+        int totalRetried = 0;
         List<String> errors = new ArrayList<>();
         
-        for (IncomingCorrespondenceMigration migration : retryableMigrations) {
+        for (Map.Entry<String, List<IncomingCorrespondenceMigration>> entry : groupedByPhase.entrySet()) {
+            String phase = entry.getKey();
+            List<String> guids = entry.getValue().stream()
+                .map(IncomingCorrespondenceMigration::getCorrespondenceGuid)
+                .collect(java.util.stream.Collectors.toList());
+            
             try {
-                // Reset phase status to allow retry
-                migration.setPhaseStatus("PENDING");
-                
-                // Execute the appropriate phase
-                boolean success = false;
-                switch (migration.getCurrentPhase()) {
+                ImportResponseDto result;
+                switch (phase) {
                     case "CREATION":
-                        success = executeCreationSteps(migration);
+                        result = executeCreationForSpecific(guids);
                         break;
-                    // TODO: Add other phases
+                    case "ASSIGNMENT":
+                        // Get transaction GUIDs for assignment retry
+                        List<String> transactionGuids = transactionRepository
+                            .findAssignmentsByMigrateStatusIn(Arrays.asList("FAILED"))
+                            .stream()
+                            .map(CorrespondenceTransaction::getGuid)
+                            .collect(java.util.stream.Collectors.toList());
+                        result = executeAssignmentForSpecific(transactionGuids);
+                        break;
                     default:
-                        logger.warn("Retry not implemented for phase: {}", migration.getCurrentPhase());
-                        continue;
+                        result = new ImportResponseDto("SUCCESS", "Phase " + phase + " retry not implemented", 
+                            0, 0, 0, new ArrayList<>());
+                        break;
                 }
                 
-                if (success) {
-                    successfulRetries++;
-                    logger.info("Successfully retried migration for correspondence: {}", 
-                              migration.getCorrespondenceGuid());
-                } else {
-                    failedRetries++;
-                    migration.incrementRetryCount();
-                    errors.add("Retry failed for correspondence: " + migration.getCorrespondenceGuid());
+                totalRetried += result.getSuccessfulImports();
+                if (result.getErrors() != null) {
+                    errors.addAll(result.getErrors());
                 }
-                
-                migrationRepository.save(migration);
                 
             } catch (Exception e) {
-                failedRetries++;
-                String errorMsg = "Error retrying migration for correspondence " + 
-                                migration.getCorrespondenceGuid() + ": " + e.getMessage();
+                String errorMsg = "Error retrying phase " + phase + ": " + e.getMessage();
                 errors.add(errorMsg);
-                
-                migration.incrementRetryCount();
-                migrationRepository.save(migration);
-                
                 logger.error(errorMsg, e);
             }
         }
         
-        String status = failedRetries == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-        String message = String.format("Retry completed. Success: %d, Failed: %d", 
-                                     successfulRetries, failedRetries);
-        
-        return new ImportResponseDto(status, message, retryableMigrations.size(), 
-                                   successfulRetries, failedRetries, errors);
+        return new ImportResponseDto("SUCCESS", 
+            "Retry completed. Retried: " + totalRetried + " migrations", 
+            retryableMigrations.size(), totalRetried, 0, errors);
     }
     
     /**
-     * Cleans HTML tags from text
+     * Get migration statistics
      */
-    private String cleanHtmlTags(String text) {
-        if (text == null) {
-            return "";
+    public Map<String, Object> getMigrationStatistics() {
+        logger.info("Getting migration statistics");
+        
+        Map<String, Object> stats = new HashMap<>();
+        
+        try {
+            // Get phase counts
+            stats.put("prepareData", migrationRepository.countByCurrentPhase("PREPARE_DATA"));
+            stats.put("creation", migrationRepository.countByCurrentPhase("CREATION"));
+            stats.put("assignment", migrationRepository.countByCurrentPhase("ASSIGNMENT"));
+            stats.put("businessLog", migrationRepository.countByCurrentPhase("BUSINESS_LOG"));
+            stats.put("comment", migrationRepository.countByCurrentPhase("COMMENT"));
+            stats.put("closing", migrationRepository.countByCurrentPhase("CLOSING"));
+            
+            // Get overall status counts
+            stats.put("completed", migrationRepository.countByOverallStatus("COMPLETED"));
+            stats.put("failed", migrationRepository.countByOverallStatus("FAILED"));
+            stats.put("inProgress", migrationRepository.countByOverallStatus("IN_PROGRESS"));
+            
+            // Get assignment-specific statistics using optimized query
+            Object[] assignmentStats = transactionRepository.getAssignmentStatistics();
+            if (assignmentStats != null && assignmentStats.length >= 4) {
+                Map<String, Object> assignmentMap = new HashMap<>();
+                assignmentMap.put("pending", assignmentStats[0]);
+                assignmentMap.put("success", assignmentStats[1]);
+                assignmentMap.put("failed", assignmentStats[2]);
+                assignmentMap.put("total", assignmentStats[3]);
+                stats.put("assignmentDetails", assignmentMap);
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error getting migration statistics", e);
+            // Return default values on error
+            stats.put("prepareData", 0L);
+            stats.put("creation", 0L);
+            stats.put("assignment", 0L);
+            stats.put("businessLog", 0L);
+            stats.put("comment", 0L);
+            stats.put("closing", 0L);
+            stats.put("completed", 0L);
+            stats.put("failed", 0L);
+            stats.put("inProgress", 0L);
         }
-        return text.replaceAll("<[^>]*>", "").trim();
+        
+        return stats;
+    }
+    
+    // Helper methods
+    
+    private boolean determineIfNeedToClose(Correspondence correspondence) {
+        // Logic to determine if correspondence needs to be closed
+        // This could be based on status, dates, or other business rules
+        return correspondence.getIsFinal() != null && correspondence.getIsFinal();
+    }
+    
+    private boolean executeCreationSteps(IncomingCorrespondenceMigration migration) {
+        String correspondenceGuid = migration.getCorrespondenceGuid();
+        logger.info("Executing creation steps for correspondence: {}", correspondenceGuid);
+        
+        try {
+            // Step 1: Get Details
+            migration.setCreationStep("GET_DETAILS");
+            migrationRepository.save(migration);
+            
+            Optional<Correspondence> correspondenceOpt = correspondenceRepository.findById(correspondenceGuid);
+            if (!correspondenceOpt.isPresent()) {
+                logger.error("Correspondence not found: {}", correspondenceGuid);
+                return false;
+            }
+            
+            Correspondence correspondence = correspondenceOpt.get();
+            
+            // Step 2: Get Attachments
+            migration.setCreationStep("GET_ATTACHMENTS");
+            migrationRepository.save(migration);
+            
+            List<CorrespondenceAttachment> attachments = attachmentRepository.findByDocGuid(correspondenceGuid);
+            CorrespondenceAttachment primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
+            
+            String batchId = null;
+            
+            // Step 3: Upload Main Attachment (if exists)
+            if (primaryAttachment != null && AttachmentUtils.isValidForUpload(primaryAttachment)) {
+                migration.setCreationStep("UPLOAD_MAIN_ATTACHMENT");
+                migrationRepository.save(migration);
+                
+                batchId = destinationSystemService.createBatch();
+                if (batchId != null) {
+                    migration.setBatchId(batchId);
+                    
+                    String fileName = AttachmentUtils.getFileNameForUpload(primaryAttachment.getName(), true);
+                    String fileData = AttachmentUtils.getFileDataForUpload(
+                        primaryAttachment.getFileData(), fileName, true);
+                    
+                    boolean uploadSuccess = destinationSystemService.uploadBase64FileToBatch(
+                        batchId, "0", fileData, fileName);
+                    
+                    if (!uploadSuccess) {
+                        logger.warn("Failed to upload primary attachment for correspondence: {}", correspondenceGuid);
+                    }
+                }
+            }
+            
+            // Step 4: Create Correspondence
+            migration.setCreationStep("CREATE_CORRESPONDENCE");
+            migrationRepository.save(migration);
+            
+            String documentId = createCorrespondenceInDestination(correspondence, batchId);
+            if (documentId == null) {
+                logger.error("Failed to create correspondence in destination system: {}", correspondenceGuid);
+                return false;
+            }
+            
+            migration.setCreatedDocumentId(documentId);
+            
+            // Step 5: Upload Other Attachments
+            migration.setCreationStep("UPLOAD_OTHER_ATTACHMENTS");
+            migrationRepository.save(migration);
+            
+            List<CorrespondenceAttachment> otherAttachments = AttachmentUtils.getNonPrimaryAttachments(attachments, primaryAttachment);
+            for (CorrespondenceAttachment attachment : otherAttachments) {
+                if (AttachmentUtils.isValidForUpload(attachment)) {
+                    String attachmentBatchId = destinationSystemService.createBatch();
+                    if (attachmentBatchId != null) {
+                        String fileName = AttachmentUtils.getFileNameForUpload(attachment.getName(), false);
+                        String fileData = AttachmentUtils.getFileDataForUpload(
+                            attachment.getFileData(), fileName, false);
+                        
+                        boolean uploadSuccess = destinationSystemService.uploadBase64FileToBatch(
+                            attachmentBatchId, "0", fileData, fileName);
+                        
+                        if (uploadSuccess) {
+                            destinationSystemService.createAttachment(attachment, attachmentBatchId, documentId);
+                        }
+                    }
+                }
+            }
+            
+            // Additional steps for complete correspondence setup
+            executeAdditionalCreationSteps(migration, documentId, correspondence);
+            
+            migration.setCreationStep("COMPLETED");
+            migrationRepository.save(migration);
+            
+            logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
+            return true;
+            
+        } catch (Exception e) {
+            logger.error("Error in creation steps for correspondence: {}", correspondenceGuid, e);
+            migration.setCreationError(e.getMessage());
+            migrationRepository.save(migration);
+            return false;
+        }
+    }
+    
+    private String createCorrespondenceInDestination(Correspondence correspondence, String batchId) {
+        try {
+            // Map correspondence data to destination format
+            String subject = correspondence.getSubject() != null ? correspondence.getSubject() : "";
+            String externalRef = correspondence.getExternalReferenceNumber();
+            String notes = correspondence.getNotes();
+            String referenceNo = correspondence.getReferenceNo();
+            String category = CorrespondenceUtils.mapCategory(correspondence.getClassificationGuid());
+            String secrecyLevel = CorrespondenceUtils.mapSecrecyLevel(correspondence.getSecrecyId());
+            String priority = CorrespondenceUtils.mapPriority(correspondence.getPriorityId());
+            Boolean requireReply = CorrespondenceUtils.mapRequireReply(correspondence.getNeedReplyStatus());
+            String fromAgency = AgencyMappingUtils.mapAgencyGuidToCode(correspondence.getComingFromGuid());
+            
+            // Convert dates to Hijri
+            String gDate = HijriDateUtils.formatToIsoString(correspondence.getIncomingDate());
+            String hDate = HijriDateUtils.convertToHijri(correspondence.getIncomingDate());
+            String gDueDate = HijriDateUtils.formatToIsoString(correspondence.getDueDate());
+            String hDueDate = HijriDateUtils.convertToHijri(correspondence.getDueDate());
+            String gDocumentDate = HijriDateUtils.formatToIsoString(correspondence.getCorrespondenceCreationDate());
+            String hDocumentDate = HijriDateUtils.convertToHijri(correspondence.getCorrespondenceCreationDate());
+            
+            // Get target department
+            String toDepartment = DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getCreationDepartmentGuid());
+            if (toDepartment == null) {
+                toDepartment = "CEO"; // Default fallback
+            }
+            
+            String action = "ForAdvice"; // Default action
+            String asUser = correspondence.getCreationUserName() != null ? 
+                          correspondence.getCreationUserName() : "itba-emp1";
+            
+            return destinationSystemService.createIncomingCorrespondence(
+                correspondence.getGuid(), asUser, gDate, subject, externalRef, notes,
+                referenceNo, category, secrecyLevel, priority, gDueDate, hDueDate,
+                requireReply, fromAgency, gDocumentDate, hDocumentDate, gDate, hDate,
+                toDepartment, batchId, action
+            );
+            
+        } catch (Exception e) {
+            logger.error("Error creating correspondence in destination: {}", correspondence.getGuid(), e);
+            return null;
+        }
+    }
+    
+    private void executeAdditionalCreationSteps(IncomingCorrespondenceMigration migration, 
+                                              String documentId, Correspondence correspondence) {
+        try {
+            String asUser = correspondence.getCreationUserName() != null ? 
+                          correspondence.getCreationUserName() : "itba-emp1";
+            
+            // Step: Create Physical Attachment
+            migration.setCreationStep("CREATE_PHYSICAL_ATTACHMENT");
+            migrationRepository.save(migration);
+            
+            String physicalAttachments = correspondence.getManualAttachmentsCount();
+            destinationSystemService.createPhysicalAttachment(documentId, asUser, physicalAttachments);
+            
+            // Step: Set Ready to Register
+            migration.setCreationStep("SET_READY_TO_REGISTER");
+            migrationRepository.save(migration);
+            
+            destinationSystemService.setIncomingReadyToRegister(documentId, asUser);
+            
+            // Step: Register with Reference
+            migration.setCreationStep("REGISTER_WITH_REFERENCE");
+            migrationRepository.save(migration);
+            
+            // Build context for registration (reuse creation context)
+            Map<String, Object> incCorrespondenceContext = buildCorrespondenceContext(correspondence);
+            destinationSystemService.registerWithReference(documentId, asUser, incCorrespondenceContext);
+            
+            // Step: Start Work
+            migration.setCreationStep("START_WORK");
+            migrationRepository.save(migration);
+            
+            destinationSystemService.startIncomingCorrespondenceWork(documentId, asUser);
+            
+            // Step: Set Owner
+            migration.setCreationStep("SET_OWNER");
+            migrationRepository.save(migration);
+            
+            destinationSystemService.setCorrespondenceOwner(documentId, asUser);
+            
+        } catch (Exception e) {
+            logger.error("Error in additional creation steps", e);
+            throw e;
+        }
+    }
+    
+    private Map<String, Object> buildCorrespondenceContext(Correspondence correspondence) {
+        Map<String, Object> context = new HashMap<>();
+        
+        context.put("corr:subject", correspondence.getSubject() != null ? correspondence.getSubject() : "");
+        context.put("corr:externalCorrespondenceNumber", correspondence.getExternalReferenceNumber() != null ? correspondence.getExternalReferenceNumber() : "");
+        context.put("corr:remarks", correspondence.getNotes() != null ? correspondence.getNotes() : "");
+        context.put("corr:referenceNumber", correspondence.getReferenceNo() != null ? correspondence.getReferenceNo() : "");
+        context.put("corr:category", CorrespondenceUtils.mapCategory(correspondence.getClassificationGuid()));
+        context.put("corr:secrecyLevel", CorrespondenceUtils.mapSecrecyLevel(correspondence.getSecrecyId()));
+        context.put("corr:priority", CorrespondenceUtils.mapPriority(correspondence.getPriorityId()));
+        context.put("corr:requireReply", CorrespondenceUtils.mapRequireReply(correspondence.getNeedReplyStatus()));
+        context.put("corr:fromAgency", AgencyMappingUtils.mapAgencyGuidToCode(correspondence.getComingFromGuid()));
+        context.put("corr:toAgency", "ITBA");
+        context.put("corr:delivery", "unknown");
+        
+        // Add dates
+        context.put("corr:gDate", HijriDateUtils.formatToIsoString(correspondence.getIncomingDate()));
+        context.put("corr:hDate", HijriDateUtils.convertToHijri(correspondence.getIncomingDate()));
+        context.put("corr:gDueDate", HijriDateUtils.formatToIsoString(correspondence.getDueDate()));
+        context.put("corr:hDueDate", HijriDateUtils.convertToHijri(correspondence.getDueDate()));
+        context.put("corr:gDocumentDate", HijriDateUtils.formatToIsoString(correspondence.getCorrespondenceCreationDate()));
+        context.put("corr:hDocumentDate", HijriDateUtils.convertToHijri(correspondence.getCorrespondenceCreationDate()));
+        
+        return context;
+    }
+    
+    /**
+     * Load user department cache for performance optimization
+     */
+    private void loadUserDepartmentCache() {
+        if (userDepartmentCache.isEmpty()) {
+            logger.info("Loading user department cache for performance optimization");
+            
+            try {
+                // Load users.json and cache department mappings
+                com.fasterxml.jackson.core.type.TypeReference<List<com.importservice.dto.UserImportDto>> typeRef = 
+                    new com.fasterxml.jackson.core.type.TypeReference<List<com.importservice.dto.UserImportDto>>() {};
+                
+                org.springframework.core.io.ClassPathResource resource = new org.springframework.core.io.ClassPathResource("users.json");
+                java.io.InputStream inputStream = resource.getInputStream();
+                
+                com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                List<com.importservice.dto.UserImportDto> users = objectMapper.readValue(inputStream, typeRef);
+                
+                for (com.importservice.dto.UserImportDto user : users) {
+                    if (user.getEmail() != null && user.getDepartmentCode() != null) {
+                        // Cache both email and username mappings
+                        userDepartmentCache.put(user.getEmail(), user.getDepartmentCode());
+                        userDepartmentCache.put(user.getUsernameFromEmail(), user.getDepartmentCode());
+                    }
+                }
+                
+                logger.info("Loaded {} user department mappings into cache", userDepartmentCache.size());
+                
+            } catch (Exception e) {
+                logger.error("Error loading user department cache", e);
+            }
+        }
+    }
+    
+    /**
+     * Get department code using cached lookup for performance
+     */
+    private String getCachedDepartmentCode(String userIdentifier) {
+        if (userIdentifier == null || userIdentifier.trim().isEmpty()) {
+            return "CEO"; // Default fallback
+        }
+        
+        // Try cache lookup first
+        String departmentCode = userDepartmentCache.get(userIdentifier.trim());
+        
+        if (departmentCode != null) {
+            return departmentCode;
+        }
+        
+        // Fallback to database lookup (slower)
+        try {
+            String departmentGuid = departmentUtils.getDepartmentGuidByUserEmail(userIdentifier);
+            if (departmentGuid != null) {
+                departmentCode = DepartmentUtils.getDepartmentCodeByOldGuid(departmentGuid);
+                if (departmentCode != null) {
+                    // Cache the result for future use
+                    userDepartmentCache.put(userIdentifier, departmentCode);
+                    return departmentCode;
+                }
+            }
+        } catch (Exception e) {
+            logger.debug("Error in database lookup for user: {}", userIdentifier, e);
+        }
+        
+        return "CEO"; // Default fallback
     }
 }
