@@ -221,13 +221,13 @@ public class ClosingPhaseService {
             List<Map<String, Object>> closings = new ArrayList<>();
             for (Object[] row : closingPage.getContent()) {
                 Map<String, Object> closing = new HashMap<>();
-                closing.put("id", row[0] != null ? ((BigInteger) row[0]).longValue() : null);
+                closing.put("id", row[0] != null ? ((Number) row[0]).longValue() : null);
                 closing.put("correspondenceGuid", row[1]);
                 closing.put("isNeedToClose", row[2] != null ? (Boolean) row[2] : false);
                 closing.put("closingStatus", row[3]);
                 closing.put("closingError", row[4]);
                 closing.put("createdDocumentId", row[5]);
-                closing.put("retryCount", row[6] != null ? ((BigInteger) row[6]).intValue() : 0);
+                closing.put("retryCount", row[6] != null ? ((Number) row[6]).intValue() : 0);
                 closing.put("lastModifiedDate", row[7] != null ? ((Timestamp) row[7]).toLocalDateTime() : null);
                 closing.put("correspondenceSubject", row[8]);
                 closing.put("correspondenceReferenceNo", row[9]);

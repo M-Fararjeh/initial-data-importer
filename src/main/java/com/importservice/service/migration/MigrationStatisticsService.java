@@ -53,10 +53,10 @@ public class MigrationStatisticsService {
             Object[] assignmentStats = transactionRepository.getAssignmentStatistics();
             if (assignmentStats != null && assignmentStats.length >= 4) {
                 Map<String, Object> assignmentStatistics = new HashMap<>();
-                assignmentStatistics.put("pending", assignmentStats[0] != null ? ((BigInteger) assignmentStats[0]).longValue() : 0L);
-                assignmentStatistics.put("success", assignmentStats[1] != null ? ((BigInteger) assignmentStats[1]).longValue() : 0L);
-                assignmentStatistics.put("failed", assignmentStats[2] != null ? ((BigInteger) assignmentStats[2]).longValue() : 0L);
-                assignmentStatistics.put("total", assignmentStats[3] != null ? ((BigInteger) assignmentStats[3]).longValue() : 0L);
+                assignmentStatistics.put("pending", assignmentStats[0] != null ? ((Number) assignmentStats[0]).longValue() : 0L);
+                assignmentStatistics.put("success", assignmentStats[1] != null ? ((Number) assignmentStats[1]).longValue() : 0L);
+                assignmentStatistics.put("failed", assignmentStats[2] != null ? ((Number) assignmentStats[2]).longValue() : 0L);
+                assignmentStatistics.put("total", assignmentStats[3] != null ? ((Number) assignmentStats[3]).longValue() : 0L);
                 statistics.put("assignmentDetails", assignmentStatistics);
             }
             
@@ -64,10 +64,10 @@ public class MigrationStatisticsService {
             Object[] businessLogStats = transactionRepository.getBusinessLogStatistics();
             if (businessLogStats != null && businessLogStats.length >= 4) {
                 Map<String, Object> businessLogStatistics = new HashMap<>();
-                businessLogStatistics.put("pending", businessLogStats[0] != null ? ((BigInteger) businessLogStats[0]).longValue() : 0L);
-                businessLogStatistics.put("success", businessLogStats[1] != null ? ((BigInteger) businessLogStats[1]).longValue() : 0L);
-                businessLogStatistics.put("failed", businessLogStats[2] != null ? ((BigInteger) businessLogStats[2]).longValue() : 0L);
-                businessLogStatistics.put("total", businessLogStats[3] != null ? ((BigInteger) businessLogStats[3]).longValue() : 0L);
+                businessLogStatistics.put("pending", businessLogStats[0] != null ? ((Number) businessLogStats[0]).longValue() : 0L);
+                businessLogStatistics.put("success", businessLogStats[1] != null ? ((Number) businessLogStats[1]).longValue() : 0L);
+                businessLogStatistics.put("failed", businessLogStats[2] != null ? ((Number) businessLogStats[2]).longValue() : 0L);
+                businessLogStatistics.put("total", businessLogStats[3] != null ? ((Number) businessLogStats[3]).longValue() : 0L);
                 statistics.put("businessLogDetails", businessLogStatistics);
             }
             
@@ -75,10 +75,10 @@ public class MigrationStatisticsService {
             Object[] commentStats = commentRepository.getCommentStatistics();
             if (commentStats != null && commentStats.length >= 4) {
                 Map<String, Object> commentStatistics = new HashMap<>();
-                commentStatistics.put("pending", commentStats[0] != null ? ((BigInteger) commentStats[0]).longValue() : 0L);
-                commentStatistics.put("success", commentStats[1] != null ? ((BigInteger) commentStats[1]).longValue() : 0L);
-                commentStatistics.put("failed", commentStats[2] != null ? ((BigInteger) commentStats[2]).longValue() : 0L);
-                commentStatistics.put("total", commentStats[3] != null ? ((BigInteger) commentStats[3]).longValue() : 0L);
+                commentStatistics.put("pending", commentStats[0] != null ? ((Number) commentStats[0]).longValue() : 0L);
+                commentStatistics.put("success", commentStats[1] != null ? ((Number) commentStats[1]).longValue() : 0L);
+                commentStatistics.put("failed", commentStats[2] != null ? ((Number) commentStats[2]).longValue() : 0L);
+                commentStatistics.put("total", commentStats[3] != null ? ((Number) commentStats[3]).longValue() : 0L);
                 statistics.put("commentDetails", commentStatistics);
             }
             

@@ -227,7 +227,7 @@ public class AssignmentPhaseService {
                 assignment.put("decisionGuid", row[5]);
                 assignment.put("notes", row[6]);
                 assignment.put("migrateStatus", row[7]);
-                assignment.put("retryCount", row[8] != null ? ((BigInteger) row[8]).intValue() : 0);
+                assignment.put("retryCount", row[8] != null ? ((Number) row[8]).intValue() : 0);
                 assignment.put("lastModifiedDate", row[9] != null ? ((Timestamp) row[9]).toLocalDateTime() : null);
                 assignment.put("correspondenceSubject", row[10]);
                 assignment.put("correspondenceReferenceNo", row[11]);

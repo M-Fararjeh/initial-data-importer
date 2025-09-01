@@ -215,7 +215,7 @@ public class BusinessLogPhaseService {
                 businessLog.put("fromUserName", row[6]);
                 businessLog.put("notes", row[7]);
                 businessLog.put("migrateStatus", row[8]);
-                businessLog.put("retryCount", row[9] != null ? ((BigInteger) row[9]).intValue() : 0);
+                businessLog.put("retryCount", row[9] != null ? ((Number) row[9]).intValue() : 0);
                 businessLog.put("lastModifiedDate", row[10] != null ? ((Timestamp) row[10]).toLocalDateTime() : null);
                 businessLog.put("correspondenceSubject", row[11]);
                 businessLog.put("correspondenceReferenceNo", row[12]);

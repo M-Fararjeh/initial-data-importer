@@ -220,7 +220,7 @@ public class CommentPhaseService {
                 comment.put("roleGuid", row[6]);
                 comment.put("attachmentCaption", row[7]);
                 comment.put("migrateStatus", row[8]);
-                comment.put("retryCount", row[9] != null ? ((BigInteger) row[9]).intValue() : 0);
+                comment.put("retryCount", row[9] != null ? ((Number) row[9]).intValue() : 0);
                 comment.put("lastModifiedDate", row[10] != null ? ((Timestamp) row[10]).toLocalDateTime() : null);
                 comment.put("correspondenceSubject", row[11]);
                 comment.put("correspondenceReferenceNo", row[12]);
