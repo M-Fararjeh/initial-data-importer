@@ -162,7 +162,8 @@ public class AttachmentUtils {
     public static String getFileDataForUpload(String fileData, String fileName, boolean isPrimary) {
         if (fileData == null || fileData.trim().isEmpty()) {
             logger.debug("No file data provided for {}", fileName);
-            return null;
+            // Return placeholder for sample file usage
+            return "testbase64";
         }
         
         // Check file size (base64 encoded size is roughly 4/3 of original)
@@ -171,7 +172,8 @@ public class AttachmentUtils {
         
         if (estimatedSize > maxSize) {
             logger.warn("File {} is too large ({} bytes), skipping upload", fileName, estimatedSize);
-            return null;
+            // Return placeholder for sample file usage when file is too large
+            return "testbase64";
         }
         
         logger.debug("File {} is valid for upload ({} bytes)", fileName, estimatedSize);

@@ -56,6 +56,18 @@ public class DestinationSystemService {
     @Value("${destination.api.token}")
     private String authToken;
     
+    @Value("${file.upload.use-sample:false}")
+    private boolean useSampleFile;
+    
+    @Value("${file.upload.sample.base64:testbase64}")
+    private String sampleBase64;
+    
+    @Value("${file.upload.sample.filename:sample_document.pdf}")
+    private String sampleFileName;
+    
+    @Value("${file.upload.sample.mimetype:application/pdf}")
+    private String sampleMimeType;
+    
     @Autowired
     private RestTemplate restTemplate;
     
@@ -101,8 +113,14 @@ public class DestinationSystemService {
      */
     public boolean uploadBase64FileToBatch(String batchId, String fileId, String base64Data, String fileName, String userToken) {
         try {
-            byte[] fileData = Base64.getDecoder().decode(base64Data);
-            return uploadFileToBatch(batchId, fileId, fileData, fileName, userToken);
+            if (useSampleFile) {
+                logger.info("Using sample file for upload instead of real file data");
+                byte[] sampleFileData = Base64.getDecoder().decode(sampleBase64);
+                return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, userToken);
+            } else {
+                byte[] fileData = Base64.getDecoder().decode(base64Data);
+                return uploadFileToBatch(batchId, fileId, fileData, fileName, userToken);
+            }
         } catch (IllegalArgumentException e) {
             logger.error("Invalid base64 data for file: {}", fileName, e);
             return false;
