@@ -282,7 +282,7 @@ public class CreationPhaseService {
             String subject = correspondence.getSubject() != null ? correspondence.getSubject() : "";
             String externalRef = correspondence.getExternalReferenceNumber() != null ? 
                                correspondence.getExternalReferenceNumber() : "";
-            String notes = correspondence.getNotes() != null ? correspondence.getNotes() : "";
+            String notes = correspondence.getNotes() != null ? CorrespondenceUtils.cleanHtmlTags(correspondence.getNotes()) : "";
             String referenceNo = correspondence.getReferenceNo() != null ? correspondence.getReferenceNo() : "";
             
             // Map category, priority, secrecy
@@ -303,19 +303,21 @@ public class CreationPhaseService {
             String gDueDate = correspondence.getDueDate() != null ? 
                             correspondence.getDueDate().toString() + "Z" : 
                             LocalDateTime.now().toString() + "Z";
+
             String hDueDate = correspondence.getDueDate() != null ? 
                             HijriDateUtils.convertToHijri(correspondence.getDueDate()) : 
                             HijriDateUtils.getCurrentHijriDate();
             
             String gDocumentDate = correspondence.getIncomingDate() != null ? 
-                                 correspondence.getIncomingDate().toString() + "Z" : 
-                                 LocalDateTime.now().toString() + "Z";
+                                 correspondence.getIncomingDate().toString() + "Z" :
+                    correspondence.getCorrespondenceCreationDate().toString() + "Z";
+
             String hDocumentDate = correspondence.getIncomingDate() != null ? 
                                  HijriDateUtils.convertToHijri(correspondence.getIncomingDate()) : 
-                                 HijriDateUtils.getCurrentHijriDate();
+                                 HijriDateUtils.convertToHijri(correspondence.getCorrespondenceCreationDate());
             
-            String gDate = LocalDateTime.now().toString() + "Z";
-            String hDate = HijriDateUtils.getCurrentHijriDate();
+            String gDate = gDocumentDate;
+            String hDate = hDocumentDate;
             
             Boolean requireReply = CorrespondenceUtils.mapRequireReply(correspondence.getNeedReplyStatus());
             String action = CorrespondenceUtils.mapAction(correspondence.getLastDecisionGuid());
@@ -405,8 +407,8 @@ public class CreationPhaseService {
                 !correspondence.getManualAttachmentsCount().trim().isEmpty()) {
                 
                 destinationService.createPhysicalAttachment(
-                    documentId, 
-                    "itba-emp1", 
+                    documentId,
+                        correspondence.getCreationUserName(),
                     correspondence.getManualAttachmentsCount()
                 );
             }
@@ -473,18 +475,22 @@ public class CreationPhaseService {
         context.put("corr:hDueDate", hDueDate);
         context.put("corr:requireReply", CorrespondenceUtils.mapRequireReply(correspondence.getNeedReplyStatus()));
         context.put("corr:fromAgency", AgencyMappingUtils.mapAgencyGuidToCode(correspondence.getComingFromGuid()));
-        
-        String gDocumentDate = correspondence.getIncomingDate() != null ? 
-                             correspondence.getIncomingDate().toString() + "Z" : 
-                             LocalDateTime.now().toString() + "Z";
-        String hDocumentDate = correspondence.getIncomingDate() != null ? 
-                             HijriDateUtils.convertToHijri(correspondence.getIncomingDate()) : 
-                             HijriDateUtils.getCurrentHijriDate();
-        
+
+        String gDocumentDate = correspondence.getIncomingDate() != null ?
+                correspondence.getIncomingDate().toString() + "Z" :
+                correspondence.getCorrespondenceCreationDate().toString() + "Z";
+
+        String hDocumentDate = correspondence.getIncomingDate() != null ?
+                HijriDateUtils.convertToHijri(correspondence.getIncomingDate()) :
+                HijriDateUtils.convertToHijri(correspondence.getCorrespondenceCreationDate());
+
+        String gDate = gDocumentDate;
+        String hDate = hDocumentDate;
+
         context.put("corr:gDocumentDate", gDocumentDate);
         context.put("corr:hDocumentDate", hDocumentDate);
-        context.put("corr:gDate", LocalDateTime.now().toString() + "Z");
-        context.put("corr:hDate", HijriDateUtils.getCurrentHijriDate());
+        context.put("corr:gDate", gDate);
+        context.put("corr:hDate", hDate);
         context.put("corr:delivery", "unknown");
         context.put("corr:toAgency", "ITBA");
         

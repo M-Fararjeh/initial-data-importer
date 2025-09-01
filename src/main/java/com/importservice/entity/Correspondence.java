@@ -1,6 +1,8 @@
 package com.importservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.importservice.util.CorrespondenceUtils;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
@@ -281,7 +283,7 @@ public class Correspondence extends BaseEntity {
     }
     
     public String getNotes() {
-        return notes;
+        return CorrespondenceUtils.cleanHtmlTags(notes);
     }
     
     public void setNotes(String notes) {
