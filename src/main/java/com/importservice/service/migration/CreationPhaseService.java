@@ -223,9 +223,9 @@ public class CreationPhaseService {
             
             // Step 7: Set ready to register
             updateCreationStep(migration, "SET_READY_TO_REGISTER");
-            setIncomingReadyToRegister(correspondence, documentId);
-                          correspondence.getCreationUserName() : "itba-emp1";
-            destinationService.setIncomingReadyToRegister(documentId, asUser);
+            String asUserForRegister = correspondence.getCreationUserName() != null ? 
+                                     correspondence.getCreationUserName() : "itba-emp1";
+            destinationService.setIncomingReadyToRegister(documentId, asUserForRegister);
             
             // Step 8: Register with reference
             updateCreationStep(migration, "REGISTER_WITH_REFERENCE");
@@ -233,15 +233,15 @@ public class CreationPhaseService {
             
             // Step 9: Start work
             updateCreationStep(migration, "START_WORK");
-            startIncomingCorrespondenceWork(correspondence, documentId);
-                          correspondence.getCreationUserName() : "itba-emp1";
-            destinationService.startIncomingCorrespondenceWork(documentId, asUser);
+            String asUserForWork = correspondence.getCreationUserName() != null ? 
+                                 correspondence.getCreationUserName() : "itba-emp1";
+            destinationService.startIncomingCorrespondenceWork(documentId, asUserForWork);
             
             // Step 10: Set owner
             updateCreationStep(migration, "SET_OWNER");
-            setCorrespondenceOwner(correspondence, documentId);
-                          correspondence.getCreationUserName() : "itba-emp1";
-            destinationService.setCorrespondenceOwner(documentId, asUser);
+            String asUserForOwner = correspondence.getCreationUserName() != null ? 
+                                  correspondence.getCreationUserName() : "itba-emp1";
+            destinationService.setCorrespondenceOwner(documentId, asUserForOwner);
             
             // Mark as completed
             updateCreationStep(migration, "COMPLETED");
