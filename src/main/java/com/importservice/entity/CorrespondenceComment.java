@@ -52,6 +52,12 @@ public class CorrespondenceComment extends BaseEntity {
     @Column(name = "import_status", length = 255)
     private String importStatus = "PENDING";
     
+    @Column(name = "migrate_status", length = 255)
+    private String migrateStatus = "PENDING";
+    
+    @Column(name = "retry_count")
+    private Integer retryCount = 0;
+    
     // Constructors
     public CorrespondenceComment() {}
     
@@ -142,5 +148,21 @@ public class CorrespondenceComment extends BaseEntity {
     
     public void setImportStatus(String importStatus) {
         this.importStatus = importStatus;
+    }
+    
+    public String getMigrateStatus() {
+        return migrateStatus;
+    }
+    
+    public void setMigrateStatus(String migrateStatus) {
+        this.migrateStatus = migrateStatus;
+    }
+    
+    public Integer getRetryCount() {
+        return retryCount;
+    }
+    
+    public void setRetryCount(Integer retryCount) {
+        this.retryCount = retryCount;
     }
 }

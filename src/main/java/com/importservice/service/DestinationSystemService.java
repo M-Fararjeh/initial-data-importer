@@ -2,6 +2,7 @@ package com.importservice.service;
 
 import com.importservice.dto.AttachmentCreateRequest;
 import com.importservice.dto.BusinessLogCreateRequest;
+import com.importservice.dto.CommentCreateRequest;
 import com.importservice.dto.BatchCreateResponse;
 import com.importservice.dto.CorrespondenceCreateResponse;
 import com.importservice.dto.IncomingCorrespondenceCreateRequest;
@@ -12,6 +13,7 @@ import com.importservice.dto.StartWorkRequest;
 import com.importservice.dto.SetOwnerRequest;
 import com.importservice.dto.AssignmentCreateRequest;
 import com.importservice.entity.CorrespondenceAttachment;
+import com.importservice.entity.CorrespondenceComment;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -732,6 +734,58 @@ public class DestinationSystemService {
             
         } catch (Exception e) {
             logger.error("Error creating business log: {}", transactionGuid, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Creates comment in destination system
+     */
+    public boolean createComment(String commentGuid, String documentId, LocalDateTime commentCreationDate,
+                               String commentText, String creationUserGuid) {
+        try {
+            String url = getAutomationEndpoint();
+            
+            CommentCreateRequest request = new CommentCreateRequest();
+            
+            // Set params according to API specification
+            request.setOperationName("Document.CreateCustomComment");
+            request.setDocID(documentId);
+            request.setDocDate(commentCreationDate != null ? 
+                             commentCreationDate.toString() + "Z" : 
+                             LocalDateTime.now().toString() + "Z");
+            request.setGuid(commentGuid);
+            request.setAuthor(creationUserGuid != null ? creationUserGuid : "itba-emp1");
+            request.setDate(commentCreationDate != null ? 
+                          commentCreationDate.toString() + "Z" : 
+                          LocalDateTime.now().toString() + "Z");
+            request.setText(CorrespondenceUtils.cleanHtmlTags(commentText));
+            
+            logApiCall("CREATE_COMMENT", url, request);
+            
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<CommentCreateRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            boolean success = response.getStatusCode().is2xxSuccessful();
+            if (success) {
+                logger.info("Successfully created comment: {}", commentGuid);
+            } else {
+                logger.error("Failed to create comment {} - Status: {}", commentGuid, response.getStatusCode());
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("Error creating comment: {}", commentGuid, e);
             return false;
         }
     }

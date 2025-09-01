@@ -4,10 +4,12 @@ import com.importservice.dto.ImportResponseDto;
 import com.importservice.entity.Correspondence;
 import com.importservice.entity.CorrespondenceAttachment;
 import com.importservice.entity.CorrespondenceTransaction;
+import com.importservice.entity.CorrespondenceComment;
 import com.importservice.entity.IncomingCorrespondenceMigration;
 import com.importservice.repository.CorrespondenceRepository;
 import com.importservice.repository.CorrespondenceAttachmentRepository;
 import com.importservice.repository.CorrespondenceTransactionRepository;
+import com.importservice.repository.CorrespondenceCommentRepository;
 import com.importservice.repository.IncomingCorrespondenceMigrationRepository;
 import com.importservice.util.AgencyMappingUtils;
 import com.importservice.util.AttachmentUtils;
@@ -42,6 +44,9 @@ public class IncomingCorrespondenceMigrationService {
     
     @Autowired
     private CorrespondenceTransactionRepository transactionRepository;
+    
+    @Autowired
+    private CorrespondenceCommentRepository commentRepository;
     
     @Autowired
     private DestinationSystemService destinationSystemService;
@@ -551,9 +556,165 @@ public class IncomingCorrespondenceMigrationService {
     public ImportResponseDto executeCommentPhase() {
         logger.info("Starting Phase 5: Comment");
         
-        // Placeholder implementation
-        return new ImportResponseDto("SUCCESS", "Comment phase not yet implemented", 
-            0, 0, 0, new ArrayList<>());
+        // Get comments that need processing using optimized query
+        List<CorrespondenceComment> comments = commentRepository.findCommentsNeedingProcessing();
+        
+        logger.info("Found {} comments to process", comments.size());
+        
+        return executeCommentForSpecific(
+            comments.stream()
+                .map(CorrespondenceComment::getCommentGuid)
+                .collect(java.util.stream.Collectors.toList())
+        );
+    }
+    
+    /**
+     * Execute comment for specific comment GUIDs
+     */
+    @Transactional
+    public ImportResponseDto executeCommentForSpecific(List<String> commentGuids) {
+        logger.info("Executing comment for {} specific comments", commentGuids.size());
+        
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
+        
+        for (String commentGuid : commentGuids) {
+            try {
+                Optional<CorrespondenceComment> commentOpt = 
+                    commentRepository.findById(commentGuid);
+                
+                if (!commentOpt.isPresent()) {
+                    failedImports++;
+                    errors.add("Comment not found: " + commentGuid);
+                    continue;
+                }
+                
+                CorrespondenceComment comment = commentOpt.get();
+                
+                // Get the created document ID from migration record
+                Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(comment.getDocGuid());
+                
+                if (!migrationOpt.isPresent() || migrationOpt.get().getCreatedDocumentId() == null) {
+                    failedImports++;
+                    errors.add("No created document ID found for comment: " + commentGuid);
+                    continue;
+                }
+                
+                String documentId = migrationOpt.get().getCreatedDocumentId();
+                
+                // Create comment in destination system
+                boolean success = destinationSystemService.createComment(
+                    commentGuid,
+                    documentId,
+                    comment.getCommentCreationDate(),
+                    comment.getComment(),
+                    comment.getCreationUserGuid()
+                );
+                
+                if (success) {
+                    comment.setMigrateStatus("SUCCESS");
+                    successfulImports++;
+                    logger.debug("Successfully created comment: {}", commentGuid);
+                } else {
+                    comment.setMigrateStatus("FAILED");
+                    comment.setRetryCount(comment.getRetryCount() + 1);
+                    failedImports++;
+                    errors.add("Failed to create comment in destination system: " + commentGuid);
+                }
+                
+                commentRepository.save(comment);
+                
+            } catch (Exception e) {
+                failedImports++;
+                String errorMsg = "Error processing comment " + commentGuid + ": " + e.getMessage();
+                errors.add(errorMsg);
+                logger.error(errorMsg, e);
+            }
+        }
+        
+        String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+        String message = String.format("Comment completed. Success: %d, Failed: %d", 
+                                     successfulImports, failedImports);
+        
+        return new ImportResponseDto(status, message, commentGuids.size(), 
+                                   successfulImports, failedImports, errors);
+    }
+    
+    /**
+     * Get comment migrations with search and pagination - Optimized for large datasets
+     */
+    public Map<String, Object> getCommentMigrations(int page, int size, String status, String commentType, String search) {
+        logger.info("Getting comment migrations - page: {}, size: {}, status: {}, commentType: {}, search: '{}'", 
+                   page, size, status, commentType, search);
+        
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            
+            // Normalize parameters for database query
+            String normalizedStatus = (status == null || "all".equals(status)) ? null : status;
+            String normalizedCommentType = (commentType == null || "all".equals(commentType)) ? null : commentType;
+            String normalizedSearch = (search == null || search.trim().isEmpty()) ? null : search.trim();
+            
+            Page<Object[]> commentPage = commentRepository.findCommentMigrationsWithSearchAndPagination(
+                normalizedStatus, normalizedCommentType, normalizedSearch, pageable);
+            
+            List<Map<String, Object>> comments = new ArrayList<>();
+            
+            for (Object[] row : commentPage.getContent()) {
+                Map<String, Object> comment = new HashMap<>();
+                comment.put("commentGuid", row[0]);
+                comment.put("correspondenceGuid", row[1]);
+                comment.put("commentCreationDate", row[2]);
+                comment.put("comment", row[3]);
+                comment.put("commentType", row[4]);
+                comment.put("creationUserGuid", row[5]);
+                comment.put("roleGuid", row[6]);
+                comment.put("attachmentCaption", row[7]);
+                comment.put("migrateStatus", row[8]);
+                comment.put("retryCount", row[9]);
+                comment.put("lastModifiedDate", row[10]);
+                comment.put("correspondenceSubject", row[11]);
+                comment.put("correspondenceReferenceNo", row[12]);
+                comment.put("createdDocumentId", row[13]);
+                
+                comments.add(comment);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", comments);
+            result.put("totalElements", commentPage.getTotalElements());
+            result.put("totalPages", commentPage.getTotalPages());
+            result.put("currentPage", page);
+            result.put("pageSize", size);
+            result.put("hasNext", commentPage.hasNext());
+            result.put("hasPrevious", commentPage.hasPrevious());
+            
+            // Create applied filters map (Java 8 compatible)
+            Map<String, Object> appliedFilters = new HashMap<>();
+            appliedFilters.put("status", normalizedStatus);
+            appliedFilters.put("commentType", normalizedCommentType);
+            appliedFilters.put("search", normalizedSearch);
+            result.put("appliedFilters", appliedFilters);
+            
+            logger.info("Retrieved {} comments for page {} with filters (status: {}, commentType: {}, search: '{}')", 
+                       comments.size(), page, normalizedStatus, normalizedCommentType, normalizedSearch);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error getting comment migrations", e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("content", new ArrayList<>());
+            errorResult.put("totalElements", 0L);
+            errorResult.put("totalPages", 0);
+            errorResult.put("currentPage", page);
+            errorResult.put("pageSize", size);
+            errorResult.put("hasNext", false);
+            errorResult.put("hasPrevious", false);
+            errorResult.put("error", e.getMessage());
+            return errorResult;
+        }
     }
     
     /**

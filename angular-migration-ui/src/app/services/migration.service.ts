@@ -429,4 +429,61 @@ export class MigrationService {
         })
       );
   }
+  
+  // Comment phase methods
+  getCommentMigrations(page: number = 0, size: number = 20, status: string = 'all', commentType: string = 'all', search: string = ''): Observable<any> {
+    console.log('Calling getCommentMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'commentType:', commentType, 'search:', search);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    params.set('status', status);
+    params.set('commentType', commentType);
+    if (search && search.trim()) {
+      params.set('search', search.trim());
+    }
+    
+    return this.http.get<any>(`${this.baseUrl}/comment/details?${params.toString()}`)
+      .pipe(
+        tap((comments) => console.log('Comment migrations response:', comments)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting comment migrations:', error);
+          return of({
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: page,
+            pageSize: size,
+            hasNext: false,
+            hasPrevious: false,
+            error: error.message
+          });
+        })
+      );
+  }
+  
+  executeCommentForSpecific(commentGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeCommentForSpecific API with GUIDs:', commentGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/comment/execute-specific`, {
+      commentGuids: commentGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteCommentForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeCommentForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute comment for specific records: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
 }

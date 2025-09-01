@@ -11,6 +11,7 @@ import { StatisticsCardComponent } from './components/statistics-card/statistics
 import { CreationDetailsComponent } from './components/creation-details/creation-details.component';
 import { AssignmentDetailsComponent } from './components/assignment-details/assignment-details.component';
 import { BusinessLogDetailsComponent } from './components/business-log-details/business-log-details.component';
+import { CommentDetailsComponent } from './components/comment-details/comment-details.component';
 import { MigrationService } from './services/migration.service';
 
 const routes: Routes = [
@@ -18,6 +19,7 @@ const routes: Routes = [
   { path: 'creation-details', component: CreationDetailsComponent },
   { path: 'assignment-details', component: AssignmentDetailsComponent },
   { path: 'business-log-details', component: BusinessLogDetailsComponent },
+  { path: 'comment-details', component: CommentDetailsComponent },
   { path: '**', redirectTo: '' }
 ];
 
@@ -29,7 +31,8 @@ const routes: Routes = [
     StatisticsCardComponent,
     CreationDetailsComponent,
     AssignmentDetailsComponent,
-    BusinessLogDetailsComponent
+    BusinessLogDetailsComponent,
+    CommentDetailsComponent
   ],
   imports: [
     BrowserModule,

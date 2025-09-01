@@ -298,6 +298,61 @@ public class IncomingCorrespondenceMigrationController {
         }
     }
     
+    @GetMapping("/comment/details")
+    @Operation(summary = "Get Comment Phase Details", 
+               description = "Returns detailed information about comment phase migrations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Object>> getCommentDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(defaultValue = "all") String commentType,
+            @RequestParam(defaultValue = "") String search) {
+        logger.info("Received request for comment phase details - page: {}, size: {}, status: {}, commentType: {}, search: '{}'", 
+                   page, size, status, commentType, search);
+        
+        try {
+            Map<String, Object> comments = migrationService.getCommentMigrations(page, size, status, commentType, search);
+            return ResponseEntity.ok(comments);
+        } catch (Exception e) {
+            logger.error("Error getting comment details", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("content", new ArrayList<>());
+            errorResponse.put("totalElements", 0L);
+            errorResponse.put("totalPages", 0);
+            errorResponse.put("currentPage", page);
+            errorResponse.put("pageSize", size);
+            errorResponse.put("hasNext", false);
+            errorResponse.put("hasPrevious", false);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    @PostMapping("/comment/execute-specific")
+    @Operation(summary = "Execute Comment for Specific Comments", 
+               description = "Executes comment phase for specified comment GUIDs")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> executeCommentForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> commentGuids = request.get("commentGuids");
+        logger.info("Received request to execute comment for {} specific comments", 
+                   commentGuids != null ? commentGuids.size() : 0);
+        
+        try {
+            ImportResponseDto response = migrationService.executeCommentForSpecific(commentGuids);
+            return getResponseEntity(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error in execute comment for specific", e);
+            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
+    }
+    
     @PostMapping("/retry-failed")
     @Operation(summary = "Retry Failed Migrations", 
                description = "Retries failed migrations that haven't exceeded max retry count")
