@@ -4,6 +4,11 @@ import com.importservice.dto.AttachmentCreateRequest;
 import com.importservice.dto.BatchCreateResponse;
 import com.importservice.dto.CorrespondenceCreateResponse;
 import com.importservice.dto.IncomingCorrespondenceCreateRequest;
+import com.importservice.dto.PhysicalAttachmentRequest;
+import com.importservice.dto.ReadyToRegisterRequest;
+import com.importservice.dto.RegisterWithReferenceRequest;
+import com.importservice.dto.StartWorkRequest;
+import com.importservice.dto.SetOwnerRequest;
 import com.importservice.entity.CorrespondenceAttachment;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
@@ -376,6 +381,232 @@ public class DestinationSystemService {
             
         } catch (Exception e) {
             logger.error("Error creating attachment: {}", attachment.getName(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Creates physical attachment for correspondence
+     */
+    public boolean createPhysicalAttachment(String correspondenceGuid, String asUser, String physicalAttachments) {
+        try {
+            String url = getAutomationEndpoint();
+            
+            PhysicalAttachmentRequest request = new PhysicalAttachmentRequest();
+            
+            // Set params
+            request.setOperationName("AC_UA_PhysicalAttachment_Add");
+            request.setDocID(correspondenceGuid);
+            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            
+            // Set context
+            request.setPhysicalAttachments(physicalAttachments != null ? physicalAttachments : "");
+            
+            logApiCall("CREATE_PHYSICAL_ATTACHMENT", url, request);
+            
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<PhysicalAttachmentRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            boolean success = response.getStatusCode().is2xxSuccessful();
+            if (success) {
+                logger.info("Successfully created physical attachment for correspondence: {}", correspondenceGuid);
+            } else {
+                logger.error("Failed to create physical attachment for correspondence {} - Status: {}", 
+                           correspondenceGuid, response.getStatusCode());
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("Error creating physical attachment for correspondence: {}", correspondenceGuid, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Sets incoming correspondence ready to register
+     */
+    public boolean setIncomingReadyToRegister(String correspondenceGuid, String asUser) {
+        try {
+            String url = getAutomationEndpoint();
+            
+            ReadyToRegisterRequest request = new ReadyToRegisterRequest();
+            
+            // Set params
+            request.setOperationName("AC_UA_Correspondence_ReadyToRegister");
+            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setDocID(correspondenceGuid);
+            
+            logApiCall("SET_READY_TO_REGISTER", url, request);
+            
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<ReadyToRegisterRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            boolean success = response.getStatusCode().is2xxSuccessful();
+            if (success) {
+                logger.info("Successfully set ready to register for correspondence: {}", correspondenceGuid);
+            } else {
+                logger.error("Failed to set ready to register for correspondence {} - Status: {}", 
+                           correspondenceGuid, response.getStatusCode());
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("Error setting ready to register for correspondence: {}", correspondenceGuid, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Registers correspondence with reference
+     */
+    public boolean registerWithReference(String correspondenceGuid, String asUser, Map<String, Object> incCorrespondenceContext) {
+        try {
+            String url = getAutomationEndpoint();
+            
+            RegisterWithReferenceRequest request = new RegisterWithReferenceRequest();
+            
+            // Set params
+            request.setOperationName("AC_UA_IncomingCorrespondence_Register_WithReference");
+            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setDocID(correspondenceGuid);
+            
+            // Set context - reuse the same context from correspondence creation
+            request.setIncCorrespondence(incCorrespondenceContext);
+            
+            logApiCall("REGISTER_WITH_REFERENCE", url, request);
+            
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<RegisterWithReferenceRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            boolean success = response.getStatusCode().is2xxSuccessful();
+            if (success) {
+                logger.info("Successfully registered with reference for correspondence: {}", correspondenceGuid);
+            } else {
+                logger.error("Failed to register with reference for correspondence {} - Status: {}", 
+                           correspondenceGuid, response.getStatusCode());
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("Error registering with reference for correspondence: {}", correspondenceGuid, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Starts work for incoming correspondence (send)
+     */
+    public boolean startIncomingCorrespondenceWork(String correspondenceGuid, String asUser) {
+        try {
+            String url = getAutomationEndpoint();
+            
+            StartWorkRequest request = new StartWorkRequest();
+            
+            // Set params
+            request.setOperationName("AC_UA_IncomingCorrespondence_Send");
+            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setDocID(correspondenceGuid);
+            
+            logApiCall("START_WORK", url, request);
+            
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<StartWorkRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            boolean success = response.getStatusCode().is2xxSuccessful();
+            if (success) {
+                logger.info("Successfully started work for correspondence: {}", correspondenceGuid);
+            } else {
+                logger.error("Failed to start work for correspondence {} - Status: {}", 
+                           correspondenceGuid, response.getStatusCode());
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("Error starting work for correspondence: {}", correspondenceGuid, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Sets owner for correspondence (claim by owner)
+     */
+    public boolean setCorrespondenceOwner(String correspondenceGuid, String asUser) {
+        try {
+            String url = getAutomationEndpoint();
+            
+            SetOwnerRequest request = new SetOwnerRequest();
+            
+            // Set params
+            request.setOperationName("AC_UA_Correspondence_SetOwner");
+            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setDocID(correspondenceGuid);
+            
+            logApiCall("SET_OWNER", url, request);
+            
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<SetOwnerRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            boolean success = response.getStatusCode().is2xxSuccessful();
+            if (success) {
+                logger.info("Successfully set owner for correspondence: {}", correspondenceGuid);
+            } else {
+                logger.error("Failed to set owner for correspondence {} - Status: {}", 
+                           correspondenceGuid, response.getStatusCode());
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("Error setting owner for correspondence: {}", correspondenceGuid, e);
             return false;
         }
     }

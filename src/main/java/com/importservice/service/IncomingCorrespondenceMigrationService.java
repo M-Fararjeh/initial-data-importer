@@ -186,6 +186,8 @@ public class IncomingCorrespondenceMigrationService {
      * Executes all creation steps for a single correspondence
      */
     private boolean executeCreationSteps(IncomingCorrespondenceMigration migration) {
+        Map<String, Object> incCorrespondenceContext = null; // Store context for step 8
+        
         try {
             String correspondenceGuid = migration.getCorrespondenceGuid();
             
@@ -244,7 +246,10 @@ public class IncomingCorrespondenceMigrationService {
             migration.setCreationStep("CREATE_CORRESPONDENCE");
             migrationRepository.save(migration);
             
-            String documentId = createIncomingCorrespondence(correspondence, batchId);
+            // Build and store the correspondence context for later use
+            incCorrespondenceContext = buildCorrespondenceContext(correspondence, batchId);
+            
+            String documentId = createIncomingCorrespondence(correspondence, batchId, incCorrespondenceContext);
             if (documentId == null) {
                 migration.markPhaseError("CREATION", "Failed to create correspondence in destination system");
                 return false;
@@ -268,7 +273,60 @@ public class IncomingCorrespondenceMigrationService {
                 }
             }
             
-            // Steps 6-10: TODO - Implement remaining steps
+            // Step 6: Create physical attachment
+            migration.setCreationStep("CREATE_PHYSICAL_ATTACHMENT");
+            migrationRepository.save(migration);
+            
+            boolean physicalAttachmentCreated = createPhysicalAttachment(correspondence, documentId);
+            if (!physicalAttachmentCreated) {
+                migration.markPhaseError("CREATION", "Failed to create physical attachment");
+                return false;
+            }
+            
+            // Step 7: Set Incoming Ready To Register
+            migration.setCreationStep("SET_READY_TO_REGISTER");
+            migrationRepository.save(migration);
+            
+            boolean readyToRegister = destinationSystemService.setIncomingReadyToRegister(
+                documentId, correspondence.getCreationUserName());
+            if (!readyToRegister) {
+                migration.markPhaseError("CREATION", "Failed to set ready to register");
+                return false;
+            }
+            
+            // Step 8: Register With Reference
+            migration.setCreationStep("REGISTER_WITH_REFERENCE");
+            migrationRepository.save(migration);
+            
+            boolean registered = destinationSystemService.registerWithReference(
+                documentId, correspondence.getCreationUserName(), incCorrespondenceContext);
+            if (!registered) {
+                migration.markPhaseError("CREATION", "Failed to register with reference");
+                return false;
+            }
+            
+            // Step 9: Incoming Correspondence Start Work (send)
+            migration.setCreationStep("START_WORK");
+            migrationRepository.save(migration);
+            
+            boolean workStarted = destinationSystemService.startIncomingCorrespondenceWork(
+                documentId, correspondence.getCreationUserName());
+            if (!workStarted) {
+                migration.markPhaseError("CREATION", "Failed to start work");
+                return false;
+            }
+            
+            // Step 10: Incoming Correspondence Claim By Owner
+            migration.setCreationStep("SET_OWNER");
+            migrationRepository.save(migration);
+            
+            boolean ownerSet = destinationSystemService.setCorrespondenceOwner(
+                documentId, correspondence.getCreationUserName());
+            if (!ownerSet) {
+                migration.markPhaseError("CREATION", "Failed to set owner");
+                return false;
+            }
+            
             migration.setCreationStep("COMPLETED");
             
             return true;
@@ -328,49 +386,107 @@ public class IncomingCorrespondenceMigrationService {
     }
     
     /**
+     * Builds the correspondence context for API calls
+     */
+    private Map<String, Object> buildCorrespondenceContext(Correspondence correspondence, String batchId) {
+        Map<String, Object> incCorrespondence = new HashMap<>();
+        
+        incCorrespondence.put("corr:subject", correspondence.getSubject() != null ? correspondence.getSubject() : "");
+        incCorrespondence.put("corr:externalCorrespondenceNumber", 
+                            correspondence.getExternalReferenceNumber() != null ? correspondence.getExternalReferenceNumber() : "");
+        incCorrespondence.put("corr:remarks", 
+                            cleanHtmlTags(correspondence.getNotes()) != null ? cleanHtmlTags(correspondence.getNotes()) : "");
+        incCorrespondence.put("corr:referenceNumber", 
+                            correspondence.getReferenceNo() != null ? correspondence.getReferenceNo() : "");
+        incCorrespondence.put("corr:category", CorrespondenceUtils.mapCategory(correspondence.getClassificationGuid()));
+        incCorrespondence.put("corr:secrecyLevel", CorrespondenceUtils.mapSecrecyLevel(correspondence.getSecrecyId()));
+        incCorrespondence.put("corr:priority", CorrespondenceUtils.mapPriority(correspondence.getPriorityId()));
+        
+        // Calculate due date (always add 5 years to creation date)
+        LocalDateTime dueDate = HijriDateUtils.addYears(correspondence.getCorrespondenceCreationDate(), 5);
+        incCorrespondence.put("corr:gDueDate", HijriDateUtils.formatToIsoString(dueDate));
+        incCorrespondence.put("corr:hDueDate", HijriDateUtils.convertToHijri(dueDate));
+        
+        incCorrespondence.put("corr:requireReply", CorrespondenceUtils.mapRequireReply(correspondence.getNeedReplyStatus()));
+        incCorrespondence.put("corr:from", "");
+        incCorrespondence.put("corr:fromAgency", AgencyMappingUtils.mapAgencyGuidToCode(correspondence.getComingFromGuid()));
+        
+        LocalDateTime documentDate = correspondence.getIncomingDate();
+        if (documentDate == null) {
+            documentDate = correspondence.getCorrespondenceCreationDate();
+        }
+        
+        incCorrespondence.put("corr:gDocumentDate", HijriDateUtils.formatToIsoString(documentDate));
+        incCorrespondence.put("corr:hDocumentDate", HijriDateUtils.convertToHijri(documentDate));
+        incCorrespondence.put("corr:gDate", HijriDateUtils.formatToIsoString(documentDate));
+        incCorrespondence.put("corr:hDate", HijriDateUtils.convertToHijri(documentDate));
+        incCorrespondence.put("corr:delivery", "unknown");
+        
+        String toDepartment = DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getCreationDepartmentGuid());
+        incCorrespondence.put("corr:to", toDepartment != null ? toDepartment : "CEO");
+        incCorrespondence.put("corr:toAgency", "ITBA");
+        incCorrespondence.put("corr:action", CorrespondenceUtils.mapAction(correspondence.getLastDecisionGuid()));
+        
+        // Add file content if batch exists
+        if (batchId != null) {
+            Map<String, Object> fileContent = new HashMap<>();
+            fileContent.put("upload-batch", batchId);
+            fileContent.put("upload-fileId", "0");
+            incCorrespondence.put("file:content", fileContent);
+        }
+        
+        return incCorrespondence;
+    }
+    
+    /**
+     * Creates physical attachment for correspondence
+     */
+    private boolean createPhysicalAttachment(Correspondence correspondence, String documentId) {
+        try {
+            String physicalAttachments = correspondence.getManualAttachmentsCount();
+            if (physicalAttachments == null || physicalAttachments.trim().isEmpty()) {
+                logger.debug("No manual attachments count for correspondence: {}, skipping physical attachment creation", 
+                           correspondence.getGuid());
+                return true; // Not an error if no physical attachments
+            }
+            
+            return destinationSystemService.createPhysicalAttachment(
+                documentId,
+                correspondence.getCreationUserName(),
+                physicalAttachments
+            );
+            
+        } catch (Exception e) {
+            logger.error("Error creating physical attachment for correspondence: {}", correspondence.getGuid(), e);
+            return false;
+        }
+    }
+    
+    /**
      * Creates incoming correspondence in destination system
      */
-    private String createIncomingCorrespondence(Correspondence correspondence, String batchId) {
+    private String createIncomingCorrespondence(Correspondence correspondence, String batchId, Map<String, Object> incCorrespondenceContext) {
         try {
-            // Build request using correspondence data
-            String subject = correspondence.getSubject();
-            String externalRef = correspondence.getExternalReferenceNumber();
-            String notes = cleanHtmlTags(correspondence.getNotes());
-            String referenceNo = correspondence.getReferenceNo();
-            String category = CorrespondenceUtils.mapCategory(correspondence.getClassificationGuid());
-            String secrecyLevel = CorrespondenceUtils.mapSecrecyLevel(correspondence.getSecrecyId());
-            String priority = CorrespondenceUtils.mapPriority(correspondence.getPriorityId());
+            // Use the pre-built context and extract individual values for the service call
+            String subject = (String) incCorrespondenceContext.get("corr:subject");
+            String externalRef = (String) incCorrespondenceContext.get("corr:externalCorrespondenceNumber");
+            String notes = (String) incCorrespondenceContext.get("corr:remarks");
+            String referenceNo = (String) incCorrespondenceContext.get("corr:referenceNumber");
+            String category = (String) incCorrespondenceContext.get("corr:category");
+            String secrecyLevel = (String) incCorrespondenceContext.get("corr:secrecyLevel");
+            String priority = (String) incCorrespondenceContext.get("corr:priority");
+            String gDueDate = (String) incCorrespondenceContext.get("corr:gDueDate");
+            String hDueDate = (String) incCorrespondenceContext.get("corr:hDueDate");
+            Boolean requireReply = (Boolean) incCorrespondenceContext.get("corr:requireReply");
+            String fromAgency = (String) incCorrespondenceContext.get("corr:fromAgency");
+            String gDocumentDate = (String) incCorrespondenceContext.get("corr:gDocumentDate");
+            String hDocumentDate = (String) incCorrespondenceContext.get("corr:hDocumentDate");
+            String gDate = (String) incCorrespondenceContext.get("corr:gDate");
+            String hDate = (String) incCorrespondenceContext.get("corr:hDate");
+            String toDepartment = (String) incCorrespondenceContext.get("corr:to");
+            String action = (String) incCorrespondenceContext.get("corr:action");
             
-            // Calculate due date (creation date + 5 years if null)
-            // Always add 5 years to creation date for due date
-            LocalDateTime dueDate = HijriDateUtils.addYears(correspondence.getCorrespondenceCreationDate(), 5);
-            
-            String gDueDate = HijriDateUtils.formatToIsoString(dueDate);
-            String hDueDate = HijriDateUtils.convertToHijri(dueDate);
-            
-            Boolean requireReply = CorrespondenceUtils.mapRequireReply(correspondence.getNeedReplyStatus());
-            
-            String fromAgency = AgencyMappingUtils.mapAgencyGuidToCode(correspondence.getComingFromGuid());
-            
-            LocalDateTime documentDate = correspondence.getIncomingDate();
-            if (documentDate == null) {
-                documentDate = correspondence.getCorrespondenceCreationDate();
-            }
-            
-            String gDocumentDate = HijriDateUtils.formatToIsoString(documentDate);
-            String hDocumentDate = HijriDateUtils.convertToHijri(documentDate);
-            String gDate = gDocumentDate;
-            String hDate = hDocumentDate;
-            
-            String toDepartment = DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getCreationDepartmentGuid());
-            if (toDepartment == null) {
-                toDepartment = "CEO"; // Default fallback
-            }
-            
-            String action = CorrespondenceUtils.mapAction(correspondence.getLastDecisionGuid());
-            
-            // Call destination system service to create correspondence
-            String documentId = destinationSystemService.createIncomingCorrespondence(
+            return destinationSystemService.createIncomingCorrespondence(
                 correspondence.getGuid(),
                 correspondence.getCreationUserName(),
                 HijriDateUtils.formatToIsoString(correspondence.getCorrespondenceCreationDate()),
@@ -393,14 +509,6 @@ public class IncomingCorrespondenceMigrationService {
                 batchId,
                 action
             );
-            
-            if (documentId != null) {
-                logger.debug("Successfully created correspondence in destination system: {}", documentId);
-                return documentId;
-            } else {
-                logger.error("Failed to create correspondence in destination system");
-                return null;
-            }
             
         } catch (Exception e) {
             logger.error("Error creating incoming correspondence: {}", correspondence.getGuid(), e);
