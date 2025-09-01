@@ -1,5 +1,6 @@
 package com.importservice.service.migration;
 
+import java.math.BigInteger;
 import com.importservice.repository.CorrespondenceCommentRepository;
 import com.importservice.repository.CorrespondenceTransactionRepository;
 import com.importservice.repository.IncomingCorrespondenceMigrationRepository;
