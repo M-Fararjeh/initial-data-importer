@@ -112,6 +112,10 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
       });
   }
   
+  applyFilters(): void {
+    this.applyClientSideFilters();
+  }
+  
   applyClientSideFilters(): void {
     let filtered = [...this.assignments];
     
