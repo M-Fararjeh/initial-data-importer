@@ -283,11 +283,6 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     return new Date(dateString).toLocaleString();
   }
   
-  truncateText(text: string, maxLength: number = 50): string {
-    if (!text) return '-';
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-  }
-  
   // Pagination methods
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
