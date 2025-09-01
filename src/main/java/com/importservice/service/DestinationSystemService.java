@@ -53,6 +53,9 @@ public class DestinationSystemService {
     
     private static final Logger logger = LoggerFactory.getLogger(DestinationSystemService.class);
     
+    @Value("${destination.api.url}")
+    private String destinationApiUrl;
+    
     @Value("${destination.api.token}")
     private String authToken;
     
@@ -71,10 +74,38 @@ public class DestinationSystemService {
     @Autowired
     private RestTemplate restTemplate;
     
-    private static final String BASE_URL = "http://18.206.121.44";
-    private static final String NUXEO_API_BASE = BASE_URL + "/nuxeo/api/v1";
-    private static final String AUTOMATION_ENDPOINT = NUXEO_API_BASE + "/custom-automation/AC_Admin_RunOperation";
-    private static final String UPLOAD_ENDPOINT = NUXEO_API_BASE + "/upload/";
+    /**
+     * Gets the base URL from the destination API URL
+     */
+    private String getBaseUrl() {
+        if (destinationApiUrl == null) {
+            return "http://18.206.121.44";
+        }
+        // Extract base URL from destination.api.url
+        // Example: http://18.206.121.44/nuxeo/api/v1/custom-automation/AC_UA_ExternalAgency_Create
+        // Should return: http://18.206.121.44
+        try {
+            String[] parts = destinationApiUrl.split("/");
+            return parts[0] + "//" + parts[2];
+        } catch (Exception e) {
+            logger.warn("Failed to extract base URL from destination.api.url: {}, using default", destinationApiUrl);
+            return "http://18.206.121.44";
+        }
+    }
+    
+    /**
+     * Gets the automation endpoint URL
+     */
+    private String getAutomationEndpoint() {
+        return getBaseUrl() + "/nuxeo/api/v1/custom-automation/AC_Admin_RunOperation";
+    }
+    
+    /**
+     * Gets the upload endpoint URL
+     */
+    private String getUploadEndpoint() {
+        return getBaseUrl() + "/nuxeo/api/v1/upload/";
+    }
     
     /**
      * Creates a batch for file upload
@@ -87,7 +118,7 @@ public class DestinationSystemService {
             HttpEntity<String> entity = new HttpEntity<>("{}", headers);
             
             ResponseEntity<BatchCreateResponse> response = restTemplate.exchange(
-                UPLOAD_ENDPOINT,
+                getUploadEndpoint(),
                 HttpMethod.POST,
                 entity,
                 BatchCreateResponse.class
@@ -144,7 +175,7 @@ public class DestinationSystemService {
             
             HttpEntity<ByteArrayResource> entity = new HttpEntity<>(resource, headers);
             
-            String uploadUrl = UPLOAD_ENDPOINT + batchId + "/" + fileId;
+            String uploadUrl = getUploadEndpoint() + batchId + "/" + fileId;
             
             ResponseEntity<String> response = restTemplate.exchange(
                 uploadUrl,
@@ -228,7 +259,7 @@ public class DestinationSystemService {
             HttpEntity<IncomingCorrespondenceCreateRequest> entity = new HttpEntity<>(request, headers);
             
             ResponseEntity<String> response = restTemplate.exchange(
-                AUTOMATION_ENDPOINT,
+                getAutomationEndpoint(),
                 HttpMethod.POST,
                 entity,
                 String.class
@@ -298,7 +329,7 @@ public class DestinationSystemService {
             HttpEntity<AttachmentCreateRequest> entity = new HttpEntity<>(request, headers);
             
             ResponseEntity<String> response = restTemplate.exchange(
-                AUTOMATION_ENDPOINT,
+                getAutomationEndpoint(),
                 HttpMethod.POST,
                 entity,
                 String.class
