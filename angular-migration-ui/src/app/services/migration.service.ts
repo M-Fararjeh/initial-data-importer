@@ -319,9 +319,19 @@ export class MigrationService {
   }
   
   // Assignment phase methods
-  getAssignmentMigrations(page: number = 0, size: number = 20): Observable<any> {
-    console.log('Calling getAssignmentMigrations API with pagination - page:', page, 'size:', size);
-    return this.http.get<any>(`${this.baseUrl}/assignment/details?page=${page}&size=${size}`)
+  getAssignmentMigrations(page: number = 0, size: number = 20, status: string = 'all', search: string = ''): Observable<any> {
+    console.log('Calling getAssignmentMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'search:', search);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    params.set('status', status);
+    if (search && search.trim()) {
+      params.set('search', search.trim());
+    }
+    
+    return this.http.get<any>(`${this.baseUrl}/assignment/details?${params.toString()}`)
       .pipe(
         tap((assignments) => console.log('Assignment migrations response:', assignments)),
         catchError((error: HttpErrorResponse) => {

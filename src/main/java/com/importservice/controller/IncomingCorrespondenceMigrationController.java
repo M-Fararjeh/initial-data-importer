@@ -138,11 +138,14 @@ public class IncomingCorrespondenceMigrationController {
     })
     public ResponseEntity<Map<String, Object>> getAssignmentDetails(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        logger.info("Received request for assignment phase details - page: {}, size: {}", page, size);
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(defaultValue = "") String search) {
+        logger.info("Received request for assignment phase details - page: {}, size: {}, status: {}, search: '{}'", 
+                   page, size, status, search);
         
         try {
-            Map<String, Object> assignments = migrationService.getAssignmentMigrations(page, size);
+            Map<String, Object> assignments = migrationService.getAssignmentMigrations(page, size, status, search);
             return ResponseEntity.ok(assignments);
         } catch (Exception e) {
             logger.error("Error getting assignment details", e);

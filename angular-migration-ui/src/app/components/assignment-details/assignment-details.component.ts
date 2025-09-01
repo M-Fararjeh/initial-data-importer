@@ -43,6 +43,9 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
   statusFilter = 'all';
   searchTerm = '';
   
+  // Search debounce
+  private searchTimeout: any;
+  
   // Server-side pagination
   currentPage = 1;
   pageSize = 50; // Increased for better performance
@@ -68,7 +71,7 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     
     // Load first page
-    this.migrationService.getAssignmentMigrations(0, this.pageSize)
+    this.migrationService.getAssignmentMigrations(0, this.pageSize, this.statusFilter, this.searchTerm)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
@@ -80,7 +83,9 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
           this.hasPrevious = response.hasPrevious || false;
           this.currentPage = (response.currentPage || 0) + 1; // Convert to 1-based
           
-          this.applyClientSideFilters();
+          this.filteredAssignments = this.assignments;
+          this.clearSelection();
+          this.clearSelection();
           this.isLoading = false;
         },
         error: (error) => {
@@ -96,13 +101,15 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     console.log('Loading page:', page);
     this.isLoading = true;
     
-    this.migrationService.getAssignmentMigrations(page - 1, this.pageSize) // Convert to 0-based
+    this.migrationService.getAssignmentMigrations(page - 1, this.pageSize, this.statusFilter, this.searchTerm) // Convert to 0-based
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response) => {
           this.assignments = response.content || [];
           this.currentPage = page;
-          this.applyClientSideFilters();
+          this.filteredAssignments = this.assignments;
+          this.clearSelection();
+          this.clearSelection();
           this.isLoading = false;
         },
         error: (error) => {
@@ -113,9 +120,43 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
   }
   
   applyFilters(): void {
-    this.applyClientSideFilters();
+    // Debounce search to avoid too many API calls
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+    
+    this.searchTimeout = setTimeout(() => {
+      this.currentPage = 1; // Reset to first page when filtering
+      this.loadAssignmentMigrations();
+    }, 500); // 500ms debounce
   }
   
+  onStatusFilterChange(): void {
+    this.currentPage = 1; // Reset to first page when filtering
+    this.loadAssignmentMigrations();
+  }
+  
+  onSearchChange(): void {
+    this.applyFilters();
+  }
+  
+  clearFilters(): void {
+    this.statusFilter = 'all';
+    this.searchTerm = '';
+    this.currentPage = 1;
+    this.loadAssignmentMigrations();
+  }
+  
+  // Keep this method for any remaining client-side filtering needs
+  applyClientSideFilters(): void {
+    // This method is now primarily used for selection management
+    // since filtering is done on the backend
+    this.filteredAssignments = [...this.assignments];
+    this.clearSelection();
+  }
+  
+  // Remove the old client-side filtering logic since it's now done on backend
+  /*
   applyClientSideFilters(): void {
     let filtered = [...this.assignments];
     
@@ -139,7 +180,6 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     
     this.filteredAssignments = filtered;
     this.clearSelection();
-  }
   
   getPaginatedAssignments(): AssignmentMigration[] {
     // Since we're using server-side pagination, return filtered results directly

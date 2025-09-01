@@ -46,6 +46,66 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
     Page<Object[]> findAssignmentMigrationsWithPagination(Pageable pageable);
     
     /**
+     * Optimized query for assignment migrations with search and pagination
+     */
+    @Query(value = "SELECT " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.to_user_name as toUserName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.decision_guid as decisionGuid, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
+                   "c.subject as correspondenceSubject, " +
+                   "c.reference_no as correspondenceReferenceNo, " +
+                   "icm.created_document_id as createdDocumentId " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 " +
+                   "AND (:status IS NULL OR ct.migrate_status = :status) " +
+                   "AND (:search IS NULL OR :search = '' OR " +
+                   "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(ct.doc_guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(icm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.from_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.to_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.notes, '')) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
+    Page<Object[]> findAssignmentMigrationsWithSearchAndPagination(
+        @Param("status") String status,
+        @Param("search") String search,
+        Pageable pageable);
+    
+    /**
+     * Count assignments with search filters for statistics
+     */
+    @Query(value = "SELECT COUNT(*) FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 " +
+                   "AND (:status IS NULL OR ct.migrate_status = :status) " +
+                   "AND (:search IS NULL OR :search = '' OR " +
+                   "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(ct.doc_guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(icm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.from_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.to_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.notes, '')) LIKE LOWER(CONCAT('%', :search, '%')))",
+           nativeQuery = true)
+    Long countAssignmentMigrationsWithSearch(
+        @Param("status") String status,
+        @Param("search") String search);
+    
+    /**
      * Count assignments by migrate status for statistics
      */
     @Query(value = "SELECT COUNT(*) FROM correspondence_transactions WHERE action_id = 12 AND migrate_status = :status", 

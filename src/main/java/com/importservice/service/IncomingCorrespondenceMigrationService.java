@@ -291,14 +291,21 @@ public class IncomingCorrespondenceMigrationService {
     }
     
     /**
-     * Get assignment migrations with pagination - Optimized for large datasets
+     * Get assignment migrations with search and pagination - Optimized for large datasets
      */
-    public Map<String, Object> getAssignmentMigrations(int page, int size) {
-        logger.info("Getting assignment migrations - page: {}, size: {}", page, size);
+    public Map<String, Object> getAssignmentMigrations(int page, int size, String status, String search) {
+        logger.info("Getting assignment migrations - page: {}, size: {}, status: {}, search: '{}'", 
+                   page, size, status, search);
         
         try {
             Pageable pageable = PageRequest.of(page, size);
-            Page<Object[]> assignmentPage = transactionRepository.findAssignmentMigrationsWithPagination(pageable);
+            
+            // Normalize parameters for database query
+            String normalizedStatus = (status == null || "all".equals(status)) ? null : status;
+            String normalizedSearch = (search == null || search.trim().isEmpty()) ? null : search.trim();
+            
+            Page<Object[]> assignmentPage = transactionRepository.findAssignmentMigrationsWithSearchAndPagination(
+                normalizedStatus, normalizedSearch, pageable);
             
             List<Map<String, Object>> assignments = new ArrayList<>();
             
@@ -336,8 +343,10 @@ public class IncomingCorrespondenceMigrationService {
             result.put("pageSize", size);
             result.put("hasNext", assignmentPage.hasNext());
             result.put("hasPrevious", assignmentPage.hasPrevious());
+            result.put("appliedFilters", Map.of("status", normalizedStatus, "search", normalizedSearch));
             
-            logger.info("Retrieved {} assignments for page {}", assignments.size(), page);
+            logger.info("Retrieved {} assignments for page {} with filters (status: {}, search: '{}')", 
+                       assignments.size(), page, normalizedStatus, normalizedSearch);
             return result;
             
         } catch (Exception e) {
