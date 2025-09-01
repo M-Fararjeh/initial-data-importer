@@ -48,6 +48,9 @@ public class IncomingCorrespondenceMigrationService {
     private IncomingCorrespondenceMigrationRepository migrationRepository;
     
     @Autowired
+    private CorrespondenceTransactionRepository correspondenceTransactionRepository;
+    
+    @Autowired
     private CorrespondenceRepository correspondenceRepository;
     
     @Autowired
