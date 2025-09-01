@@ -292,7 +292,7 @@ public class DestinationSystemService {
             request.setDocDate(attachment.getFileCreationDate() != null ? 
                              attachment.getFileCreationDate().toString() + "Z" : 
                              LocalDateTime.now().toString() + "Z");
-            request.setAsUser("itba-emp1");
+            request.setAsUser(attachment.getCreationUserName());
             request.setDocID(attachment.getGuid());
             
             // Build attachment context

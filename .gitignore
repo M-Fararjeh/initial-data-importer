@@ -58,3 +58,48 @@ Thumbs.db
 *.env
 *.swp
 .env
+
+
+# Angular build output
+/angular-migration-ui/dist
+/angular-migration-ui/tmp
+/angular-migration-ui/out-tsc
+
+# Node dependencies
+/angular-migration-ui/node_modules
+
+# Angular cache
+/angular-migration-ui/.angular
+
+# Logs
+/angular-migration-ui/npm-debug.log*
+/angular-migration-ui/yarn-debug.log*
+/angular-migration-ui/yarn-error.log*
+/angular-migration-ui/pnpm-debug.log*
+
+# IDEs and editors
+/angular-migration-ui/.vscode/
+/angular-migration-ui/.idea/
+/angular-migration-ui/*.swp
+/angular-migration-ui/*.swo
+/angular-migration-ui/*.swn
+
+# OS files
+/angular-migration-ui/.DS_Store
+/angular-migration-ui/Thumbs.db
+
+# Coverage reports
+/angular-migration-ui/coverage
+
+# Compiled output
+/angular-migration-ui/*.js
+/angular-migration-ui/*.map
+
+# Misc
+/angular-migration-ui/.sass-cache
+/angular-migration-ui/connect.lock
+/angular-migration-ui/typings
+
+# Local environment files (don’t commit secrets)
+/angular-migration-ui/src/environments/environment.local.ts
+/angular-migration-ui/src/environments/environment.*.local.ts
