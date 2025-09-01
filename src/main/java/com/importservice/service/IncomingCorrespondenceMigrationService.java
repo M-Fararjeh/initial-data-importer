@@ -342,10 +342,8 @@ public class IncomingCorrespondenceMigrationService {
             String priority = CorrespondenceUtils.mapPriority(correspondence.getPriorityId());
             
             // Calculate due date (creation date + 5 years if null)
-            LocalDateTime dueDate = correspondence.getDueDate();
-            if (dueDate == null) {
-                dueDate = HijriDateUtils.addYears(correspondence.getCorrespondenceCreationDate(), 5);
-            }
+            // Always add 5 years to creation date for due date
+            LocalDateTime dueDate = HijriDateUtils.addYears(correspondence.getCorrespondenceCreationDate(), 5);
             
             String gDueDate = HijriDateUtils.formatToIsoString(dueDate);
             String hDueDate = HijriDateUtils.convertToHijri(dueDate);
