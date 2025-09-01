@@ -12,8 +12,10 @@ import com.importservice.dto.RegisterWithReferenceRequest;
 import com.importservice.dto.StartWorkRequest;
 import com.importservice.dto.SetOwnerRequest;
 import com.importservice.dto.AssignmentCreateRequest;
+import com.importservice.dto.ClosingRequest;
 import com.importservice.entity.CorrespondenceAttachment;
 import com.importservice.entity.CorrespondenceComment;
+import com.importservice.entity.Correspondence;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -786,6 +788,53 @@ public class DestinationSystemService {
             
         } catch (Exception e) {
             logger.error("Error creating comment: {}", commentGuid, e);
+            return false;
+        }
+    }
+    
+    /**
+     * Closes correspondence in destination system
+     */
+    public boolean closeCorrespondence(String correspondenceGuid, String documentId, 
+                                     String asUser, LocalDateTime closeDate) {
+        try {
+            String url = getAutomationEndpoint();
+            
+            ClosingRequest request = new ClosingRequest();
+            
+            // Set params according to API specification
+            request.setCloseDate(closeDate != null ? 
+                               closeDate.toString() + "Z" : 
+                               LocalDateTime.now().toString() + "Z");
+            request.setOperationName("AC_UA_IncomingCorrespondence_Close");
+            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setDocID(documentId);
+            
+            logApiCall("CLOSE_CORRESPONDENCE", url, request);
+            
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<ClosingRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            boolean success = response.getStatusCode().is2xxSuccessful();
+            if (success) {
+                logger.info("Successfully closed correspondence: {}", correspondenceGuid);
+            } else {
+                logger.error("Failed to close correspondence {} - Status: {}", correspondenceGuid, response.getStatusCode());
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("Error closing correspondence: {}", correspondenceGuid, e);
             return false;
         }
     }

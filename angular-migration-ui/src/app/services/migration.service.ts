@@ -486,4 +486,62 @@ export class MigrationService {
         })
       );
   }
+  
+  // Closing phase methods
+  getClosingMigrations(page: number = 0, size: number = 20, status: string = 'all', needToClose: string = 'all', search: string = ''): Observable<any> {
+    console.log('Calling getClosingMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'needToClose:', needToClose, 'search:', search);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    params.set('status', status);
+    params.set('needToClose', needToClose);
+    if (search && search.trim()) {
+      params.set('search', search.trim());
+    }
+    
+    return this.http.get<any>(`${this.baseUrl}/closing/details?${params.toString()}`)
+      .pipe(
+        tap((closings) => console.log('Closing migrations response:', closings)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting closing migrations:', error);
+          return of({
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: page,
+            pageSize: size,
+            hasNext: false,
+            hasPrevious: false,
+            needToCloseCount: 0,
+            error: error.message
+          });
+        })
+      );
+  }
+  
+  executeClosingForSpecific(correspondenceGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeClosingForSpecific API with GUIDs:', correspondenceGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/closing/execute-specific`, {
+      correspondenceGuids: correspondenceGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteClosingForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeClosingForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute closing for specific correspondences: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
 }

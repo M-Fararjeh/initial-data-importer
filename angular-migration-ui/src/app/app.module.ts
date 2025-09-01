@@ -12,6 +12,7 @@ import { CreationDetailsComponent } from './components/creation-details/creation
 import { AssignmentDetailsComponent } from './components/assignment-details/assignment-details.component';
 import { BusinessLogDetailsComponent } from './components/business-log-details/business-log-details.component';
 import { CommentDetailsComponent } from './components/comment-details/comment-details.component';
+import { ClosingDetailsComponent } from './components/closing-details/closing-details.component';
 import { MigrationService } from './services/migration.service';
 
 const routes: Routes = [
@@ -20,6 +21,7 @@ const routes: Routes = [
   { path: 'assignment-details', component: AssignmentDetailsComponent },
   { path: 'business-log-details', component: BusinessLogDetailsComponent },
   { path: 'comment-details', component: CommentDetailsComponent },
+  { path: 'closing-details', component: ClosingDetailsComponent },
   { path: '**', redirectTo: '' }
 ];
 
@@ -32,7 +34,8 @@ const routes: Routes = [
     CreationDetailsComponent,
     AssignmentDetailsComponent,
     BusinessLogDetailsComponent,
-    CommentDetailsComponent
+    CommentDetailsComponent,
+    ClosingDetailsComponent
   ],
   imports: [
     BrowserModule,

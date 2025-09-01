@@ -353,6 +353,82 @@ public class IncomingCorrespondenceMigrationController {
         }
     }
     
+    @PostMapping("/closing")
+    @Operation(summary = "Phase 6: Closing", 
+               description = "Closes correspondences that need to be closed")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> executeClosing() {
+        logger.info("Received request for Phase 6: Closing");
+        
+        try {
+            ImportResponseDto response = migrationService.executeClosingPhase();
+            return getResponseEntity(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error in closing phase", e);
+            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
+    }
+    
+    @GetMapping("/closing/details")
+    @Operation(summary = "Get Closing Phase Details", 
+               description = "Returns detailed information about closing phase migrations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Object>> getClosingDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(defaultValue = "all") String needToClose,
+            @RequestParam(defaultValue = "") String search) {
+        logger.info("Received request for closing phase details - page: {}, size: {}, status: {}, needToClose: {}, search: '{}'", 
+                   page, size, status, needToClose, search);
+        
+        try {
+            Map<String, Object> closings = migrationService.getClosingMigrations(page, size, status, needToClose, search);
+            return ResponseEntity.ok(closings);
+        } catch (Exception e) {
+            logger.error("Error getting closing details", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("content", new ArrayList<>());
+            errorResponse.put("totalElements", 0L);
+            errorResponse.put("totalPages", 0);
+            errorResponse.put("currentPage", page);
+            errorResponse.put("pageSize", size);
+            errorResponse.put("hasNext", false);
+            errorResponse.put("hasPrevious", false);
+            errorResponse.put("needToCloseCount", 0L);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    @PostMapping("/closing/execute-specific")
+    @Operation(summary = "Execute Closing for Specific Correspondences", 
+               description = "Executes closing phase for specified correspondence GUIDs")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> executeClosingForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> correspondenceGuids = request.get("correspondenceGuids");
+        logger.info("Received request to execute closing for {} specific correspondences", 
+                   correspondenceGuids != null ? correspondenceGuids.size() : 0);
+        
+        try {
+            ImportResponseDto response = migrationService.executeClosingForSpecific(correspondenceGuids);
+            return getResponseEntity(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error in execute closing for specific", e);
+            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
+    }
+    
     @PostMapping("/retry-failed")
     @Operation(summary = "Retry Failed Migrations", 
                description = "Retries failed migrations that haven't exceeded max retry count")
