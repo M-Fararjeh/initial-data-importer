@@ -1,11 +1,16 @@
 package com.importservice.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.entity.Correspondence;
 import com.importservice.entity.CorrespondenceAttachment;
+import com.importservice.entity.CorrespondenceTransaction;
 import com.importservice.entity.IncomingCorrespondenceMigration;
+import com.importservice.dto.UserImportDto;
 import com.importservice.repository.CorrespondenceAttachmentRepository;
 import com.importservice.repository.CorrespondenceRepository;
+import com.importservice.repository.CorrespondenceTransactionRepository;
 import com.importservice.repository.IncomingCorrespondenceMigrationRepository;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
@@ -15,12 +20,15 @@ import com.importservice.util.HijriDateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
 import java.util.Map;
 import java.util.HashMap;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -47,6 +55,12 @@ public class IncomingCorrespondenceMigrationService {
     
     @Autowired
     private DepartmentUtils departmentUtils;
+    
+    @Autowired
+    private CorrespondenceTransactionRepository correspondenceTransactionRepository;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
     
     /**
      * Phase 1: Prepare Data
