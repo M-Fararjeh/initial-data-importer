@@ -771,6 +771,24 @@ public class IncomingCorrespondenceMigrationService {
                             .collect(java.util.stream.Collectors.toList());
                         result = executeAssignmentForSpecific(transactionGuids);
                         break;
+                    case "BUSINESS_LOG":
+                        // Get transaction GUIDs for business log retry
+                        List<String> businessLogTransactionGuids = transactionRepository
+                            .findBusinessLogsNeedingProcessing()
+                            .stream()
+                            .map(CorrespondenceTransaction::getGuid)
+                            .collect(java.util.stream.Collectors.toList());
+                        result = executeBusinessLogForSpecific(businessLogTransactionGuids);
+                        break;
+                    case "COMMENT":
+                        // Get comment GUIDs for comment retry
+                        List<String> commentGuids = commentRepository
+                            .findCommentsByMigrateStatusIn(Arrays.asList("FAILED"))
+                            .stream()
+                            .map(CorrespondenceComment::getCommentGuid)
+                            .collect(java.util.stream.Collectors.toList());
+                        result = executeCommentForSpecific(commentGuids);
+                        break;
                     default:
                         result = new ImportResponseDto("SUCCESS", "Phase " + phase + " retry not implemented", 
                             0, 0, 0, new ArrayList<>());
@@ -825,6 +843,28 @@ public class IncomingCorrespondenceMigrationService {
                 assignmentMap.put("failed", assignmentStats[2]);
                 assignmentMap.put("total", assignmentStats[3]);
                 stats.put("assignmentDetails", assignmentMap);
+            }
+            
+            // Get business log-specific statistics using optimized query
+            Object[] businessLogStats = transactionRepository.getBusinessLogStatistics();
+            if (businessLogStats != null && businessLogStats.length >= 4) {
+                Map<String, Object> businessLogMap = new HashMap<>();
+                businessLogMap.put("pending", businessLogStats[0]);
+                businessLogMap.put("success", businessLogStats[1]);
+                businessLogMap.put("failed", businessLogStats[2]);
+                businessLogMap.put("total", businessLogStats[3]);
+                stats.put("businessLogDetails", businessLogMap);
+            }
+            
+            // Get comment-specific statistics using optimized query
+            Object[] commentStats = commentRepository.getCommentStatistics();
+            if (commentStats != null && commentStats.length >= 4) {
+                Map<String, Object> commentMap = new HashMap<>();
+                commentMap.put("pending", commentStats[0]);
+                commentMap.put("success", commentStats[1]);
+                commentMap.put("failed", commentStats[2]);
+                commentMap.put("total", commentStats[3]);
+                stats.put("commentDetails", commentMap);
             }
             
         } catch (Exception e) {
