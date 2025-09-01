@@ -33,6 +33,9 @@ public class UserImportService {
     @Value("${destination.api.token}")
     private String authToken;
 
+    @Value("${destination.api.logging.enabled:false}")
+    private boolean loggingEnabled;
+
     @Autowired
     private RestTemplate restTemplate;
     
@@ -112,10 +115,15 @@ public class UserImportService {
             
             CreateUserRequestDto request = mapToCreateUserRequest(user);
             
+            if (loggingEnabled) {
+                System.out.println("=== CREATE USER ===");
+                System.out.println("URL: " + url);
+                System.out.println("Request Body: " + request.toString());
+                System.out.println("=== END CREATE USER ===");
+            }
+            
             HttpHeaders headers = createHttpHeaders();
             HttpEntity<CreateUserRequestDto> httpEntity = new HttpEntity<>(request, headers);
-            
-            logger.debug("Creating user with request: {}", request);
             
             ResponseEntity<String> response = restTemplate.exchange(
                 url, HttpMethod.POST, httpEntity, String.class
@@ -144,10 +152,15 @@ public class UserImportService {
             
             AssignUserRequestDto request = mapToAssignUserRequest(user);
             
+            if (loggingEnabled) {
+                System.out.println("=== ASSIGN USER ===");
+                System.out.println("URL: " + url);
+                System.out.println("Request Body: " + request.toString());
+                System.out.println("=== END ASSIGN USER ===");
+            }
+            
             HttpHeaders headers = createHttpHeaders();
             HttpEntity<AssignUserRequestDto> httpEntity = new HttpEntity<>(request, headers);
-            
-            logger.debug("Assigning user to department with request: {}", request);
             
             ResponseEntity<String> response = restTemplate.exchange(
                 url, HttpMethod.POST, httpEntity, String.class

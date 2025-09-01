@@ -24,30 +24,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.importservice.dto.AttachmentCreateRequest;
-import com.importservice.dto.BatchCreateResponse;
-import com.importservice.dto.IncomingCorrespondenceCreateRequest;
-import com.importservice.entity.CorrespondenceAttachment;
-import com.importservice.util.AttachmentUtils;
-import com.importservice.util.CorrespondenceUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-
-import java.time.LocalDateTime;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-
 @Service
 public class DestinationSystemService {
     
@@ -71,8 +47,25 @@ public class DestinationSystemService {
     @Value("${file.upload.sample.mimetype:application/pdf}")
     private String sampleMimeType;
     
+    @Value("${destination.api.logging.enabled:false}")
+    private boolean loggingEnabled;
+    
     @Autowired
     private RestTemplate restTemplate;
+    
+    /**
+     * Logs request details if logging is enabled
+     */
+    private void logApiCall(String operation, String url, Object requestBody) {
+        if (loggingEnabled) {
+            System.out.println("=== DESTINATION API CALL: " + operation + " ===");
+            System.out.println("URL: " + url);
+            if (requestBody != null) {
+                System.out.println("Request Body: " + requestBody.toString());
+            }
+            System.out.println("=== END API CALL ===");
+        }
+    }
     
     /**
      * Gets the base URL from the destination API URL
@@ -112,13 +105,16 @@ public class DestinationSystemService {
      */
     public String createBatch() {
         try {
+            String url = getUploadEndpoint();
+            logApiCall("CREATE_BATCH", url, "{}");
+            
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             
             HttpEntity<String> entity = new HttpEntity<>("{}", headers);
             
             ResponseEntity<BatchCreateResponse> response = restTemplate.exchange(
-                getUploadEndpoint(),
+                url,
                 HttpMethod.POST,
                 entity,
                 BatchCreateResponse.class
@@ -144,13 +140,17 @@ public class DestinationSystemService {
      */
     public boolean uploadBase64FileToBatch(String batchId, String fileId, String base64Data, String fileName) {
         try {
+            String url = getUploadEndpoint() + batchId + "/" + fileId;
+            logApiCall("UPLOAD_FILE", url, "File: " + fileName + " (Base64 data length: " + 
+                      (base64Data != null ? base64Data.length() : 0) + ")");
+            
             if (useSampleFile) {
                 logger.info("Using sample file for upload instead of real file data");
                 byte[] sampleFileData = Base64.getDecoder().decode(sampleBase64);
-                return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName);
+                return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, url);
             } else {
                 byte[] fileData = Base64.getDecoder().decode(base64Data);
-                return uploadFileToBatch(batchId, fileId, fileData, fileName);
+                return uploadFileToBatch(batchId, fileId, fileData, fileName, url);
             }
         } catch (IllegalArgumentException e) {
             logger.error("Invalid base64 data for file: {}", fileName, e);
@@ -161,7 +161,7 @@ public class DestinationSystemService {
     /**
      * Uploads file data to batch
      */
-    public boolean uploadFileToBatch(String batchId, String fileId, byte[] fileData, String fileName) {
+    private boolean uploadFileToBatch(String batchId, String fileId, byte[] fileData, String fileName, String url) {
         try {
             ByteArrayResource resource = new ByteArrayResource(fileData) {
                 @Override
@@ -175,10 +175,8 @@ public class DestinationSystemService {
             
             HttpEntity<ByteArrayResource> entity = new HttpEntity<>(resource, headers);
             
-            String uploadUrl = getUploadEndpoint() + batchId + "/" + fileId;
-            
             ResponseEntity<String> response = restTemplate.exchange(
-                uploadUrl,
+                url,
                 HttpMethod.POST,
                 entity,
                 String.class
@@ -188,8 +186,7 @@ public class DestinationSystemService {
             if (success) {
                 logger.debug("Successfully uploaded file {} to batch {}", fileName, batchId);
             } else {
-                logger.error("Failed to upload file {} to batch {} - Status: {}", 
-                           fileName, batchId, response.getStatusCode());
+                logger.error("Failed to upload file {} to batch {} - Status: {}", fileName, batchId, response.getStatusCode());
             }
             
             return success;
@@ -212,6 +209,8 @@ public class DestinationSystemService {
                                              String gDate, String hDate, String toDepartment,
                                              String batchId, String action) {
         try {
+            String url = getAutomationEndpoint();
+            
             IncomingCorrespondenceCreateRequest request = new IncomingCorrespondenceCreateRequest();
             
             // Set params
@@ -253,13 +252,15 @@ public class DestinationSystemService {
             
             request.setIncCorrespondence(incCorrespondence);
             
+            logApiCall("CREATE_INCOMING_CORRESPONDENCE", url, request);
+            
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             
             HttpEntity<IncomingCorrespondenceCreateRequest> entity = new HttpEntity<>(request, headers);
             
             ResponseEntity<String> response = restTemplate.exchange(
-                getAutomationEndpoint(),
+                url,
                 HttpMethod.POST,
                 entity,
                 String.class
@@ -285,6 +286,8 @@ public class DestinationSystemService {
      */
     public boolean createAttachment(CorrespondenceAttachment attachment, String batchId) {
         try {
+            String url = getAutomationEndpoint();
+            
             AttachmentCreateRequest request = new AttachmentCreateRequest();
             
             // Set params
@@ -323,13 +326,15 @@ public class DestinationSystemService {
             
             request.setAttachment(attachmentData);
             
+            logApiCall("CREATE_ATTACHMENT", url, request);
+            
             HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             
             HttpEntity<AttachmentCreateRequest> entity = new HttpEntity<>(request, headers);
             
             ResponseEntity<String> response = restTemplate.exchange(
-                getAutomationEndpoint(),
+                url,
                 HttpMethod.POST,
                 entity,
                 String.class
@@ -339,8 +344,7 @@ public class DestinationSystemService {
             if (success) {
                 logger.info("Successfully created attachment: {}", attachment.getName());
             } else {
-                logger.error("Failed to create attachment {} - Status: {}", 
-                           attachment.getName(), response.getStatusCode());
+                logger.error("Failed to create attachment {} - Status: {}", attachment.getName(), response.getStatusCode());
             }
             
             return success;

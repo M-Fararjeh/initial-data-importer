@@ -38,6 +38,9 @@ public class ExternalAgencyImportService {
     @Value("${destination.api.token}")
     private String authToken;
 
+    @Value("${destination.api.logging.enabled:false}")
+    private boolean loggingEnabled;
+
     @Autowired
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -101,6 +104,13 @@ public class ExternalAgencyImportService {
     private boolean importSingleAgency(ExternalAgencyDto agency) {
         try {
             DestinationRequestDto request = mapToDestinationRequest(agency);
+            
+            if (loggingEnabled) {
+                System.out.println("=== EXTERNAL AGENCY IMPORT ===");
+                System.out.println("URL: " + destinationApiUrl);
+                System.out.println("Request Body: " + request.toString());
+                System.out.println("=== END EXTERNAL AGENCY IMPORT ===");
+            }
             
             HttpHeaders headers = createHttpHeaders();
             HttpEntity<DestinationRequestDto> httpEntity = new HttpEntity<DestinationRequestDto>(request, headers);
