@@ -333,7 +333,7 @@ public class DestinationSystemService {
             attachmentData.put("title", CorrespondenceUtils.cleanFileName(attachment.getName()));
             attachmentData.put("barcode", AttachmentUtils.generateAttachmentBarcode(attachment.getGuid()));
             attachmentData.put("corr_attach:attachmentId", attachment.getGuid());
-            attachmentData.put("corr_attach:classification", 
+/*            attachmentData.put("corr_attach:classification",
                              CorrespondenceUtils.mapAttachmentClassification(
                                  attachment.getFileType(), attachment.getName()));
             attachmentData.put("corr_attach:category", 
@@ -341,7 +341,7 @@ public class DestinationSystemService {
                                  attachment.getIsPrimary() != null && attachment.getIsPrimary(), 
                                  attachment.getFileType()));
             attachmentData.put("corr_attach:type", 
-                             CorrespondenceUtils.mapAttachmentType(attachment.getName()));
+                             CorrespondenceUtils.mapAttachmentType(attachment.getName()));*/
             attachmentData.put("corr_attach:remarks", 
                              attachment.getCaption() != null ? attachment.getCaption() : "");
             attachmentData.put("corr_attach:isObject", false);
