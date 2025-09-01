@@ -486,7 +486,8 @@ public class DestinationSystemService {
     /**
      * Registers correspondence with reference
      */
-    public boolean registerWithReference(String correspondenceGuid, String asUser, Map<String, Object> incCorrespondenceContext) {
+    public boolean registerWithReference(String correspondenceGuid, String asUser, Map<String, Object> incCorrespondenceContext, 
+                                       String action, String toDepartment) {
         try {
             String url = getAutomationEndpoint();
             
@@ -497,8 +498,13 @@ public class DestinationSystemService {
             request.setAsUser(asUser != null ? asUser : "itba-emp1");
             request.setDocID(correspondenceGuid);
             
-            // Set context - reuse the same context from correspondence creation
-            request.setIncCorrespondence(incCorrespondenceContext);
+            // Set context - reuse the same context from correspondence creation and add required parameters
+            Map<String, Object> updatedContext = new HashMap<>(incCorrespondenceContext);
+            updatedContext.put("corr:action", action != null ? action : "ForAdvice");
+            updatedContext.put("corr:to", toDepartment != null ? toDepartment : "COF");
+            updatedContext.put("corr:from", "");
+            
+            request.setIncCorrespondence(updatedContext);
             
             logApiCall("REGISTER_WITH_REFERENCE", url, request);
             
