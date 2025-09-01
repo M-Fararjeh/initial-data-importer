@@ -204,6 +204,60 @@ public class IncomingCorrespondenceMigrationController {
         }
     }
     
+    @GetMapping("/business-log/details")
+    @Operation(summary = "Get Business Log Phase Details", 
+               description = "Returns detailed information about business log phase migrations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Object>> getBusinessLogDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(defaultValue = "") String search) {
+        logger.info("Received request for business log phase details - page: {}, size: {}, status: {}, search: '{}'", 
+                   page, size, status, search);
+        
+        try {
+            Map<String, Object> businessLogs = migrationService.getBusinessLogMigrations(page, size, status, search);
+            return ResponseEntity.ok(businessLogs);
+        } catch (Exception e) {
+            logger.error("Error getting business log details", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("content", new ArrayList<>());
+            errorResponse.put("totalElements", 0L);
+            errorResponse.put("totalPages", 0);
+            errorResponse.put("currentPage", page);
+            errorResponse.put("pageSize", size);
+            errorResponse.put("hasNext", false);
+            errorResponse.put("hasPrevious", false);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    @PostMapping("/business-log/execute-specific")
+    @Operation(summary = "Execute Business Log for Specific Transactions", 
+               description = "Executes business log phase for specified transaction GUIDs")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> executeBusinessLogForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> transactionGuids = request.get("transactionGuids");
+        logger.info("Received request to execute business log for {} specific transactions", 
+                   transactionGuids != null ? transactionGuids.size() : 0);
+        
+        try {
+            ImportResponseDto response = migrationService.executeBusinessLogForSpecific(transactionGuids);
+            return getResponseEntity(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error in execute business log for specific", e);
+            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
+    }
+    
     @PostMapping("/comment")
     @Operation(summary = "Phase 5: Comment", 
                description = "Processes comments for correspondences")

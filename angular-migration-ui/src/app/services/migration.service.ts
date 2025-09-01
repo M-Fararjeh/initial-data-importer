@@ -373,4 +373,60 @@ export class MigrationService {
         })
       );
   }
+  
+  // Business log phase methods
+  getBusinessLogMigrations(page: number = 0, size: number = 20, status: string = 'all', search: string = ''): Observable<any> {
+    console.log('Calling getBusinessLogMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'search:', search);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    params.set('status', status);
+    if (search && search.trim()) {
+      params.set('search', search.trim());
+    }
+    
+    return this.http.get<any>(`${this.baseUrl}/business-log/details?${params.toString()}`)
+      .pipe(
+        tap((businessLogs) => console.log('Business log migrations response:', businessLogs)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting business log migrations:', error);
+          return of({
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: page,
+            pageSize: size,
+            hasNext: false,
+            hasPrevious: false,
+            error: error.message
+          });
+        })
+      );
+  }
+  
+  executeBusinessLogForSpecific(transactionGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeBusinessLogForSpecific API with GUIDs:', transactionGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/business-log/execute-specific`, {
+      transactionGuids: transactionGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteBusinessLogForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeBusinessLogForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute business log for specific transactions: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
 }

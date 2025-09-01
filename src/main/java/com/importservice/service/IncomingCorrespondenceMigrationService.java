@@ -384,9 +384,164 @@ public class IncomingCorrespondenceMigrationService {
     public ImportResponseDto executeBusinessLogPhase() {
         logger.info("Starting Phase 4: Business Log");
         
-        // Placeholder implementation
-        return new ImportResponseDto("SUCCESS", "Business Log phase not yet implemented", 
-            0, 0, 0, new ArrayList<>());
+        // Get business logs that need processing using optimized query
+        List<CorrespondenceTransaction> businessLogs = transactionRepository.findBusinessLogsNeedingProcessing();
+        
+        logger.info("Found {} business logs to process", businessLogs.size());
+        
+        return executeBusinessLogForSpecific(
+            businessLogs.stream()
+                .map(CorrespondenceTransaction::getGuid)
+                .collect(java.util.stream.Collectors.toList())
+        );
+    }
+    
+    /**
+     * Execute business log for specific transaction GUIDs
+     */
+    @Transactional
+    public ImportResponseDto executeBusinessLogForSpecific(List<String> transactionGuids) {
+        logger.info("Executing business log for {} specific transactions", transactionGuids.size());
+        
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
+        
+        for (String transactionGuid : transactionGuids) {
+            try {
+                Optional<CorrespondenceTransaction> transactionOpt = 
+                    transactionRepository.findById(transactionGuid);
+                
+                if (!transactionOpt.isPresent()) {
+                    failedImports++;
+                    errors.add("Transaction not found: " + transactionGuid);
+                    continue;
+                }
+                
+                CorrespondenceTransaction transaction = transactionOpt.get();
+                
+                // Get the created document ID from migration record
+                Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(transaction.getDocGuid());
+                
+                if (!migrationOpt.isPresent() || migrationOpt.get().getCreatedDocumentId() == null) {
+                    failedImports++;
+                    errors.add("No created document ID found for transaction: " + transactionGuid);
+                    continue;
+                }
+                
+                String documentId = migrationOpt.get().getCreatedDocumentId();
+                
+                // Create business log in destination system
+                boolean success = destinationSystemService.createBusinessLog(
+                    transactionGuid,
+                    documentId,
+                    transaction.getActionDate(),
+                    transaction.getActionEnglishName(),
+                    transaction.getNotes(),
+                    transaction.getFromUserName()
+                );
+                
+                if (success) {
+                    transaction.setMigrateStatus("SUCCESS");
+                    successfulImports++;
+                    logger.debug("Successfully created business log: {}", transactionGuid);
+                } else {
+                    transaction.setMigrateStatus("FAILED");
+                    transaction.setRetryCount(transaction.getRetryCount() + 1);
+                    failedImports++;
+                    errors.add("Failed to create business log in destination system: " + transactionGuid);
+                }
+                
+                transactionRepository.save(transaction);
+                
+            } catch (Exception e) {
+                failedImports++;
+                String errorMsg = "Error processing business log " + transactionGuid + ": " + e.getMessage();
+                errors.add(errorMsg);
+                logger.error(errorMsg, e);
+            }
+        }
+        
+        String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+        String message = String.format("Business log completed. Success: %d, Failed: %d", 
+                                     successfulImports, failedImports);
+        
+        return new ImportResponseDto(status, message, transactionGuids.size(), 
+                                   successfulImports, failedImports, errors);
+    }
+    
+    /**
+     * Get business log migrations with search and pagination - Optimized for large datasets
+     */
+    public Map<String, Object> getBusinessLogMigrations(int page, int size, String status, String search) {
+        logger.info("Getting business log migrations - page: {}, size: {}, status: {}, search: '{}'", 
+                   page, size, status, search);
+        
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            
+            // Normalize parameters for database query
+            String normalizedStatus = (status == null || "all".equals(status)) ? null : status;
+            String normalizedSearch = (search == null || search.trim().isEmpty()) ? null : search.trim();
+            
+            Page<Object[]> businessLogPage = transactionRepository.findBusinessLogMigrationsWithSearchAndPagination(
+                normalizedStatus, normalizedSearch, pageable);
+            
+            List<Map<String, Object>> businessLogs = new ArrayList<>();
+            
+            for (Object[] row : businessLogPage.getContent()) {
+                Map<String, Object> businessLog = new HashMap<>();
+                businessLog.put("transactionGuid", row[0]);
+                businessLog.put("correspondenceGuid", row[1]);
+                businessLog.put("actionId", row[2]);
+                businessLog.put("actionEnglishName", row[3]);
+                businessLog.put("actionLocalName", row[4]);
+                businessLog.put("actionDate", row[5]);
+                businessLog.put("fromUserName", row[6]);
+                businessLog.put("notes", row[7]);
+                businessLog.put("migrateStatus", row[8]);
+                businessLog.put("retryCount", row[9]);
+                businessLog.put("lastModifiedDate", row[10]);
+                businessLog.put("correspondenceSubject", row[11]);
+                businessLog.put("correspondenceReferenceNo", row[12]);
+                businessLog.put("createdDocumentId", row[13]);
+                
+                businessLogs.add(businessLog);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", businessLogs);
+            result.put("totalElements", businessLogPage.getTotalElements());
+            result.put("totalPages", businessLogPage.getTotalPages());
+            result.put("currentPage", page);
+            result.put("pageSize", size);
+            result.put("hasNext", businessLogPage.hasNext());
+            result.put("hasPrevious", businessLogPage.hasPrevious());
+            
+            // Create applied filters map (Java 8 compatible)
+            Map<String, Object> appliedFilters = new HashMap<>();
+            appliedFilters.put("status", normalizedStatus);
+            appliedFilters.put("search", normalizedSearch);
+            result.put("appliedFilters", appliedFilters);
+            
+            logger.info("Retrieved {} business logs for page {} with filters (status: {}, search: '{}')", 
+                       businessLogs.size(), page, normalizedStatus, normalizedSearch);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error getting business log migrations", e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("content", new ArrayList<>());
+            errorResult.put("totalElements", 0L);
+            errorResult.put("totalPages", 0);
+            errorResult.put("currentPage", page);
+            errorResult.put("pageSize", size);
+            errorResult.put("hasNext", false);
+            errorResult.put("hasPrevious", false);
+            errorResult.put("error", e.getMessage());
+            return errorResult;
+        }
     }
     
     /**

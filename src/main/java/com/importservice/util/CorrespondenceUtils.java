@@ -430,4 +430,28 @@ public class CorrespondenceUtils {
         logger.debug("Mapped fileName '{}' with extension '{}' to MIME type '{}'", fileName, extension, result);
         return result;
     }
+    
+    /**
+     * Removes HTML tags from text content
+     * 
+     * @param text The text that may contain HTML tags
+     * @return Clean text without HTML tags
+     */
+    public static String cleanHtmlTags(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            logger.debug("Null or empty text provided for HTML cleaning");
+            return "";
+        }
+        
+        // Remove HTML tags using regex
+        String cleaned = text.replaceAll("<[^>]*>", "");
+        
+        // Remove extra whitespace and normalize
+        cleaned = cleaned.replaceAll("\\s+", " ").trim();
+        
+        logger.debug("Cleaned HTML tags from text. Original length: {}, Cleaned length: {}", 
+                   text.length(), cleaned.length());
+        
+        return cleaned;
+    }
 }

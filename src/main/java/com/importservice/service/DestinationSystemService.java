@@ -678,6 +678,64 @@ public class DestinationSystemService {
     }
     
     /**
+     * Creates business log in destination system
+     */
+    public boolean createBusinessLog(String transactionGuid, String documentId, LocalDateTime actionDate,
+                                   String eventName, String eventComment, String fromUserName) {
+        try {
+            String url = getAutomationEndpoint();
+            
+            BusinessLogCreateRequest request = new BusinessLogCreateRequest();
+            
+            // Set params according to API specification
+            request.setOperationName("Document.CreateBusinessLog");
+            request.setDocID(documentId);
+            request.setDocDate(actionDate != null ? 
+                             actionDate.toString() + "Z" : 
+                             LocalDateTime.now().toString() + "Z");
+            request.setGuid(transactionGuid);
+            request.setEventCategory("document");
+            request.setEventName(eventName != null ? eventName : "incoming_register");
+            request.setEventDate(actionDate != null ? 
+                               actionDate.toString() + "Z" : 
+                               LocalDateTime.now().toString() + "Z");
+            request.setEventTypes("userEvent");
+            request.setEventComment(CorrespondenceUtils.cleanHtmlTags(eventComment));
+            request.setDocumentTypes("IncomingCorrespondence");
+            request.setExtendedInfo(null);
+            request.setCurrentLifeCycle("draft");
+            request.setPerson(fromUserName != null ? fromUserName : "itba-emp1");
+            
+            logApiCall("CREATE_BUSINESS_LOG", url, request);
+            
+            HttpHeaders headers = createHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            HttpEntity<BusinessLogCreateRequest> entity = new HttpEntity<>(request, headers);
+            
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.POST,
+                entity,
+                String.class
+            );
+            
+            boolean success = response.getStatusCode().is2xxSuccessful();
+            if (success) {
+                logger.info("Successfully created business log: {}", transactionGuid);
+            } else {
+                logger.error("Failed to create business log {} - Status: {}", transactionGuid, response.getStatusCode());
+            }
+            
+            return success;
+            
+        } catch (Exception e) {
+            logger.error("Error creating business log: {}", transactionGuid, e);
+            return false;
+        }
+    }
+    
+    /**
      * Creates HTTP headers for API requests
      */
     private HttpHeaders createHeaders() {
