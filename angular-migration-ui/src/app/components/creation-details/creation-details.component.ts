@@ -291,4 +291,29 @@ export class CreationDetailsComponent implements OnInit, OnDestroy {
     
     return pages;
   }
+  
+  trackByGuid(index: number, item: CreationMigration): string {
+    return item.correspondenceGuid;
+  }
+  
+  getProgressPercentage(step: string): number {
+    const steps = [
+      'GET_DETAILS',
+      'GET_ATTACHMENTS', 
+      'UPLOAD_MAIN_ATTACHMENT',
+      'CREATE_CORRESPONDENCE',
+      'UPLOAD_OTHER_ATTACHMENTS',
+      'CREATE_PHYSICAL_ATTACHMENT',
+      'SET_READY_TO_REGISTER',
+      'REGISTER_WITH_REFERENCE',
+      'START_WORK',
+      'SET_OWNER',
+      'COMPLETED'
+    ];
+    
+    const stepIndex = steps.indexOf(step);
+    if (stepIndex === -1) return 0;
+    
+    return Math.round((stepIndex / (steps.length - 1)) * 100);
+  }
 }
