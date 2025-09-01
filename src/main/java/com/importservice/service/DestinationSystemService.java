@@ -110,9 +110,9 @@ public class DestinationSystemService {
     /**
      * Creates a batch for file upload
      */
-    public String createBatch(String userToken) {
+    public String createBatch() {
         try {
-            HttpHeaders headers = createHeaders(userToken);
+            HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             
             HttpEntity<String> entity = new HttpEntity<>("{}", headers);
@@ -142,15 +142,15 @@ public class DestinationSystemService {
     /**
      * Uploads base64 file to batch
      */
-    public boolean uploadBase64FileToBatch(String batchId, String fileId, String base64Data, String fileName, String userToken) {
+    public boolean uploadBase64FileToBatch(String batchId, String fileId, String base64Data, String fileName) {
         try {
             if (useSampleFile) {
                 logger.info("Using sample file for upload instead of real file data");
                 byte[] sampleFileData = Base64.getDecoder().decode(sampleBase64);
-                return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, userToken);
+                return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName);
             } else {
                 byte[] fileData = Base64.getDecoder().decode(base64Data);
-                return uploadFileToBatch(batchId, fileId, fileData, fileName, userToken);
+                return uploadFileToBatch(batchId, fileId, fileData, fileName);
             }
         } catch (IllegalArgumentException e) {
             logger.error("Invalid base64 data for file: {}", fileName, e);
@@ -161,7 +161,7 @@ public class DestinationSystemService {
     /**
      * Uploads file data to batch
      */
-    public boolean uploadFileToBatch(String batchId, String fileId, byte[] fileData, String fileName, String userToken) {
+    public boolean uploadFileToBatch(String batchId, String fileId, byte[] fileData, String fileName) {
         try {
             ByteArrayResource resource = new ByteArrayResource(fileData) {
                 @Override
@@ -170,7 +170,7 @@ public class DestinationSystemService {
                 }
             };
             
-            HttpHeaders headers = createHeaders(userToken);
+            HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
             
             HttpEntity<ByteArrayResource> entity = new HttpEntity<>(resource, headers);
@@ -253,7 +253,7 @@ public class DestinationSystemService {
             
             request.setIncCorrespondence(incCorrespondence);
             
-            HttpHeaders headers = createHeaders(asUser);
+            HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             
             HttpEntity<IncomingCorrespondenceCreateRequest> entity = new HttpEntity<>(request, headers);
@@ -283,7 +283,7 @@ public class DestinationSystemService {
     /**
      * Creates attachment in destination system
      */
-    public boolean createAttachment(CorrespondenceAttachment attachment, String batchId, String userToken) {
+    public boolean createAttachment(CorrespondenceAttachment attachment, String batchId) {
         try {
             AttachmentCreateRequest request = new AttachmentCreateRequest();
             
@@ -292,7 +292,7 @@ public class DestinationSystemService {
             request.setDocDate(attachment.getFileCreationDate() != null ? 
                              attachment.getFileCreationDate().toString() + "Z" : 
                              LocalDateTime.now().toString() + "Z");
-            request.setAsUser(userToken != null ? userToken : "itba-emp1");
+            request.setAsUser("itba-emp1");
             request.setDocID(attachment.getGuid());
             
             // Build attachment context
@@ -323,7 +323,7 @@ public class DestinationSystemService {
             
             request.setAttachment(attachmentData);
             
-            HttpHeaders headers = createHeaders(userToken);
+            HttpHeaders headers = createHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             
             HttpEntity<AttachmentCreateRequest> entity = new HttpEntity<>(request, headers);
@@ -354,11 +354,11 @@ public class DestinationSystemService {
     /**
      * Creates HTTP headers for API requests
      */
-    private HttpHeaders createHeaders(String userToken) {
+    private HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Accept", "application/json");
         headers.set("Accept-Language", "en-US,en;q=0.9,ar;q=0.8");
-        headers.set("Authorization", "Bearer " + (userToken != null ? userToken : authToken));
+        headers.set("Authorization", "Bearer " + authToken);
         headers.set("Connection", "keep-alive");
         return headers;
     }

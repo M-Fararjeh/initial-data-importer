@@ -232,7 +232,7 @@ public class IncomingCorrespondenceMigrationService {
             
             String batchId = null;
             if (primaryAttachment != null && AttachmentUtils.isValidForUpload(primaryAttachment)) {
-                batchId = uploadPrimaryAttachment(primaryAttachment, correspondence.getCreationUserName());
+                batchId = uploadPrimaryAttachment(primaryAttachment);
                 if (batchId == null) {
                     migration.markPhaseError("CREATION", "Failed to upload primary attachment");
                     return false;
@@ -260,7 +260,7 @@ public class IncomingCorrespondenceMigrationService {
             
             for (CorrespondenceAttachment attachment : otherAttachments) {
                 if (AttachmentUtils.isValidForUpload(attachment)) {
-                    boolean uploaded = uploadOtherAttachment(attachment, correspondence.getCreationUserName());
+                    boolean uploaded = uploadOtherAttachment(attachment);
                     if (!uploaded) {
                         logger.warn("Failed to upload attachment: {}", attachment.getName());
                         // Continue with other attachments - don't fail the entire process
@@ -284,10 +284,10 @@ public class IncomingCorrespondenceMigrationService {
     /**
      * Uploads primary attachment and returns batch ID
      */
-    private String uploadPrimaryAttachment(CorrespondenceAttachment attachment, String userToken) {
+    private String uploadPrimaryAttachment(CorrespondenceAttachment attachment) {
         try {
             // Create batch
-            String batchId = destinationSystemService.createBatch(userToken);
+            String batchId = destinationSystemService.createBatch();
             if (batchId == null) {
                 logger.error("Failed to create batch for primary attachment");
                 return null;
@@ -310,7 +310,7 @@ public class IncomingCorrespondenceMigrationService {
             
             // Upload file to batch
             boolean uploaded = destinationSystemService.uploadBase64FileToBatch(
-                batchId, "0", fileData, cleanName, userToken
+                batchId, "0", fileData, cleanName
             );
             
             if (!uploaded) {
@@ -413,10 +413,10 @@ public class IncomingCorrespondenceMigrationService {
     /**
      * Uploads other (non-primary) attachments
      */
-    private boolean uploadOtherAttachment(CorrespondenceAttachment attachment, String userToken) {
+    private boolean uploadOtherAttachment(CorrespondenceAttachment attachment) {
         try {
             // Create batch for this attachment
-            String batchId = destinationSystemService.createBatch(userToken);
+            String batchId = destinationSystemService.createBatch();
             if (batchId == null) {
                 logger.error("Failed to create batch for attachment: {}", attachment.getName());
                 return false;
@@ -439,7 +439,7 @@ public class IncomingCorrespondenceMigrationService {
             
             // Upload file to batch
             boolean uploaded = destinationSystemService.uploadBase64FileToBatch(
-                batchId, "0", fileData, cleanName, userToken
+                batchId, "0", fileData, cleanName
             );
             
             if (!uploaded) {
@@ -450,8 +450,7 @@ public class IncomingCorrespondenceMigrationService {
             // Create attachment in destination system
             boolean created = destinationSystemService.createAttachment(
                 attachment,
-                batchId,
-                userToken
+                batchId
             );
             
             if (created) {
