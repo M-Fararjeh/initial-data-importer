@@ -353,26 +353,6 @@ public class IncomingCorrespondenceMigrationController {
         }
     }
     
-    @PostMapping("/closing")
-    @Operation(summary = "Phase 6: Closing", 
-               description = "Closes correspondences that need to be closed")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeClosing() {
-        logger.info("Received request for Phase 6: Closing");
-        
-        try {
-            ImportResponseDto response = migrationService.executeClosingPhase();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in closing phase", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
-    }
-    
     @GetMapping("/closing/details")
     @Operation(summary = "Get Closing Phase Details", 
                description = "Returns detailed information about closing phase migrations")
