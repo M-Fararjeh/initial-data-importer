@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Collections;
 
+import com.importservice.entity.IncomingCorrespondenceMigration;
+
 @Service
 public class IncomingCorrespondenceMigrationService {
     
@@ -179,6 +181,137 @@ public class IncomingCorrespondenceMigrationService {
             logger.error("Failed to execute Creation phase", e);
             return new ImportResponseDto("ERROR", "Failed to execute Creation phase: " + e.getMessage(), 
                 0, 0, 0, Collections.singletonList("Failed to execute Creation phase: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Gets creation phase migrations with correspondence details
+     */
+    public List<IncomingCorrespondenceMigration> getCreationMigrations() {
+        try {
+            // Get all migrations that are in creation phase or have creation data
+            List<IncomingCorrespondenceMigration> migrations = migrationRepository.findAll();
+            
+            // Filter to only include migrations that have reached creation phase
+            List<IncomingCorrespondenceMigration> creationMigrations = new ArrayList<>();
+            
+            for (IncomingCorrespondenceMigration migration : migrations) {
+                // Include if current phase is CREATION or if creation has been attempted
+                if ("CREATION".equals(migration.getCurrentPhase()) || 
+                    migration.getCreationStatus() != null) {
+                    
+                    // Enrich with correspondence details
+                    try {
+                        Optional<Correspondence> correspondenceOpt = 
+                            correspondenceRepository.findById(migration.getCorrespondenceGuid());
+                        
+                        if (correspondenceOpt.isPresent()) {
+                            Correspondence correspondence = correspondenceOpt.get();
+                            // Note: We can't add these fields directly to the entity
+                            // The frontend will need to handle this or we need DTOs
+                            creationMigrations.add(migration);
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Could not load correspondence details for migration: {}", 
+                                  migration.getCorrespondenceGuid(), e);
+                        creationMigrations.add(migration); // Add anyway
+                    }
+                }
+            }
+            
+            logger.info("Found {} creation phase migrations", creationMigrations.size());
+            return creationMigrations;
+            
+        } catch (Exception e) {
+            logger.error("Error getting creation migrations", e);
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * Executes creation phase for specific correspondence GUIDs
+     */
+    @Transactional
+    public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
+        logger.info("Starting creation execution for {} specific correspondences", 
+                   correspondenceGuids != null ? correspondenceGuids.size() : 0);
+        
+        if (correspondenceGuids == null || correspondenceGuids.isEmpty()) {
+            return new ImportResponseDto("ERROR", "No correspondence GUIDs provided", 
+                0, 0, 0, Collections.singletonList("No correspondence GUIDs provided"));
+        }
+        
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
+        
+        try {
+            for (String correspondenceGuid : correspondenceGuids) {
+                try {
+                    // Find or create migration record
+                    Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                        migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                    
+                    IncomingCorrespondenceMigration migration;
+                    if (migrationOpt.isPresent()) {
+                        migration = migrationOpt.get();
+                    } else {
+                        // Create new migration record if it doesn't exist
+                        Optional<Correspondence> correspondenceOpt = 
+                            correspondenceRepository.findById(correspondenceGuid);
+                        
+                        if (!correspondenceOpt.isPresent()) {
+                            failedImports++;
+                            errors.add("Correspondence not found: " + correspondenceGuid);
+                            continue;
+                        }
+                        
+                        Correspondence correspondence = correspondenceOpt.get();
+                        migration = new IncomingCorrespondenceMigration(
+                            correspondenceGuid,
+                            correspondence.getIsArchive() != null ? correspondence.getIsArchive() : false
+                        );
+                        migration.setPrepareDataStatus("COMPLETED");
+                        migration.markPhaseCompleted("PREPARE_DATA");
+                        migrationRepository.save(migration);
+                    }
+                    
+                    // Execute creation steps
+                    boolean success = executeCreationSteps(migration);
+                    
+                    if (success) {
+                        migration.markPhaseCompleted("CREATION");
+                        migrationRepository.save(migration);
+                        successfulImports++;
+                        logger.info("Successfully completed creation for correspondence: {}", 
+                                  correspondenceGuid);
+                    } else {
+                        failedImports++;
+                        migration.incrementRetryCount();
+                        migrationRepository.save(migration);
+                        errors.add("Failed creation for correspondence: " + correspondenceGuid);
+                    }
+                    
+                } catch (Exception e) {
+                    failedImports++;
+                    String errorMsg = "Error in creation for correspondence " + 
+                                    correspondenceGuid + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("Creation execution completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
+            
+            return new ImportResponseDto(status, message, correspondenceGuids.size(), 
+                                       successfulImports, failedImports, errors);
+            
+        } catch (Exception e) {
+            logger.error("Failed to execute creation for specific correspondences", e);
+            return new ImportResponseDto("ERROR", "Failed to execute creation: " + e.getMessage(), 
+                0, 0, 0, Collections.singletonList("Failed to execute creation: " + e.getMessage()));
         }
     }
     

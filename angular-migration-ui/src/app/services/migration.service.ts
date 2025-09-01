@@ -24,6 +24,24 @@ export interface MigrationStatistics {
   inProgress: number;
 }
 
+export interface CreationMigration {
+  id: number;
+  correspondenceGuid: string;
+  currentPhase: string;
+  phaseStatus: string;
+  creationStep: string;
+  creationStatus: string;
+  creationError?: string;
+  createdDocumentId?: string;
+  batchId?: string;
+  retryCount: number;
+  startedAt: string;
+  lastModifiedDate: string;
+  correspondenceSubject?: string;
+  correspondenceReferenceNo?: string;
+  creationUserName?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -205,6 +223,43 @@ export class MigrationService {
       );
   }
   
+  // Creation phase specific methods
+  getCreationMigrations(): Observable<CreationMigration[]> {
+    console.log('Calling getCreationMigrations API');
+    return this.http.get<CreationMigration[]>(`${this.baseUrl}/creation/details`)
+      .pipe(
+        tap((migrations) => console.log('Creation migrations response:', migrations)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting creation migrations:', error);
+          return of([]);
+        })
+      );
+  }
+  
+  executeCreationForSpecific(correspondenceGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeCreationForSpecific API with GUIDs:', correspondenceGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/creation/execute-specific`, {
+      correspondenceGuids: correspondenceGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteCreationForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeCreationForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute creation for specific correspondences: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
   // Statistics methods
   getStatistics(): Observable<MigrationStatistics> {
     console.log('Calling getStatistics API');
@@ -236,5 +291,30 @@ export class MigrationService {
       },
       error: (error) => console.error('Error refreshing statistics:', error)
     });
+  }
+  
+  getProgressPercentage(step: string): number {
+    const steps = [
+      'GET_DETAILS',
+      'GET_ATTACHMENTS', 
+      'UPLOAD_MAIN_ATTACHMENT',
+      'CREATE_CORRESPONDENCE',
+      'UPLOAD_OTHER_ATTACHMENTS',
+      'CREATE_PHYSICAL_ATTACHMENT',
+      'SET_READY_TO_REGISTER',
+      'REGISTER_WITH_REFERENCE',
+      'START_WORK',
+      'SET_OWNER',
+      'COMPLETED'
+    ];
+    
+    const stepIndex = steps.indexOf(step);
+    if (stepIndex === -1) return 0;
+    
+    return Math.round((stepIndex / (steps.length - 1)) * 100);
+  }
+  
+  trackByGuid(index: number, item: CreationMigration): string {
+    return item.correspondenceGuid;
   }
 }

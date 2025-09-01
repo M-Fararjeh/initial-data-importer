@@ -2,6 +2,7 @@ package com.importservice.controller;
 
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.service.IncomingCorrespondenceMigrationService;
+import com.importservice.entity.IncomingCorrespondenceMigration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -63,6 +65,46 @@ public class IncomingCorrespondenceMigrationController {
             return getResponseEntity(response);
         } catch (Exception e) {
             logger.error("Unexpected error in creation phase", e);
+            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
+    }
+    
+    @GetMapping("/creation/details")
+    @Operation(summary = "Get Creation Phase Details", 
+               description = "Returns detailed information about creation phase migrations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
+    })
+    public ResponseEntity<List<IncomingCorrespondenceMigration>> getCreationDetails() {
+        logger.info("Received request for creation phase details");
+        
+        try {
+            List<IncomingCorrespondenceMigration> migrations = migrationService.getCreationMigrations();
+            return ResponseEntity.ok(migrations);
+        } catch (Exception e) {
+            logger.error("Error getting creation details", e);
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+    
+    @PostMapping("/creation/execute-specific")
+    @Operation(summary = "Execute Creation for Specific Correspondences", 
+               description = "Executes creation phase for specified correspondence GUIDs")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> executeCreationForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> correspondenceGuids = request.get("correspondenceGuids");
+        logger.info("Received request to execute creation for {} specific correspondences", 
+                   correspondenceGuids != null ? correspondenceGuids.size() : 0);
+        
+        try {
+            ImportResponseDto response = migrationService.executeCreationForSpecific(correspondenceGuids);
+            return getResponseEntity(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error in execute creation for specific", e);
             return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
         }
     }
