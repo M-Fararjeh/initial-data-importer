@@ -631,12 +631,13 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_Assignment_Create");
-            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setAsUser("cts_admin");
             request.setDocID(documentId);
             request.setDocDate(actionDate != null ? 
                              actionDate.toString() + "Z" : 
                              LocalDateTime.now().toString() + "Z");
             request.setGuid(transactionGuid);
+            request.setDocCreator(asUser);
             
             // Build assignment context
             Map<String, Object> assignment = new HashMap<>();
@@ -650,6 +651,7 @@ public class DestinationSystemService {
             assignment.put("assign:private", false);
             assignment.put("assign:canReAssign", false);
             assignment.put("isReadOnly", true);
+            assignment.put("tenantId", "ITBAr ps ");
             
             request.setAssignment(assignment);
             

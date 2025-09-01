@@ -53,6 +53,10 @@ public class AssignmentCreateRequest {
     public void setGuid(String guid) {
         this.params.put("guid", guid);
     }
+
+    public void setDocCreator(String docCreator) {
+        this.params.put("docCreator", docCreator);
+    }
     
     // Helper method for context
     public void setAssignment(Map<String, Object> assignment) {
