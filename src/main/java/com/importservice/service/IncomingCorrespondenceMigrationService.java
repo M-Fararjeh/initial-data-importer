@@ -260,7 +260,7 @@ public class IncomingCorrespondenceMigrationService {
             
             for (CorrespondenceAttachment attachment : otherAttachments) {
                 if (AttachmentUtils.isValidForUpload(attachment)) {
-                    boolean uploaded = uploadOtherAttachment(attachment);
+                    boolean uploaded = uploadOtherAttachment(attachment, documentId);
                     if (!uploaded) {
                         logger.warn("Failed to upload attachment: {}", attachment.getName());
                         // Continue with other attachments - don't fail the entire process
@@ -413,7 +413,7 @@ public class IncomingCorrespondenceMigrationService {
     /**
      * Uploads other (non-primary) attachments
      */
-    private boolean uploadOtherAttachment(CorrespondenceAttachment attachment) {
+    private boolean uploadOtherAttachment(CorrespondenceAttachment attachment, String correspondenceDocumentId) {
         try {
             // Create batch for this attachment
             String batchId = destinationSystemService.createBatch();
@@ -450,7 +450,8 @@ public class IncomingCorrespondenceMigrationService {
             // Create attachment in destination system
             boolean created = destinationSystemService.createAttachment(
                 attachment,
-                batchId
+                batchId,
+                correspondenceDocumentId
             );
             
             if (created) {

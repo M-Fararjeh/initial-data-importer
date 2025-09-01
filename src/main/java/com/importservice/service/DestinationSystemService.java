@@ -2,10 +2,12 @@ package com.importservice.service;
 
 import com.importservice.dto.AttachmentCreateRequest;
 import com.importservice.dto.BatchCreateResponse;
+import com.importservice.dto.CorrespondenceCreateResponse;
 import com.importservice.dto.IncomingCorrespondenceCreateRequest;
 import com.importservice.entity.CorrespondenceAttachment;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +54,9 @@ public class DestinationSystemService {
     
     @Autowired
     private RestTemplate restTemplate;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
     
     /**
      * Logs request details if logging is enabled
@@ -267,9 +272,28 @@ public class DestinationSystemService {
             );
             
             if (response.getStatusCode().is2xxSuccessful()) {
-                logger.info("Successfully created incoming correspondence: {}", guid);
-                // TODO: Parse response to get document ID
-                return guid; // Return GUID as document ID for now
+                // Parse response to extract document ID
+                try {
+                    String responseBody = response.getBody();
+                    if (responseBody != null && !responseBody.trim().isEmpty()) {
+                        CorrespondenceCreateResponse createResponse = objectMapper.readValue(responseBody, CorrespondenceCreateResponse.class);
+                        String documentId = createResponse.getUid();
+                        
+                        if (documentId != null && !documentId.trim().isEmpty()) {
+                            logger.info("Successfully created incoming correspondence: {} with document ID: {}", guid, documentId);
+                            return documentId;
+                        } else {
+                            logger.warn("Document ID not found in response for correspondence: {}", guid);
+                            return guid; // Fallback to original GUID
+                        }
+                    } else {
+                        logger.warn("Empty response body for correspondence creation: {}", guid);
+                        return guid; // Fallback to original GUID
+                    }
+                } catch (Exception e) {
+                    logger.error("Error parsing correspondence creation response for: {}", guid, e);
+                    return guid; // Fallback to original GUID
+                }
             } else {
                 logger.error("Failed to create incoming correspondence - Status: {}", response.getStatusCode());
                 return null;
@@ -284,7 +308,7 @@ public class DestinationSystemService {
     /**
      * Creates attachment in destination system
      */
-    public boolean createAttachment(CorrespondenceAttachment attachment, String batchId) {
+    public boolean createAttachment(CorrespondenceAttachment attachment, String batchId, String correspondenceDocumentId) {
         try {
             String url = getAutomationEndpoint();
             
@@ -295,8 +319,9 @@ public class DestinationSystemService {
             request.setDocDate(attachment.getFileCreationDate() != null ? 
                              attachment.getFileCreationDate().toString() + "Z" : 
                              LocalDateTime.now().toString() + "Z");
-            request.setAsUser(attachment.getCreationUserName());
-            request.setDocID(attachment.getGuid());
+            request.setAsUser(attachment.getCreationUserName() != null ? attachment.getCreationUserName() : "itba-emp1");
+            request.setDocID(correspondenceDocumentId); // Use the correspondence document ID from destination system
+            request.setGuid(attachment.getGuid()); // Use attachment GUID
             
             // Build attachment context
             Map<String, Object> attachmentData = new HashMap<>();
