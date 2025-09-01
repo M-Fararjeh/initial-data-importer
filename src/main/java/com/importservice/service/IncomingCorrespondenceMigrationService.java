@@ -353,9 +353,18 @@ public class IncomingCorrespondenceMigrationService {
             migration.setCreationStep("REGISTER_WITH_REFERENCE");
             migrationRepository.save(migration);
             
+            // Get action and department for register with reference
+            String action = CorrespondenceUtils.mapAction(correspondence.getLastDecisionGuid());
+            String toDepartment = DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getToPositionGuid());
+            if (toDepartment == null) {
+                toDepartment = "COF"; // Default department
+            }
+            
             Map<String, Object> incCorrespondenceContext = buildCorrespondenceContext(correspondence, batchId);
             boolean registerSuccess = destinationSystemService.registerWithReference(
-                documentId, correspondence.getCreationUserName(), incCorrespondenceContext);
+                documentId, correspondence.getCreationUserName(), incCorrespondenceContext,
+                action,
+                toDepartment);
             
             if (!registerSuccess) {
                 String error = "Failed to register with reference for correspondence: " + correspondenceGuid;
