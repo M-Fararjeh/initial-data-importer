@@ -208,7 +208,7 @@ public class BusinessLogPhaseService {
                 Map<String, Object> businessLog = new HashMap<>();
                 businessLog.put("transactionGuid", row[0]);
                 businessLog.put("correspondenceGuid", row[1]);
-                businessLog.put("actionId", row[2] != null ? ((BigInteger) row[2]).intValue() : null);
+                businessLog.put("actionId", row[2] != null ? ((Number) row[2]).intValue() : null);
                 businessLog.put("actionEnglishName", row[3]);
                 businessLog.put("actionLocalName", row[4]);
                 businessLog.put("actionDate", row[5] != null ? ((Timestamp) row[5]).toLocalDateTime() : null);
