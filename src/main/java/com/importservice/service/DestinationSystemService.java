@@ -1,6 +1,7 @@
 package com.importservice.service;
 
 import com.importservice.dto.AttachmentCreateRequest;
+import com.importservice.dto.BusinessLogCreateRequest;
 import com.importservice.dto.BatchCreateResponse;
 import com.importservice.dto.CorrespondenceCreateResponse;
 import com.importservice.dto.IncomingCorrespondenceCreateRequest;
