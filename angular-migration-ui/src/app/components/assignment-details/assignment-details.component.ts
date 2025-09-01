@@ -34,6 +34,7 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
   
   assignments: AssignmentMigration[] = [];
   filteredAssignments: AssignmentMigration[] = [];
+  allAssignments: AssignmentMigration[] = []; // Keep full dataset for client-side filtering
   isLoading = false;
   selectedAssignments: AssignmentMigration[] = [];
   allSelected = false;
@@ -42,10 +43,13 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
   statusFilter = 'all';
   searchTerm = '';
   
-  // Pagination
+  // Server-side pagination
   currentPage = 1;
-  pageSize = 20;
+  pageSize = 50; // Increased for better performance
   totalPages = 1;
+  totalElements = 0;
+  hasNext = false;
+  hasPrevious = false;
   
   constructor(private migrationService: MigrationService) {}
   
@@ -63,13 +67,20 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     console.log('Loading assignment phase migrations...');
     this.isLoading = true;
     
-    this.migrationService.getAssignmentMigrations()
+    // Load first page
+    this.migrationService.getAssignmentMigrations(0, this.pageSize)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (assignments) => {
-          console.log('Assignment migrations loaded:', assignments);
-          this.assignments = assignments;
-          this.applyFilters();
+        next: (response) => {
+          console.log('Assignment migrations loaded:', response);
+          this.assignments = response.content || [];
+          this.totalElements = response.totalElements || 0;
+          this.totalPages = response.totalPages || 1;
+          this.hasNext = response.hasNext || false;
+          this.hasPrevious = response.hasPrevious || false;
+          this.currentPage = (response.currentPage || 0) + 1; // Convert to 1-based
+          
+          this.applyClientSideFilters();
           this.isLoading = false;
         },
         error: (error) => {
@@ -79,7 +90,29 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
       });
   }
   
-  applyFilters(): void {
+  loadPage(page: number): void {
+    if (this.isLoading) return;
+    
+    console.log('Loading page:', page);
+    this.isLoading = true;
+    
+    this.migrationService.getAssignmentMigrations(page - 1, this.pageSize) // Convert to 0-based
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.assignments = response.content || [];
+          this.currentPage = page;
+          this.applyClientSideFilters();
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading page:', error);
+          this.isLoading = false;
+        }
+      });
+  }
+  
+  applyClientSideFilters(): void {
     let filtered = [...this.assignments];
     
     // Status filter
@@ -101,21 +134,12 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
     }
     
     this.filteredAssignments = filtered;
-    this.updatePagination();
     this.clearSelection();
   }
   
-  updatePagination(): void {
-    this.totalPages = Math.ceil(this.filteredAssignments.length / this.pageSize);
-    if (this.currentPage > this.totalPages) {
-      this.currentPage = 1;
-    }
-  }
-  
   getPaginatedAssignments(): AssignmentMigration[] {
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    const endIndex = startIndex + this.pageSize;
-    return this.filteredAssignments.slice(startIndex, endIndex);
+    // Since we're using server-side pagination, return filtered results directly
+    return this.filteredAssignments;
   }
   
   toggleSelection(assignment: AssignmentMigration): void {
@@ -125,15 +149,15 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
   
   toggleAllSelection(): void {
     this.allSelected = !this.allSelected;
-    this.getPaginatedAssignments().forEach(a => a.selected = this.allSelected);
+    this.filteredAssignments.forEach(a => a.selected = this.allSelected);
     this.updateSelectedAssignments();
   }
   
   updateSelectedAssignments(): void {
     this.selectedAssignments = this.assignments.filter(a => a.selected);
-    const paginatedAssignments = this.getPaginatedAssignments();
-    this.allSelected = paginatedAssignments.length > 0 && 
-                      paginatedAssignments.every(a => a.selected);
+    const currentPageAssignments = this.getPaginatedAssignments();
+    this.allSelected = currentPageAssignments.length > 0 && 
+                      currentPageAssignments.every(a => a.selected);
   }
   
   clearSelection(): void {
@@ -254,7 +278,7 @@ export class AssignmentDetailsComponent implements OnInit, OnDestroy {
   // Pagination methods
   goToPage(page: number): void {
     if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
+      this.loadPage(page);
     }
   }
   

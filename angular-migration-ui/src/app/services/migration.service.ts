@@ -319,14 +319,23 @@ export class MigrationService {
   }
   
   // Assignment phase methods
-  getAssignmentMigrations(): Observable<any[]> {
-    console.log('Calling getAssignmentMigrations API');
-    return this.http.get<any[]>(`${this.baseUrl}/assignment/details`)
+  getAssignmentMigrations(page: number = 0, size: number = 20): Observable<any> {
+    console.log('Calling getAssignmentMigrations API with pagination - page:', page, 'size:', size);
+    return this.http.get<any>(`${this.baseUrl}/assignment/details?page=${page}&size=${size}`)
       .pipe(
         tap((assignments) => console.log('Assignment migrations response:', assignments)),
         catchError((error: HttpErrorResponse) => {
           console.error('Error getting assignment migrations:', error);
-          return of([]);
+          return of({
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: page,
+            pageSize: size,
+            hasNext: false,
+            hasPrevious: false,
+            error: error.message
+          });
         })
       );
   }

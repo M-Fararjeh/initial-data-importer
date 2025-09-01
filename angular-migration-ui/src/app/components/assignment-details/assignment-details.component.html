@@ -56,7 +56,10 @@
       <!-- Results Count -->
       <div class="flex items-end">
         <div class="text-sm text-gray-600">
-          Showing {{ getPaginatedAssignments().length }} of {{ filteredAssignments.length }} records
+          Showing {{ filteredAssignments.length }} of {{ totalElements }} records
+          <div class="text-xs text-gray-500 mt-1">
+            Page {{ currentPage }} of {{ totalPages }}
+          </div>
         </div>
       </div>
     </div>
@@ -74,7 +77,7 @@
             (change)="toggleAllSelection()"
             class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
           <span class="text-sm font-medium text-gray-900">
-            Select All ({{ getPaginatedAssignments().length }})
+            Select All on Page ({{ filteredAssignments.length }})
           </span>
         </div>
         <div class="text-sm text-gray-600">
@@ -109,7 +112,7 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <ng-container *ngFor="let assignment of getPaginatedAssignments(); trackBy: trackByGuid">
+          <ng-container *ngFor="let assignment of filteredAssignments; trackBy: trackByGuid">
             <tr class="hover:bg-gray-50 transition-colors duration-150">
               
               <!-- Selection Checkbox -->
@@ -199,12 +202,20 @@
     </div>
     
     <!-- Empty State -->
-    <div *ngIf="filteredAssignments.length === 0 && !isLoading" 
+    <div *ngIf="totalElements === 0 && !isLoading" 
          class="text-center py-12">
       <div class="text-gray-500">
         <span class="text-4xl mb-4 block">📋</span>
         <h3 class="text-lg font-medium mb-2">No assignment records found</h3>
         <p class="text-sm">Try adjusting your filters or execute Phase 2: Creation first.</p>
+      </div>
+    </div>
+    
+    <!-- Performance Info -->
+    <div *ngIf="totalElements > 0" class="px-6 py-3 bg-gray-50 border-t border-gray-200">
+      <div class="flex items-center justify-between text-sm text-gray-600">
+        <span>Total Records: {{ totalElements | number }}</span>
+        <span>Loaded: {{ assignments.length }} records</span>
       </div>
     </div>
   </div>

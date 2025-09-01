@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/incoming-migration")
@@ -135,15 +136,26 @@ public class IncomingCorrespondenceMigrationController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
     })
-    public ResponseEntity<List<Map<String, Object>>> getAssignmentDetails() {
-        logger.info("Received request for assignment phase details");
+    public ResponseEntity<Map<String, Object>> getAssignmentDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        logger.info("Received request for assignment phase details - page: {}, size: {}", page, size);
         
         try {
-            List<Map<String, Object>> assignments = migrationService.getAssignmentMigrations();
+            Map<String, Object> assignments = migrationService.getAssignmentMigrations(page, size);
             return ResponseEntity.ok(assignments);
         } catch (Exception e) {
             logger.error("Error getting assignment details", e);
-            return ResponseEntity.status(500).body(null);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("content", new ArrayList<>());
+            errorResponse.put("totalElements", 0L);
+            errorResponse.put("totalPages", 0);
+            errorResponse.put("currentPage", page);
+            errorResponse.put("pageSize", size);
+            errorResponse.put("hasNext", false);
+            errorResponse.put("hasPrevious", false);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
     
