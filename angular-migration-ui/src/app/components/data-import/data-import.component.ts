@@ -519,7 +519,6 @@ export class DataImportComponent implements OnInit, OnDestroy {
     return this.basicEntities.filter(entity => 
       entity.lastResult && (entity.lastResult.status === 'SUCCESS' || entity.lastResult.status === 'PARTIAL_SUCCESS')
     ).length;
-      entity.lastResult && (entity.lastResult.status === 'SUCCESS' || entity.lastResult.status === 'PARTIAL_SUCCESS')
   }
   
   // Styling helper methods
