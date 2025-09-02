@@ -20,6 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/data-import")
 @Tag(name = "Data Import Controller", description = "Operations for importing data from source system")
+@CrossOrigin(origins = "*")
 public class DataImportController {
 
     private static final Logger logger = LoggerFactory.getLogger(DataImportController.class);
@@ -481,7 +482,188 @@ public class DataImportController {
         ImportResponseDto response = dataImportService.importAllCorrespondencesWithRelated();
         return getResponseEntity(response);
     }
-    
+
+    // Count endpoints for UI
+    @GetMapping("/classifications/count")
+    @Operation(summary = "Get Classifications Count", description = "Get total count of classifications in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getClassificationsCount() {
+        logger.info("Received request to get classifications count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", classificationRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/contacts/count")
+    @Operation(summary = "Get Contacts Count", description = "Get total count of contacts in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getContactsCount() {
+        logger.info("Received request to get contacts count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", contactRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/decisions/count")
+    @Operation(summary = "Get Decisions Count", description = "Get total count of decisions in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getDecisionsCount() {
+        logger.info("Received request to get decisions count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", decisionRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/departments/count")
+    @Operation(summary = "Get Departments Count", description = "Get total count of departments in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getDepartmentsCount() {
+        logger.info("Received request to get departments count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", departmentRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/forms/count")
+    @Operation(summary = "Get Forms Count", description = "Get total count of forms in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getFormsCount() {
+        logger.info("Received request to get forms count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", formRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/form-types/count")
+    @Operation(summary = "Get Form Types Count", description = "Get total count of form types in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getFormTypesCount() {
+        logger.info("Received request to get form types count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", formTypeRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/importance/count")
+    @Operation(summary = "Get Importance Count", description = "Get total count of importance levels in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getImportanceCount() {
+        logger.info("Received request to get importance count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", importanceRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/positions/count")
+    @Operation(summary = "Get Positions Count", description = "Get total count of positions in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getPositionsCount() {
+        logger.info("Received request to get positions count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", positionRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/pos-roles/count")
+    @Operation(summary = "Get Position Roles Count", description = "Get total count of position roles in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getPosRolesCount() {
+        logger.info("Received request to get pos roles count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", posRoleRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/priority/count")
+    @Operation(summary = "Get Priority Count", description = "Get total count of priority levels in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getPriorityCount() {
+        logger.info("Received request to get priority count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", priorityRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/roles/count")
+    @Operation(summary = "Get Roles Count", description = "Get total count of roles in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getRolesCount() {
+        logger.info("Received request to get roles count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", roleRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/secrecy/count")
+    @Operation(summary = "Get Secrecy Count", description = "Get total count of secrecy levels in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getSecrecyCount() {
+        logger.info("Received request to get secrecy count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", secrecyRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/user-positions/count")
+    @Operation(summary = "Get User Positions Count", description = "Get total count of user positions in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getUserPositionsCount() {
+        logger.info("Received request to get user positions count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", userPositionRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/users/count")
+    @Operation(summary = "Get Users Count", description = "Get total count of users in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getUsersCount() {
+        logger.info("Received request to get users count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", userRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/correspondences/count")
+    @Operation(summary = "Get Correspondences Count", description = "Get total count of correspondences in database")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
+    })
+    public ResponseEntity<Map<String, Long>> getCorrespondencesCount() {
+        logger.info("Received request to get correspondences count");
+        Map<String, Long> response = new HashMap<>();
+        response.put("count", correspondenceRepository.count());
+        return ResponseEntity.ok(response);
+    }
+
     private ResponseEntity<ImportResponseDto> getResponseEntity(ImportResponseDto response) {
         if ("ERROR".equals(response.getStatus())) {
             return ResponseEntity.badRequest().body(response);
@@ -489,184 +671,4 @@ public class DataImportController {
             return ResponseEntity.ok(response);
         }
     }
-}
-// Count endpoints for UI
-@GetMapping("/classifications/count")
-@Operation(summary = "Get Classifications Count", description = "Get total count of classifications in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getClassificationsCount() {
-    logger.info("Received request to get classifications count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", classificationRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/contacts/count")
-@Operation(summary = "Get Contacts Count", description = "Get total count of contacts in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getContactsCount() {
-    logger.info("Received request to get contacts count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", contactRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/decisions/count")
-@Operation(summary = "Get Decisions Count", description = "Get total count of decisions in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getDecisionsCount() {
-    logger.info("Received request to get decisions count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", decisionRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/departments/count")
-@Operation(summary = "Get Departments Count", description = "Get total count of departments in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getDepartmentsCount() {
-    logger.info("Received request to get departments count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", departmentRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/forms/count")
-@Operation(summary = "Get Forms Count", description = "Get total count of forms in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getFormsCount() {
-    logger.info("Received request to get forms count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", formRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/form-types/count")
-@Operation(summary = "Get Form Types Count", description = "Get total count of form types in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getFormTypesCount() {
-    logger.info("Received request to get form types count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", formTypeRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/importance/count")
-@Operation(summary = "Get Importance Count", description = "Get total count of importance levels in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getImportanceCount() {
-    logger.info("Received request to get importance count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", importanceRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/positions/count")
-@Operation(summary = "Get Positions Count", description = "Get total count of positions in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getPositionsCount() {
-    logger.info("Received request to get positions count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", positionRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/pos-roles/count")
-@Operation(summary = "Get Position Roles Count", description = "Get total count of position roles in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getPosRolesCount() {
-    logger.info("Received request to get pos roles count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", posRoleRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/priority/count")
-@Operation(summary = "Get Priority Count", description = "Get total count of priority levels in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getPriorityCount() {
-    logger.info("Received request to get priority count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", priorityRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/roles/count")
-@Operation(summary = "Get Roles Count", description = "Get total count of roles in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getRolesCount() {
-    logger.info("Received request to get roles count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", roleRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/secrecy/count")
-@Operation(summary = "Get Secrecy Count", description = "Get total count of secrecy levels in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getSecrecyCount() {
-    logger.info("Received request to get secrecy count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", secrecyRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/user-positions/count")
-@Operation(summary = "Get User Positions Count", description = "Get total count of user positions in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getUserPositionsCount() {
-    logger.info("Received request to get user positions count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", userPositionRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/users/count")
-@Operation(summary = "Get Users Count", description = "Get total count of users in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getUsersCount() {
-    logger.info("Received request to get users count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", userRepository.count());
-    return ResponseEntity.ok(response);
-}
-
-@GetMapping("/correspondences/count")
-@Operation(summary = "Get Correspondences Count", description = "Get total count of correspondences in database")
-@ApiResponses(value = {
-    @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-})
-public ResponseEntity<Map<String, Long>> getCorrespondencesCount() {
-    logger.info("Received request to get correspondences count");
-    Map<String, Long> response = new HashMap<>();
-    response.put("count", correspondenceRepository.count());
-    return ResponseEntity.ok(response);
 }
