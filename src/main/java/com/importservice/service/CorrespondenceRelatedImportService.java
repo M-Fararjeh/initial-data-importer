@@ -507,6 +507,264 @@ public class CorrespondenceRelatedImportService {
     }
     
     // Helper methods
+    
+    /**
+     * Direct call methods for importing specific entity types with API calls
+     */
+    private ImportResponseDto importCorrespondenceAttachmentsWithDirectCall(String docGuid) {
+        return importCorrespondenceRelatedDataDirect("/CorrespondenceAttachments/docGuid/" + docGuid, 
+                                                   CorrespondenceAttachment.class, 
+                                                   correspondenceAttachmentRepository, 
+                                                   "CorrespondenceAttachments");
+    }
+    
+    private ImportResponseDto importCorrespondenceCommentsWithDirectCall(String docGuid) {
+        return importCorrespondenceRelatedDataDirect("/CorrespondenceComments/docGuid/" + docGuid, 
+                                                   CorrespondenceComment.class, 
+                                                   correspondenceCommentRepository, 
+                                                   "CorrespondenceComments");
+    }
+    
+    private ImportResponseDto importCorrespondenceCopyTosWithDirectCall(String docGuid) {
+        return importCorrespondenceRelatedDataDirect("/CorrespondenceCopyTo/docGUId/" + docGuid, 
+                                                   CorrespondenceCopyTo.class, 
+                                                   correspondenceCopyToRepository, 
+                                                   "CorrespondenceCopyTos");
+    }
+    
+    private ImportResponseDto importCorrespondenceCurrentDepartmentsWithDirectCall(String docGuid) {
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
+        int totalRecords = 0;
+
+        try {
+            String url = sourceApiBaseUrl + "/CorrespondenceCurrentDepartments/docGuid/" + docGuid;
+            HttpHeaders headers = createHeaders();
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            
+            String responseBody = response.getBody();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                logger.warn("Empty response body for correspondence current departments, docGuid: {}", docGuid);
+                return createResponse("SUCCESS", "No correspondence current departments found for document", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
+            TypeReference<ApiResponseDto<CorrespondenceCurrentDepartment>> typeRef = 
+                new TypeReference<ApiResponseDto<CorrespondenceCurrentDepartment>>() {};
+            ApiResponseDto<CorrespondenceCurrentDepartment> apiResponse = objectMapper.readValue(responseBody, typeRef);
+
+            if (apiResponse == null || !Boolean.TRUE.equals(apiResponse.getSuccess())) {
+                String message = apiResponse != null ? apiResponse.getMessage() : "Unknown API error";
+                return createResponse("ERROR", "API returned failure: " + message, 
+                    0, 0, 0, Arrays.asList("API returned failure: " + message));
+            }
+
+            List<CorrespondenceCurrentDepartment> departments = apiResponse.getData();
+            if (departments == null || departments.isEmpty()) {
+                logger.info("No correspondence current departments found for docGuid: {}", docGuid);
+                return createResponse("SUCCESS", "No correspondence current departments found for document", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
+            totalRecords = departments.size();
+            logger.info("Found {} correspondence current departments for docGuid: {}", totalRecords, docGuid);
+
+            for (CorrespondenceCurrentDepartment dept : departments) {
+                try {
+                    if (dept == null) {
+                        failedImports++;
+                        errors.add("Null department object received");
+                        continue;
+                    }
+                    dept.setDocGuid(docGuid);
+                    correspondenceCurrentDepartmentRepository.save(dept);
+                    successfulImports++;
+                    logger.debug("Successfully saved correspondence current department for docGuid: {}", docGuid);
+                } catch (Exception e) {
+                    failedImports++;
+                    String errorMsg = "Failed to save correspondence current department: " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("CorrespondenceCurrentDepartments import completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
+
+            return createResponse(status, message, totalRecords, successfulImports, failedImports, errors);
+
+        } catch (Exception e) {
+            logger.error("Failed to import correspondence current departments", e);
+            return createResponse("ERROR", "Failed to import correspondence current departments: " + e.getMessage(), 
+                0, 0, 0, Arrays.asList("Failed to import correspondence current departments: " + e.getMessage()));
+        }
+    }
+    
+    private ImportResponseDto importCorrespondenceCurrentPositionsWithDirectCall(String docGuid) {
+        return importCorrespondenceRelatedDataDirect("/CorrespondenceCurrentPositions/docGuid/" + docGuid, 
+                                                   CorrespondenceCurrentPosition.class, 
+                                                   correspondenceCurrentPositionRepository, 
+                                                   "CorrespondenceCurrentPositions");
+    }
+    
+    private ImportResponseDto importCorrespondenceCurrentUsersWithDirectCall(String docGuid) {
+        return importCorrespondenceRelatedDataDirect("/CorrespondenceCurrentUsers/docGuid/" + docGuid, 
+                                                   CorrespondenceCurrentUser.class, 
+                                                   correspondenceCurrentUserRepository, 
+                                                   "CorrespondenceCurrentUsers");
+    }
+    
+    private ImportResponseDto importCorrespondenceCustomFieldsWithDirectCall(String docGuid) {
+        return importCorrespondenceRelatedDataDirect("/CorrespondenceCustomFields/docGuid/" + docGuid, 
+                                                   CorrespondenceCustomField.class, 
+                                                   correspondenceCustomFieldRepository, 
+                                                   "CorrespondenceCustomFields");
+    }
+    
+    private ImportResponseDto importCorrespondenceLinksWithDirectCall(String docGuid) {
+        return importCorrespondenceRelatedDataDirect("/CorrespondenceLinks/docGuid/" + docGuid, 
+                                                   CorrespondenceLink.class, 
+                                                   correspondenceLinkRepository, 
+                                                   "CorrespondenceLinks");
+    }
+    
+    private ImportResponseDto importCorrespondenceSendTosWithDirectCall(String docGuid) {
+        return importCorrespondenceRelatedDataDirect("/CorrespondenceSendTo/docGUId/" + docGuid, 
+                                                   CorrespondenceSendTo.class, 
+                                                   correspondenceSendToRepository, 
+                                                   "CorrespondenceSendTos");
+    }
+    
+    private ImportResponseDto importCorrespondenceTransactionsWithDirectCall(String docGuid) {
+        return importCorrespondenceRelatedDataDirect("/CorrespondenceTransactions/docGuid/" + docGuid, 
+                                                   CorrespondenceTransaction.class, 
+                                                   correspondenceTransactionRepository, 
+                                                   "CorrespondenceTransactions");
+    }
+    
+    /**
+     * Generic method for importing correspondence-related data with direct API calls
+     */
+    private <T, ID> ImportResponseDto importCorrespondenceRelatedDataDirect(String endpoint, Class<T> entityClass, 
+                                                                           JpaRepository<T, ID> repository, String entityName) {
+        List<String> errors = new ArrayList<>();
+        int successfulImports = 0;
+        int failedImports = 0;
+        int totalRecords = 0;
+
+        try {
+            String url;
+            if (endpoint.contains("/CorrespondenceAttachments/docGuid/")) {
+                // Special case for CorrespondenceAttachments - use different base URL
+                String docGuid = endpoint.substring(endpoint.lastIndexOf("/") + 1);
+                url = "https://itba.tarasol.cloud/Tarasol4ExtractorApi/docGuid/" + docGuid;
+            } else {
+                url = sourceApiBaseUrl + endpoint;
+            }
+            HttpHeaders headers = createHeaders();
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+
+            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+            
+            String responseBody = response.getBody();
+            if (responseBody == null || responseBody.trim().isEmpty()) {
+                logger.warn("Empty response body for {}, endpoint: {}", entityName, endpoint);
+                return createResponse("SUCCESS", "No " + entityName + " found", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
+            ApiResponseDto<Object> genericResponse = objectMapper.readValue(responseBody, 
+                new TypeReference<ApiResponseDto<Object>>() {});
+            
+            if (genericResponse == null || !Boolean.TRUE.equals(genericResponse.getSuccess())) {
+                String message = genericResponse != null ? genericResponse.getMessage() : "Unknown API error";
+                return createResponse("ERROR", "API returned failure: " + message, 
+                    0, 0, 0, Arrays.asList("API returned failure: " + message));
+            }
+            
+            List<T> entities = new ArrayList<>();
+            if (genericResponse.getData() != null) {
+                for (Object item : genericResponse.getData()) {
+                    try {
+                        if (item == null) {
+                            logger.warn("Null item found in {} data", entityName);
+                            continue;
+                        }
+                        T entityData = objectMapper.convertValue(item, entityClass);
+                        if (entityData != null) {
+                            entities.add(entityData);
+                        }
+                    } catch (Exception e) {
+                        logger.error("Failed to convert item to {}: {}", entityClass.getSimpleName(), e.getMessage());
+                        failedImports++;
+                        errors.add("Failed to parse " + entityName + " item: " + e.getMessage());
+                    }
+                }
+            } else {
+                logger.info("No data found for {}, endpoint: {}", entityName, endpoint);
+                return createResponse("SUCCESS", "No " + entityName + " found", 
+                    0, 0, 0, new ArrayList<>());
+            }
+
+            totalRecords = entities.size();
+            logger.info("Found {} {} to import", totalRecords, entityName);
+
+            for (T entityData : entities) {
+                try {
+                    if (entityData == null) {
+                        failedImports++;
+                        errors.add("Null " + entityName + " object received");
+                        continue;
+                    }
+                    
+                    // Special handling for CorrespondenceAttachment with large file data
+                    if (entityData instanceof CorrespondenceAttachment) {
+                        CorrespondenceAttachment attachment = (CorrespondenceAttachment) entityData;
+                        if (attachment.getFileData() != null && attachment.getFileData().length() > 200_000_000) {
+                            logger.warn("Skipping attachment {} due to large file size: {} bytes", 
+                                      attachment.getGuid(), attachment.getFileData().length());
+                            attachment.setFileData(null);
+                            attachment.setFileDataErrorMessage("File too large for import (>200MB)");
+                        }
+                    }
+                    
+                    repository.save(entityData);
+                    successfulImports++;
+                    logger.debug("Successfully saved {}", entityName);
+                } catch (Exception e) {
+                    failedImports++;
+                    String errorMsg = "Failed to save " + entityName + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("%s import completed. Success: %d, Failed: %d", 
+                                         entityName, successfulImports, failedImports);
+
+            return createResponse(status, message, totalRecords, successfulImports, failedImports, errors);
+
+        } catch (Exception e) {
+            logger.error("Failed to import {}", entityName, e);
+            return createResponse("ERROR", "Failed to import " + entityName + ": " + e.getMessage(), 
+                0, 0, 0, Arrays.asList("Failed to import " + entityName + ": " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Creates HTTP headers for API requests
+     */
+    private HttpHeaders createHeaders() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Accept", "*/*");
+        headers.set("X-API-KEY", sourceApiKey);
+        return headers;
+    }
+    
     private ImportResponseDto createResponse(String status, String message, int total, int success, int failed, List<String> errors) {
         ImportResponseDto response = new ImportResponseDto();
         response.setStatus(status);
