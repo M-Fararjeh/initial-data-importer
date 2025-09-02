@@ -18,6 +18,9 @@ export interface ImportResponse {
 export class DataImportService {
   
   private baseUrl = 'http://localhost:8080/data-import/api/data-import';
+  private importBaseUrl = 'http://localhost:8080/data-import/api/import';
+  private userImportBaseUrl = 'http://localhost:8080/data-import/api/user-import';
+  private correspondenceImportBaseUrl = 'http://localhost:8080/data-import/api/correspondence-import';
   
   constructor(private http: HttpClient) {
     console.log('DataImportService initialized');
@@ -86,7 +89,7 @@ export class DataImportService {
   // Import all correspondences with related data (uses status tracking)
   importAllCorrespondencesWithRelated(): Observable<ImportResponse> {
     console.log('Calling import all correspondences with related data API (with status tracking)');
-    return this.http.post<ImportResponse>(`http://localhost:8080/data-import/api/correspondence-import/all-correspondences-with-related`, {})
+    return this.http.post<ImportResponse>(`${this.correspondenceImportBaseUrl}/all-correspondences-with-related`, {})
       .pipe(
         tap((response) => console.log('Import all correspondences with related data response:', response)),
         catchError((error: HttpErrorResponse) => {
@@ -120,7 +123,7 @@ export class DataImportService {
   // External agencies import (for destination setup)
   importExternalAgencies(): Observable<ImportResponse> {
     console.log('Calling import external agencies API');
-    return this.http.post<ImportResponse>('http://localhost:8080/data-import/api/import/external-agencies', {})
+    return this.http.post<ImportResponse>(`${this.importBaseUrl}/external-agencies`, {})
       .pipe(
         tap((response) => console.log('Import external agencies response:', response)),
         catchError((error: HttpErrorResponse) => {
@@ -140,7 +143,7 @@ export class DataImportService {
   // Users to destination import (for destination setup)
   importUsersToDestination(): Observable<ImportResponse> {
     console.log('Calling import users to destination API');
-    return this.http.post<ImportResponse>('http://localhost:8080/data-import/api/user-import/users-to-destination', {})
+    return this.http.post<ImportResponse>(`${this.userImportBaseUrl}/users-to-destination`, {})
       .pipe(
         tap((response) => console.log('Import users to destination response:', response)),
         catchError((error: HttpErrorResponse) => {
@@ -160,7 +163,7 @@ export class DataImportService {
   // Correspondence import status methods (with status tracking)
   getCorrespondenceImportStatuses(): Observable<any[]> {
     console.log('Getting correspondence import statuses');
-    return this.http.get<any[]>('http://localhost:8080/data-import/api/correspondence-import/status')
+    return this.http.get<any[]>(`${this.correspondenceImportBaseUrl}/status`)
       .pipe(
         tap((statuses) => console.log('Correspondence import statuses:', statuses)),
         catchError((error: HttpErrorResponse) => {
@@ -172,7 +175,7 @@ export class DataImportService {
   
   getCorrespondenceImportStatistics(): Observable<any> {
     console.log('Getting correspondence import statistics');
-    return this.http.get<any>('http://localhost:8080/data-import/api/correspondence-import/statistics')
+    return this.http.get<any>(`${this.correspondenceImportBaseUrl}/statistics`)
       .pipe(
         tap((stats) => console.log('Correspondence import statistics:', stats)),
         catchError((error: HttpErrorResponse) => {
@@ -190,7 +193,7 @@ export class DataImportService {
   
   importRelatedDataForCorrespondence(correspondenceGuid: string): Observable<any> {
     console.log('Importing related data for correspondence:', correspondenceGuid);
-    return this.http.post<any>(`http://localhost:8080/data-import/api/correspondence-import/correspondence/${correspondenceGuid}/related`, {})
+    return this.http.post<any>(`${this.correspondenceImportBaseUrl}/correspondence/${correspondenceGuid}/related`, {})
       .pipe(
         tap((response) => console.log('Import related data for correspondence response:', response)),
         catchError((error: HttpErrorResponse) => {
@@ -224,7 +227,7 @@ export class DataImportService {
   
   retryFailedCorrespondenceImports(): Observable<ImportResponse> {
     console.log('Retrying failed correspondence imports');
-    return this.http.post<ImportResponse>('http://localhost:8080/data-import/api/correspondence-import/retry-failed', {})
+    return this.http.post<ImportResponse>(`${this.correspondenceImportBaseUrl}/retry-failed`, {})
       .pipe(
         tap((response) => console.log('Retry failed correspondence imports response:', response)),
         catchError((error: HttpErrorResponse) => {
@@ -243,7 +246,7 @@ export class DataImportService {
   
   resetCorrespondenceImportStatus(correspondenceGuid: string): Observable<any> {
     console.log('Resetting import status for correspondence:', correspondenceGuid);
-    return this.http.post<any>(`http://localhost:8080/data-import/api/correspondence-import/reset/${correspondenceGuid}`, {})
+    return this.http.post<any>(`${this.correspondenceImportBaseUrl}/reset/${correspondenceGuid}`, {})
       .pipe(
         tap((response) => console.log('Reset import status response:', response)),
         catchError((error: HttpErrorResponse) => {
