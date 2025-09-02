@@ -513,6 +513,12 @@ export class DataImportComponent implements OnInit, OnDestroy {
   
   clearLogs(): void {
     this.importLogs = [];
+  }
+  
+  getCompletedBasicEntities(): number {
+    return this.basicEntities.filter(entity => 
+      entity.lastResult && (entity.lastResult.status === 'SUCCESS' || entity.lastResult.status === 'PARTIAL_SUCCESS')
+    ).length;
       entity.lastResult && (entity.lastResult.status === 'SUCCESS' || entity.lastResult.status === 'PARTIAL_SUCCESS')
   }
   
