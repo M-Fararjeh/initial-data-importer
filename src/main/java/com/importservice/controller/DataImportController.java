@@ -15,7 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -555,16 +557,14 @@ public class DataImportController {
         logger.info("Received request for all correspondence import statuses");
         
         try {
-            List<Object> statuses = correspondenceRelatedImportService.getAllImportStatuses()
-                .stream()
-                .map(status -> (Object) status)
-                .collect(java.util.stream.Collectors.toList());
+            List<Object> statuses = new ArrayList<>();
+            correspondenceRelatedImportService.getAllImportStatuses()
+                .forEach(status -> statuses.add(status));
             return ResponseEntity.ok(statuses);
         } catch (Exception e) {
             logger.error("Error getting all import statuses", e);
             return ResponseEntity.status(500).body(new ArrayList<>());
         }
-        return getResponseEntity(response);
     }
 
     // Count endpoints for UI
@@ -754,5 +754,16 @@ public class DataImportController {
         } else {
             return ResponseEntity.ok(response);
         }
+    }
+    
+    private ImportResponseDto createErrorResponse(String errorMessage) {
+        ImportResponseDto errorResponse = new ImportResponseDto();
+        errorResponse.setStatus("ERROR");
+        errorResponse.setMessage(errorMessage);
+        errorResponse.setTotalRecords(0);
+        errorResponse.setSuccessfulImports(0);
+        errorResponse.setFailedImports(0);
+        errorResponse.setErrors(java.util.Arrays.asList(errorMessage));
+        return errorResponse;
     }
 }
