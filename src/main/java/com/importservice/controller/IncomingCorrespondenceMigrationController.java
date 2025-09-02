@@ -76,15 +76,18 @@ public class IncomingCorrespondenceMigrationController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
     })
-    public ResponseEntity<List<IncomingCorrespondenceMigration>> getCreationDetails() {
+    public ResponseEntity<Map<String, Object>> getCreationDetails() {
         logger.info("Received request for creation phase details");
         
         try {
-            List<IncomingCorrespondenceMigration> migrations = migrationService.getCreationMigrations();
+            Map<String, Object> migrations = migrationService.getCreationMigrationsWithDetails();
             return ResponseEntity.ok(migrations);
         } catch (Exception e) {
             logger.error("Error getting creation details", e);
-            return ResponseEntity.status(500).body(null);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("content", new ArrayList<>());
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
     

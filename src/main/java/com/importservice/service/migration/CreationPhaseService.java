@@ -524,4 +524,62 @@ public class CreationPhaseService {
             return new ArrayList<>();
         }
     }
+    
+    /**
+     * Gets creation migrations with correspondence details for UI display
+     */
+    public Map<String, Object> getCreationMigrationsWithDetails() {
+        try {
+            List<IncomingCorrespondenceMigration> migrations = migrationRepository.findAll();
+            List<Map<String, Object>> migrationsWithDetails = new ArrayList<>();
+            
+            for (IncomingCorrespondenceMigration migration : migrations) {
+                Map<String, Object> migrationData = new HashMap<>();
+                
+                // Copy migration fields
+                migrationData.put("id", migration.getId());
+                migrationData.put("correspondenceGuid", migration.getCorrespondenceGuid());
+                migrationData.put("currentPhase", migration.getCurrentPhase());
+                migrationData.put("phaseStatus", migration.getPhaseStatus());
+                migrationData.put("creationStep", migration.getCreationStep());
+                migrationData.put("creationStatus", migration.getCreationStatus());
+                migrationData.put("creationError", migration.getCreationError());
+                migrationData.put("createdDocumentId", migration.getCreatedDocumentId());
+                migrationData.put("batchId", migration.getBatchId());
+                migrationData.put("retryCount", migration.getRetryCount());
+                migrationData.put("startedAt", migration.getStartedAt());
+                migrationData.put("lastModifiedDate", migration.getLastModifiedDate());
+                
+                // Get correspondence details
+                Optional<Correspondence> correspondenceOpt = correspondenceRepository.findById(migration.getCorrespondenceGuid());
+                if (correspondenceOpt.isPresent()) {
+                    Correspondence correspondence = correspondenceOpt.get();
+                    migrationData.put("correspondenceSubject", correspondence.getSubject());
+                    migrationData.put("correspondenceReferenceNo", correspondence.getReferenceNo());
+                    migrationData.put("creationUserName", correspondence.getCreationUserName());
+                } else {
+                    migrationData.put("correspondenceSubject", null);
+                    migrationData.put("correspondenceReferenceNo", null);
+                    migrationData.put("creationUserName", null);
+                }
+                
+                migrationsWithDetails.add(migrationData);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", migrationsWithDetails);
+            result.put("totalElements", migrations.size());
+            
+            logger.info("Retrieved {} creation migrations with details", migrations.size());
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error getting creation migrations with details", e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("content", new ArrayList<>());
+            errorResult.put("totalElements", 0);
+            errorResult.put("error", e.getMessage());
+            return errorResult;
+        }
+    }
 }
