@@ -108,7 +108,7 @@ public class AssignmentPhaseService {
     /**
      * Executes assignment for specific transactions
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
     public ImportResponseDto executeAssignmentForSpecific(List<String> transactionGuids) {
         logger.info("Starting assignment for {} specific transactions", transactionGuids.size());
         
@@ -118,27 +118,13 @@ public class AssignmentPhaseService {
         
         for (String transactionGuid : transactionGuids) {
             try {
-                Optional<CorrespondenceTransaction> transactionOpt = 
-                    transactionRepository.findById(transactionGuid);
-                
-                if (!transactionOpt.isPresent()) {
-                    failedImports++;
-                    errors.add("Transaction not found: " + transactionGuid);
-                    continue;
-                }
-                
-                CorrespondenceTransaction transaction = transactionOpt.get();
-                boolean success = processAssignment(transaction);
+                boolean success = processAssignmentInNewTransaction(transactionGuid);
                 
                 if (success) {
                     successfulImports++;
-                    transaction.setMigrateStatus("SUCCESS");
                 } else {
                     failedImports++;
-                    transaction.setMigrateStatus("FAILED");
-                    transaction.setRetryCount(transaction.getRetryCount() + 1);
                 }
-                transactionRepository.save(transaction);
                 
             } catch (Exception e) {
                 failedImports++;
@@ -154,6 +140,38 @@ public class AssignmentPhaseService {
         
         return phaseService.createResponse(status, message, transactionGuids.size(), 
                                          successfulImports, failedImports, errors);
+    }
+    
+    /**
+     * Processes assignment in a new transaction to prevent connection leaks
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
+    private boolean processAssignmentInNewTransaction(String transactionGuid) {
+        try {
+            Optional<CorrespondenceTransaction> transactionOpt = 
+                transactionRepository.findById(transactionGuid);
+            
+            if (!transactionOpt.isPresent()) {
+                logger.error("Transaction not found: {}", transactionGuid);
+                return false;
+            }
+            
+            CorrespondenceTransaction transaction = transactionOpt.get();
+            boolean success = processAssignment(transaction);
+            
+            if (success) {
+                transaction.setMigrateStatus("SUCCESS");
+            } else {
+                transaction.setMigrateStatus("FAILED");
+                transaction.setRetryCount(transaction.getRetryCount() + 1);
+            }
+            transactionRepository.save(transaction);
+            
+            return success;
+        } catch (Exception e) {
+            logger.error("Error in assignment transaction for: {}", transactionGuid, e);
+            return false;
+        }
     }
     
     /**

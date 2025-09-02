@@ -110,7 +110,7 @@ public class CreationPhaseService {
     /**
      * Executes creation for specific correspondences
      */
-    @Transactional(timeout = 600)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting creation for {} specific correspondences", correspondenceGuids.size());
         
@@ -120,22 +120,12 @@ public class CreationPhaseService {
         
         for (String correspondenceGuid : correspondenceGuids) {
             try {
-                Optional<IncomingCorrespondenceMigration> migrationOpt = 
-                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
-                
-                if (!migrationOpt.isPresent()) {
-                    failedImports++;
-                    errors.add("Migration record not found for correspondence: " + correspondenceGuid);
-                    continue;
-                }
-                
-                boolean success = processCorrespondenceCreation(migrationOpt.get());
+                boolean success = processCorrespondenceCreationInNewTransaction(correspondenceGuid);
                 if (success) {
                     successfulImports++;
                     phaseService.updatePhaseStatus(correspondenceGuid, "CREATION", "COMPLETED", null);
                 } else {
                     failedImports++;
-                    // Don't update phase status here as it's already updated in processCorrespondenceCreation
                 }
                 
             } catch (Exception e) {
@@ -156,9 +146,29 @@ public class CreationPhaseService {
     }
     
     /**
+     * Processes correspondence creation in a new transaction to prevent connection leaks
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
+    private boolean processCorrespondenceCreationInNewTransaction(String correspondenceGuid) {
+        try {
+            Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+            
+            if (!migrationOpt.isPresent()) {
+                logger.error("Migration record not found for correspondence: {}", correspondenceGuid);
+                return false;
+            }
+            
+            return processCorrespondenceCreation(migrationOpt.get());
+        } catch (Exception e) {
+            logger.error("Error in new transaction for correspondence: {}", correspondenceGuid, e);
+            return false;
+        }
+    }
+    
+    /**
      * Processes the complete creation workflow for a single correspondence
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     private boolean processCorrespondenceCreation(IncomingCorrespondenceMigration migration) {
         String correspondenceGuid = migration.getCorrespondenceGuid();
         logger.info("Processing creation for correspondence: {}", correspondenceGuid);

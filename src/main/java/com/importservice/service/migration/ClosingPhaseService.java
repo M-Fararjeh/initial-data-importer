@@ -109,7 +109,7 @@ public class ClosingPhaseService {
     /**
      * Executes closing for specific correspondences
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
     public ImportResponseDto executeClosingForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting closing for {} specific correspondences", correspondenceGuids.size());
         
@@ -119,35 +119,14 @@ public class ClosingPhaseService {
         
         for (String correspondenceGuid : correspondenceGuids) {
             try {
-                Optional<IncomingCorrespondenceMigration> migrationOpt = 
-                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
-                
-                if (!migrationOpt.isPresent()) {
-                    failedImports++;
-                    errors.add("Migration record not found: " + correspondenceGuid);
-                    continue;
-                }
-                
-                IncomingCorrespondenceMigration migration = migrationOpt.get();
-                
-                if (!migration.getIsNeedToClose()) {
-                    logger.info("Correspondence {} does not need to be closed, skipping", correspondenceGuid);
-                    successfulImports++; // Count as success since no action needed
-                    continue;
-                }
-                
-                boolean success = processClosing(migration);
+                boolean success = processClosingInNewTransaction(correspondenceGuid);
                 if (success) {
                     successfulImports++;
-                    migration.setClosingStatus("COMPLETED");
                     phaseService.updatePhaseStatus(correspondenceGuid, "CLOSING", "COMPLETED", null);
                 } else {
                     failedImports++;
-                    migration.setClosingStatus("FAILED");
-                    migration.setRetryCount(migration.getRetryCount() + 1);
                     phaseService.updatePhaseStatus(correspondenceGuid, "CLOSING", "ERROR", "Closing process failed");
                 }
-                migrationRepository.save(migration);
                 
             } catch (Exception e) {
                 failedImports++;
@@ -163,6 +142,43 @@ public class ClosingPhaseService {
         
         return phaseService.createResponse(status, message, correspondenceGuids.size(), 
                                          successfulImports, failedImports, errors);
+    }
+    
+    /**
+     * Processes closing in a new transaction to prevent connection leaks
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
+    private boolean processClosingInNewTransaction(String correspondenceGuid) {
+        try {
+            Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+            
+            if (!migrationOpt.isPresent()) {
+                logger.error("Migration record not found: {}", correspondenceGuid);
+                return false;
+            }
+            
+            IncomingCorrespondenceMigration migration = migrationOpt.get();
+            
+            if (!migration.getIsNeedToClose()) {
+                logger.info("Correspondence {} does not need to be closed, skipping", correspondenceGuid);
+                return true; // Count as success since no action needed
+            }
+            
+            boolean success = processClosing(migration);
+            if (success) {
+                migration.setClosingStatus("COMPLETED");
+            } else {
+                migration.setClosingStatus("FAILED");
+                migration.setRetryCount(migration.getRetryCount() + 1);
+            }
+            migrationRepository.save(migration);
+            
+            return success;
+        } catch (Exception e) {
+            logger.error("Error in closing transaction for: {}", correspondenceGuid, e);
+            return false;
+        }
     }
     
     /**

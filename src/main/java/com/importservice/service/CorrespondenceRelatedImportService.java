@@ -149,7 +149,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports related data for a specific correspondence with status tracking
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NEVER)
     public boolean importRelatedDataForCorrespondence(String correspondenceGuid) {
         logger.info("Importing related data for correspondence: {}", correspondenceGuid);
         
@@ -229,7 +229,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Gets import status by ID in a new transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 60, readOnly = true)
     public CorrespondenceImportStatus getImportStatusByIdInNewTransaction(Long id) {
         try {
             Optional<CorrespondenceImportStatus> status = importStatusRepository.findById(id);
@@ -248,7 +248,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports a specific entity type with status tracking in new transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
     public boolean importEntityWithTrackingInNewTransaction(String correspondenceGuid, String entityType, Long importStatusId) {
         try {
             logger.info("Importing {} for correspondence: {} (Status ID: {})", entityType, correspondenceGuid, importStatusId);

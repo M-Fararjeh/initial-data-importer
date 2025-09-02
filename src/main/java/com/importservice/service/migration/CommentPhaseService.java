@@ -104,7 +104,7 @@ public class CommentPhaseService {
     /**
      * Executes comment for specific comments
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
     public ImportResponseDto executeCommentForSpecific(List<String> commentGuids) {
         logger.info("Starting comment for {} specific comments", commentGuids.size());
         
@@ -114,27 +114,13 @@ public class CommentPhaseService {
         
         for (String commentGuid : commentGuids) {
             try {
-                Optional<CorrespondenceComment> commentOpt = 
-                    commentRepository.findById(commentGuid);
-                
-                if (!commentOpt.isPresent()) {
-                    failedImports++;
-                    errors.add("Comment not found: " + commentGuid);
-                    continue;
-                }
-                
-                CorrespondenceComment comment = commentOpt.get();
-                boolean success = processComment(comment);
+                boolean success = processCommentInNewTransaction(commentGuid);
                 
                 if (success) {
                     successfulImports++;
-                    comment.setMigrateStatus("SUCCESS");
                 } else {
                     failedImports++;
-                    comment.setMigrateStatus("FAILED");
-                    comment.setRetryCount(comment.getRetryCount() + 1);
                 }
-                commentRepository.save(comment);
                 
             } catch (Exception e) {
                 failedImports++;
@@ -150,6 +136,38 @@ public class CommentPhaseService {
         
         return phaseService.createResponse(status, message, commentGuids.size(), 
                                          successfulImports, failedImports, errors);
+    }
+    
+    /**
+     * Processes comment in a new transaction to prevent connection leaks
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
+    private boolean processCommentInNewTransaction(String commentGuid) {
+        try {
+            Optional<CorrespondenceComment> commentOpt = 
+                commentRepository.findById(commentGuid);
+            
+            if (!commentOpt.isPresent()) {
+                logger.error("Comment not found: {}", commentGuid);
+                return false;
+            }
+            
+            CorrespondenceComment comment = commentOpt.get();
+            boolean success = processComment(comment);
+            
+            if (success) {
+                comment.setMigrateStatus("SUCCESS");
+            } else {
+                comment.setMigrateStatus("FAILED");
+                comment.setRetryCount(comment.getRetryCount() + 1);
+            }
+            commentRepository.save(comment);
+            
+            return success;
+        } catch (Exception e) {
+            logger.error("Error in comment transaction for: {}", commentGuid, e);
+            return false;
+        }
     }
     
     /**

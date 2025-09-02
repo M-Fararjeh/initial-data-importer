@@ -103,7 +103,7 @@ public class BusinessLogPhaseService {
     /**
      * Executes business log for specific transactions
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
     public ImportResponseDto executeBusinessLogForSpecific(List<String> transactionGuids) {
         logger.info("Starting business log for {} specific transactions", transactionGuids.size());
         
@@ -113,27 +113,13 @@ public class BusinessLogPhaseService {
         
         for (String transactionGuid : transactionGuids) {
             try {
-                Optional<CorrespondenceTransaction> transactionOpt = 
-                    transactionRepository.findById(transactionGuid);
-                
-                if (!transactionOpt.isPresent()) {
-                    failedImports++;
-                    errors.add("Transaction not found: " + transactionGuid);
-                    continue;
-                }
-                
-                CorrespondenceTransaction transaction = transactionOpt.get();
-                boolean success = processBusinessLog(transaction);
+                boolean success = processBusinessLogInNewTransaction(transactionGuid);
                 
                 if (success) {
                     successfulImports++;
-                    transaction.setMigrateStatus("SUCCESS");
                 } else {
                     failedImports++;
-                    transaction.setMigrateStatus("FAILED");
-                    transaction.setRetryCount(transaction.getRetryCount() + 1);
                 }
-                transactionRepository.save(transaction);
                 
             } catch (Exception e) {
                 failedImports++;
@@ -149,6 +135,38 @@ public class BusinessLogPhaseService {
         
         return phaseService.createResponse(status, message, transactionGuids.size(), 
                                          successfulImports, failedImports, errors);
+    }
+    
+    /**
+     * Processes business log in a new transaction to prevent connection leaks
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
+    private boolean processBusinessLogInNewTransaction(String transactionGuid) {
+        try {
+            Optional<CorrespondenceTransaction> transactionOpt = 
+                transactionRepository.findById(transactionGuid);
+            
+            if (!transactionOpt.isPresent()) {
+                logger.error("Transaction not found: {}", transactionGuid);
+                return false;
+            }
+            
+            CorrespondenceTransaction transaction = transactionOpt.get();
+            boolean success = processBusinessLog(transaction);
+            
+            if (success) {
+                transaction.setMigrateStatus("SUCCESS");
+            } else {
+                transaction.setMigrateStatus("FAILED");
+                transaction.setRetryCount(transaction.getRetryCount() + 1);
+            }
+            transactionRepository.save(transaction);
+            
+            return success;
+        } catch (Exception e) {
+            logger.error("Error in business log transaction for: {}", transactionGuid, e);
+            return false;
+        }
     }
     
     /**
