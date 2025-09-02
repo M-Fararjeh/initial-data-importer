@@ -91,7 +91,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports all correspondence-related data with comprehensive status tracking
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 600)
     public ImportResponseDto importAllCorrespondencesWithRelatedData() {
         logger.info("Starting comprehensive import of all correspondences with related data");
         
@@ -145,7 +145,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports related data for a specific correspondence with status tracking
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public boolean importRelatedDataForCorrespondence(String correspondenceGuid) {
         logger.info("Importing related data for correspondence: {}", correspondenceGuid);
         
@@ -161,7 +161,7 @@ public class CorrespondenceRelatedImportService {
             
             importStatus.setOverallStatus("IN_PROGRESS");
             importStatus.setStartedAt(LocalDateTime.now());
-            importStatusRepository.save(importStatus);
+            importStatusRepository.saveAndFlush(importStatus); // Force immediate commit
             
             // Import each entity type with status tracking
             boolean overallSuccess = true;
@@ -186,7 +186,7 @@ public class CorrespondenceRelatedImportService {
                 importStatus.incrementRetryCount();
             }
             
-            importStatusRepository.save(importStatus);
+            importStatusRepository.saveAndFlush(importStatus); // Force immediate commit
             
             logger.info("Completed related data import for correspondence: {} with status: {}", 
                        correspondenceGuid, importStatus.getOverallStatus());
@@ -201,7 +201,7 @@ public class CorrespondenceRelatedImportService {
                 CorrespondenceImportStatus importStatus = getOrCreateImportStatus(correspondenceGuid);
                 importStatus.setOverallStatus("FAILED");
                 importStatus.incrementRetryCount();
-                importStatusRepository.save(importStatus);
+                importStatusRepository.saveAndFlush(importStatus); // Force immediate commit
             } catch (Exception statusUpdateError) {
                 logger.error("Error updating import status for correspondence: {}", correspondenceGuid, statusUpdateError);
             }
@@ -213,13 +213,14 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports a specific entity type with status tracking
      */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     private boolean importEntityWithTracking(String correspondenceGuid, String entityType, CorrespondenceImportStatus importStatus) {
         try {
             logger.debug("Importing {} for correspondence: {}", entityType, correspondenceGuid);
             
             // Mark as in progress
             importStatus.markEntityInProgress(entityType);
-            importStatusRepository.save(importStatus);
+            importStatusRepository.saveAndFlush(importStatus); // Force immediate commit
             
             // Call appropriate import method
             ImportResponseDto result = callImportMethod(correspondenceGuid, entityType);
@@ -240,7 +241,7 @@ public class CorrespondenceRelatedImportService {
             logger.error(errorMsg, e);
             return false;
         } finally {
-            importStatusRepository.save(importStatus);
+            importStatusRepository.saveAndFlush(importStatus); // Force immediate commit
         }
     }
     
@@ -277,6 +278,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Gets or creates import status record for correspondence
      */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     private CorrespondenceImportStatus getOrCreateImportStatus(String correspondenceGuid) {
         Optional<CorrespondenceImportStatus> existingStatus = 
             importStatusRepository.findByCorrespondenceGuid(correspondenceGuid);
@@ -285,14 +287,17 @@ public class CorrespondenceRelatedImportService {
             return existingStatus.get();
         } else {
             CorrespondenceImportStatus newStatus = new CorrespondenceImportStatus(correspondenceGuid);
-            return importStatusRepository.save(newStatus);
+            CorrespondenceImportStatus savedStatus = importStatusRepository.save(newStatus);
+            importStatusRepository.flush(); // Force immediate commit
+            logger.debug("Created new import status record for correspondence: {}", correspondenceGuid);
+            return savedStatus;
         }
     }
     
     /**
      * Retries failed imports for correspondences that haven't exceeded max retries
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 600)
     public ImportResponseDto retryFailedImports() {
         logger.info("Starting retry of failed correspondence imports");
         
@@ -455,7 +460,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Resets import status for a correspondence (for manual retry)
      */
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public boolean resetImportStatus(String correspondenceGuid) {
         try {
             Optional<CorrespondenceImportStatus> statusOpt = importStatusRepository.findByCorrespondenceGuid(correspondenceGuid);
@@ -492,7 +497,7 @@ public class CorrespondenceRelatedImportService {
                 status.setCompletedAt(null);
                 status.setLastErrorAt(null);
                 
-                importStatusRepository.save(status);
+                importStatusRepository.saveAndFlush(status); // Force immediate commit
                 logger.info("Reset import status for correspondence: {}", correspondenceGuid);
                 return true;
             }
