@@ -79,6 +79,9 @@ public class DestinationSystemService {
      * Logs request details if logging is enabled
      */
     private void logApiCall(String operation, String url, Object requestBody) {
+        if (url.contains("/nuxeo/api/v1/upload/")){
+            return;
+        }
         if (loggingEnabled) {
             System.out.println("=== DESTINATION API CALL: " + operation + " ===");
             System.out.println("URL: " + url);
