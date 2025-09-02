@@ -15,11 +15,13 @@ import { AssignmentDetailsComponent } from './components/assignment-details/assi
 import { BusinessLogDetailsComponent } from './components/business-log-details/business-log-details.component';
 import { CommentDetailsComponent } from './components/comment-details/comment-details.component';
 import { ClosingDetailsComponent } from './components/closing-details/closing-details.component';
+import { CorrespondenceRelatedStatusComponent } from './components/correspondence-related-status/correspondence-related-status.component';
 import { MigrationService } from './services/migration.service';
 import { DataImportService } from './services/data-import.service';
 
 const routes: Routes = [
   { path: '', component: SourceDataImportComponent },
+  { path: 'correspondence-related-status', component: CorrespondenceRelatedStatusComponent },
   { path: 'destination-setup', component: DestinationSetupComponent },
   { path: 'migration-dashboard', component: MigrationDashboardComponent },
   { path: 'creation-details', component: CreationDetailsComponent },
@@ -42,7 +44,8 @@ const routes: Routes = [
     AssignmentDetailsComponent,
     BusinessLogDetailsComponent,
     CommentDetailsComponent,
-    ClosingDetailsComponent
+    ClosingDetailsComponent,
+    CorrespondenceRelatedStatusComponent
   ],
   imports: [
     BrowserModule,
