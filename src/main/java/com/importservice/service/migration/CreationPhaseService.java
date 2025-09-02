@@ -63,7 +63,7 @@ public class CreationPhaseService {
      * Phase 2: Creation
      * Creates correspondences in destination system
      */
-    @Transactional
+    @Transactional(timeout = 600)
     public ImportResponseDto executeCreationPhase() {
         logger.info("Starting Phase 2: Creation");
         
@@ -82,8 +82,7 @@ public class CreationPhaseService {
                         phaseService.updatePhaseStatus(migration.getCorrespondenceGuid(), "CREATION", "COMPLETED", null);
                     } else {
                         failedImports++;
-                        phaseService.updatePhaseStatus(migration.getCorrespondenceGuid(), "CREATION", "ERROR", 
-                                                     "Creation process failed");
+                        // Don't update phase status here as it's already updated in processCorrespondenceCreation
                     }
                 } catch (Exception e) {
                     failedImports++;
@@ -111,7 +110,7 @@ public class CreationPhaseService {
     /**
      * Executes creation for specific correspondences
      */
-    @Transactional
+    @Transactional(timeout = 600)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting creation for {} specific correspondences", correspondenceGuids.size());
         
@@ -136,7 +135,7 @@ public class CreationPhaseService {
                     phaseService.updatePhaseStatus(correspondenceGuid, "CREATION", "COMPLETED", null);
                 } else {
                     failedImports++;
-                    phaseService.updatePhaseStatus(correspondenceGuid, "CREATION", "ERROR", "Creation process failed");
+                    // Don't update phase status here as it's already updated in processCorrespondenceCreation
                 }
                 
             } catch (Exception e) {
@@ -159,6 +158,7 @@ public class CreationPhaseService {
     /**
      * Processes the complete creation workflow for a single correspondence
      */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     private boolean processCorrespondenceCreation(IncomingCorrespondenceMigration migration) {
         String correspondenceGuid = migration.getCorrespondenceGuid();
         logger.info("Processing creation for correspondence: {}", correspondenceGuid);
@@ -260,9 +260,11 @@ public class CreationPhaseService {
                                      correspondence.getCreationUserName() : "itba-emp1";
             boolean readyToRegisterSuccess = destinationService.setIncomingReadyToRegister(documentId, asUserForRegister);
             if (!readyToRegisterSuccess) {
-                logger.error("Failed to set ready to register for correspondence: {}", correspondenceGuid);
+                String errorMsg = "Failed to set ready to register for correspondence: " + correspondenceGuid;
+                logger.error(errorMsg);
                 migration.setCreationStatus("ERROR");
-                migration.setCreationError("Failed to set ready to register");
+                migration.setCreationError(errorMsg);
+                migration.setCreationStep("SET_READY_TO_REGISTER");
                 migrationRepository.save(migration);
                 return false;
             }
@@ -271,9 +273,11 @@ public class CreationPhaseService {
             updateCreationStep(migration, "REGISTER_WITH_REFERENCE");
             boolean registerSuccess = registerCorrespondenceWithReference(correspondence, documentId);
             if (!registerSuccess) {
-                logger.error("Failed to register correspondence with reference: {}", correspondenceGuid);
+                String errorMsg = "Failed to register correspondence with reference: " + correspondenceGuid;
+                logger.error(errorMsg);
                 migration.setCreationStatus("ERROR");
-                migration.setCreationError("Failed to register correspondence with reference");
+                migration.setCreationError(errorMsg);
+                migration.setCreationStep("REGISTER_WITH_REFERENCE");
                 migrationRepository.save(migration);
                 return false;
             }
@@ -284,9 +288,11 @@ public class CreationPhaseService {
                                  correspondence.getCreationUserName() : "itba-emp1";
             boolean startWorkSuccess = destinationService.startIncomingCorrespondenceWork(documentId, asUserForWork);
             if (!startWorkSuccess) {
-                logger.error("Failed to start work for correspondence: {}", correspondenceGuid);
+                String errorMsg = "Failed to start work for correspondence: " + correspondenceGuid;
+                logger.error(errorMsg);
                 migration.setCreationStatus("ERROR");
-                migration.setCreationError("Failed to start work");
+                migration.setCreationError(errorMsg);
+                migration.setCreationStep("START_WORK");
                 migrationRepository.save(migration);
                 return false;
             }
@@ -297,9 +303,11 @@ public class CreationPhaseService {
                                   correspondence.getCreationUserName() : "itba-emp1";
             boolean setOwnerSuccess = destinationService.setCorrespondenceOwner(documentId, asUserForOwner);
             if (!setOwnerSuccess) {
-                logger.error("Failed to set owner for correspondence: {}", correspondenceGuid);
+                String errorMsg = "Failed to set owner for correspondence: " + correspondenceGuid;
+                logger.error(errorMsg);
                 migration.setCreationStatus("ERROR");
-                migration.setCreationError("Failed to set owner");
+                migration.setCreationError(errorMsg);
+                migration.setCreationStep("SET_OWNER");
                 migrationRepository.save(migration);
                 return false;
             }
@@ -426,14 +434,12 @@ public class CreationPhaseService {
     /**
      * Uploads other (non-primary) attachments
      */
-    private boolean uploadOtherAttachments(List<CorrespondenceAttachment> allAttachments, 
+    private boolean uploadOtherAttachments(List<CorrespondenceAttachment> allAttachments,
                                       CorrespondenceAttachment primaryAttachment, 
                                       String documentId) {
         try {
             List<CorrespondenceAttachment> otherAttachments = 
                 AttachmentUtils.getNonPrimaryAttachments(allAttachments, primaryAttachment);
-            
-            boolean allSuccess = true;
             
             for (CorrespondenceAttachment attachment : otherAttachments) {
                 if (!AttachmentUtils.isValidForUpload(attachment)) {
@@ -445,8 +451,7 @@ public class CreationPhaseService {
                 String batchId = destinationService.createBatch();
                 if (batchId == null) {
                     logger.warn("Failed to create batch for attachment: {}", attachment.getGuid());
-                    allSuccess = false;
-                    continue;
+                    return false;
                 }
                 
                 // Upload file
@@ -461,20 +466,20 @@ public class CreationPhaseService {
                     AttachmentUtils.getFileNameForUpload(attachment.getName(), false)
                 );
                 
-                if (uploaded) {
-                    // Create attachment in destination
-                    boolean attachmentCreated = destinationService.createAttachment(attachment, batchId, documentId);
-                    if (!attachmentCreated) {
-                        logger.warn("Failed to create attachment in destination: {}", attachment.getGuid());
-                        allSuccess = false;
-                    }
-                } else {
+                if (!uploaded) {
                     logger.warn("Failed to upload attachment: {}", attachment.getGuid());
-                    allSuccess = false;
+                    return false;
+                }
+                
+                // Create attachment in destination
+                boolean attachmentCreated = destinationService.createAttachment(attachment, batchId, documentId);
+                if (!attachmentCreated) {
+                    logger.warn("Failed to create attachment in destination: {}", attachment.getGuid());
+                    return false;
                 }
             }
             
-            return allSuccess;
+            return true;
             
         } catch (Exception e) {
             logger.error("Error uploading other attachments", e);
@@ -492,12 +497,12 @@ public class CreationPhaseService {
                 
                 boolean success = destinationService.createPhysicalAttachment(
                     documentId,
-                        correspondence.getCreationUserName(),
+                    correspondence.getCreationUserName(),
                     correspondence.getManualAttachmentsCount()
                 );
                 
                 if (!success) {
-                    logger.error("Failed to create physical attachment for correspondence: {}", correspondence.getGuid());
+                    logger.warn("Failed to create physical attachment for correspondence: {}", correspondence.getGuid());
                     return false;
                 }
             }
@@ -534,12 +539,7 @@ public class CreationPhaseService {
                 toDepartment
             );
             
-            if (!success) {
-                logger.error("Failed to register correspondence with reference: {}", correspondence.getGuid());
-                return false;
-            }
-            
-            return true;
+            return success;
             
         } catch (Exception e) {
             logger.error("Error registering correspondence with reference", e);

@@ -18,7 +18,7 @@ public class TransactionConfig {
         transactionManager.setEntityManagerFactory(entityManagerFactory);
         
         // Set transaction timeout to prevent long-running transactions
-        transactionManager.setDefaultTimeout(300); // 5 minutes
+        transactionManager.setDefaultTimeout(900); // 15 minutes for migration operations
         
         return transactionManager;
     }
