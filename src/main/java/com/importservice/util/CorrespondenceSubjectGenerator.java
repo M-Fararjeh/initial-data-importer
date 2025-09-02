@@ -43,13 +43,9 @@ public class CorrespondenceSubjectGenerator {
             return originalSubject != null ? originalSubject : "";
         }
         
-        if (originalSubject != null && !originalSubject.trim().isEmpty()) {
-            logger.debug("Original subject exists, returning as-is: {}", originalSubject);
-            return originalSubject;
-        }
-        
         String generatedSubject = generateRandomSubject();
-        logger.info("Generated random subject: {}", generatedSubject);
+        logger.info("Generated random subject (replacing original '{}'): {}", 
+                   originalSubject != null ? originalSubject : "null", generatedSubject);
         return generatedSubject;
     }
     

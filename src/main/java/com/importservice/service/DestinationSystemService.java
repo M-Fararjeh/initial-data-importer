@@ -246,9 +246,9 @@ public class DestinationSystemService {
             
             // Use subject generator if subject is empty and random generation is enabled
             String finalSubject = subject;
-            if ((subject == null || subject.trim().isEmpty()) && subjectGenerator.isRandomSubjectEnabled()) {
+            if (subjectGenerator.isRandomSubjectEnabled()) {
                 finalSubject = subjectGenerator.generateSubjectWithCategory(category);
-                logger.info("Generated random subject for correspondence {}: {}", correspondence.getGuid(), finalSubject);
+                logger.info("Generated random subject for correspondence {}: {}", guid, finalSubject);
             }
             
             incCorrespondence.put("corr:subject", finalSubject != null ? finalSubject : "");

@@ -294,9 +294,10 @@ public class CreationPhaseService {
             // Map category, priority, secrecy
             String category = CorrespondenceUtils.mapCategory(correspondence.getClassificationGuid());
             
-            // If no original subject and random generation is enabled, generate by category
-            if ((originalSubject == null || originalSubject.trim().isEmpty()) && subjectGenerator.isRandomSubjectEnabled()) {
+            // If random generation is enabled, always generate new subject
+            if (subjectGenerator.isRandomSubjectEnabled()) {
                 subject = subjectGenerator.generateSubjectWithCategory(category);
+                logger.info("Generated random subject for correspondence {}: {}", correspondence.getGuid(), subject);
             }
             
             String priority = CorrespondenceUtils.mapPriority(correspondence.getPriorityId());
