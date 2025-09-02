@@ -497,7 +497,7 @@ public class DataImportService {
             }
             
             String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
-            String message = String.format("Correspondence related data import completed. Success: %d, Failed: %d", 
+            String status = failedCorrespondences == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
                                          successfulCorrespondences, failedCorrespondences);
             
             return new ImportResponseDto(status, message, totalCorrespondences, 
