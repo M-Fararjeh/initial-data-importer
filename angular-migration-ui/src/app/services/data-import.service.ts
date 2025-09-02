@@ -120,6 +120,122 @@ export class DataImportService {
   // Correspondence import status methods
   getCorrespondenceImportStatuses(): Observable<any[]> {
     console.log('Getting correspondence import statuses');
+    return this.http.get<any[]>(`${this.baseUrl}/correspondence-import-status`)
+      .pipe(
+        tap((statuses) => console.log('Correspondence import statuses:', statuses)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting correspondence import statuses:', error);
+          return of([]);
+        })
+      );
+  }
+  
+  getCorrespondenceImportStatistics(): Observable<any> {
+    console.log('Getting correspondence import statistics');
+    return this.http.get<any>(`${this.baseUrl}/correspondence-import-statistics`)
+      .pipe(
+        tap((stats) => console.log('Correspondence import statistics:', stats)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting correspondence import statistics:', error);
+          return of({
+            total: 0,
+            completed: 0,
+            inProgress: 0,
+            failed: 0,
+            pending: 0
+          });
+        })
+      );
+  }
+  
+  importAllCorrespondencesWithRelatedTracked(): Observable<ImportResponse> {
+    console.log('Calling import all correspondences with related data (tracked) API');
+    return this.http.post<ImportResponse>(`${this.baseUrl}/all-correspondences-with-related`, {})
+      .pipe(
+        tap((response) => console.log('Import all correspondences with related data (tracked) response:', response)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error importing all correspondences with related data (tracked):', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to import all correspondences with related data: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
+  importRelatedDataForCorrespondence(correspondenceGuid: string): Observable<any> {
+    console.log('Importing related data for correspondence:', correspondenceGuid);
+    return this.http.post<any>(`http://localhost:8080/api/correspondence-import/correspondence/${correspondenceGuid}/related`, {})
+      .pipe(
+        tap((response) => console.log('Import related data for correspondence response:', response)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error importing related data for correspondence:', error);
+          return of({
+            success: false,
+            error: error.message || 'Unknown error'
+          });
+        })
+      );
+  }
+  
+  importSpecificCorrespondenceEntity(correspondenceGuid: string, endpoint: string): Observable<ImportResponse> {
+    console.log('Importing specific entity for correspondence:', correspondenceGuid, endpoint);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/${endpoint}/${correspondenceGuid}`, {})
+      .pipe(
+        tap((response) => console.log('Import specific entity response:', response)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error importing specific entity:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to import entity: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
+  retryFailedCorrespondenceImports(): Observable<ImportResponse> {
+    console.log('Retrying failed correspondence imports');
+    return this.http.post<ImportResponse>(`${this.baseUrl}/all-correspondences-with-related`, {})
+      .pipe(
+        tap((response) => console.log('Retry failed correspondence imports response:', response)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error retrying failed correspondence imports:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to retry imports: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
+  resetCorrespondenceImportStatus(correspondenceGuid: string): Observable<any> {
+    console.log('Resetting import status for correspondence:', correspondenceGuid);
+    return this.http.post<any>(`http://localhost:8080/api/correspondence-import/correspondence/${correspondenceGuid}/reset`, {})
+      .pipe(
+        tap((response) => console.log('Reset import status response:', response)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error resetting import status:', error);
+          return of({
+            success: false,
+            error: error.message || 'Unknown error'
+          });
+        })
+      );
+  }
+  getCorrespondenceImportStatuses(): Observable<any[]> {
+    console.log('Getting correspondence import statuses');
     return this.http.get<any[]>('http://localhost:8080/api/correspondence-import/status')
       .pipe(
         tap((statuses) => console.log('Correspondence import statuses:', statuses)),

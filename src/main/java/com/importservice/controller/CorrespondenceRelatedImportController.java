@@ -64,7 +64,7 @@ public class CorrespondenceRelatedImportController {
         try {
             boolean success = correspondenceRelatedImportService.importRelatedDataForCorrespondence(correspondenceGuid);
             
-            Map<String, Object> response = new java.util.HashMap<>();
+            Map<String, Object> response = new HashMap<>();
             response.put("success", success);
             response.put("correspondenceGuid", correspondenceGuid);
             response.put("message", success ? "Import completed successfully" : "Import failed");
@@ -72,7 +72,42 @@ public class CorrespondenceRelatedImportController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Unexpected error during correspondence related import for: {}", correspondenceGuid, e);
-            Map<String, Object> errorResponse = new java.util.HashMap<>();
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("correspondenceGuid", correspondenceGuid);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    @PostMapping("/correspondence/{correspondenceGuid}/reset")
+    @Operation(summary = "Reset Import Status for Correspondence", 
+               description = "Resets import status for a correspondence to allow re-import")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Status reset successfully"),
+        @ApiResponse(responseCode = "404", description = "Correspondence not found"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<Map<String, Object>> resetImportStatusForCorrespondence(
+            @Parameter(description = "Correspondence GUID") @PathVariable String correspondenceGuid) {
+        logger.info("Received request to reset import status for correspondence: {}", correspondenceGuid);
+        
+        try {
+            boolean success = correspondenceRelatedImportService.resetImportStatus(correspondenceGuid);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", success);
+            response.put("correspondenceGuid", correspondenceGuid);
+            response.put("message", success ? "Status reset successfully" : "Failed to reset status");
+            
+            if (success) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            logger.error("Error resetting import status for correspondence: {}", correspondenceGuid, e);
+            Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("correspondenceGuid", correspondenceGuid);
             errorResponse.put("error", e.getMessage());

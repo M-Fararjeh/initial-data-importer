@@ -22,6 +22,7 @@ import { DataImportService } from './services/data-import.service';
 const routes: Routes = [
   { path: '', component: SourceDataImportComponent },
   { path: 'correspondence-related-status', component: CorrespondenceRelatedStatusComponent },
+  { path: 'correspondence-related-status', component: CorrespondenceRelatedStatusComponent },
   { path: 'destination-setup', component: DestinationSetupComponent },
   { path: 'migration-dashboard', component: MigrationDashboardComponent },
   { path: 'creation-details', component: CreationDetailsComponent },
