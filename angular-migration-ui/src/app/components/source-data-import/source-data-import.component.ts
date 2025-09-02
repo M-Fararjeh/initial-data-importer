@@ -23,19 +23,12 @@ export interface ImportLog {
   entity?: string;
 }
 
-export interface OverallProgress {
-  total: number;
-  completed: number;
-  inProgress: number;
-  failed: number;
-}
-
 @Component({
-  selector: 'app-data-import',
-  templateUrl: './data-import.component.html',
-  styleUrls: ['./data-import.component.css']
+  selector: 'app-source-data-import',
+  templateUrl: './source-data-import.component.html',
+  styleUrls: ['./source-data-import.component.css']
 })
-export class DataImportComponent implements OnInit, OnDestroy {
+export class SourceDataImportComponent implements OnInit, OnDestroy {
   
   private destroy$ = new Subject<void>();
   
@@ -213,8 +206,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
   constructor(private dataImportService: DataImportService) {}
   
   ngOnInit(): void {
-    console.log('DataImportComponent initialized');
-    this.addLog('info', 'Data Import page loaded');
+    console.log('SourceDataImportComponent initialized');
+    this.addLog('info', 'Source Data Import page loaded');
     this.loadRecordCounts();
   }
   
@@ -557,19 +550,6 @@ export class DataImportComponent implements OnInit, OnDestroy {
       return 'Re-import';
     } else {
       return 'Import';
-    }
-  }
-  
-  getStatusBadgeClass(status: string): string {
-    switch (status) {
-      case 'completed':
-        return 'border-green-200 bg-green-50';
-      case 'importing':
-        return 'border-blue-200 bg-blue-50';
-      case 'error':
-        return 'border-red-200 bg-red-50';
-      default:
-        return 'border-gray-200 bg-white';
     }
   }
   

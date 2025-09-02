@@ -5,21 +5,23 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 
 import { AppComponent } from './app.component';
-import { MigrationDashboardComponent } from './components/migration-dashboard/migration-dashboard.component';
 import { PhaseCardComponent } from './components/phase-card/phase-card.component';
 import { StatisticsCardComponent } from './components/statistics-card/statistics-card.component';
+import { SourceDataImportComponent } from './components/source-data-import/source-data-import.component';
+import { DestinationSetupComponent } from './components/destination-setup/destination-setup.component';
+import { MigrationDashboardComponent } from './components/migration-dashboard/migration-dashboard.component';
 import { CreationDetailsComponent } from './components/creation-details/creation-details.component';
 import { AssignmentDetailsComponent } from './components/assignment-details/assignment-details.component';
 import { BusinessLogDetailsComponent } from './components/business-log-details/business-log-details.component';
 import { CommentDetailsComponent } from './components/comment-details/comment-details.component';
 import { ClosingDetailsComponent } from './components/closing-details/closing-details.component';
 import { MigrationService } from './services/migration.service';
-import { DataImportComponent } from './components/data-import/data-import.component';
 import { DataImportService } from './services/data-import.service';
 
 const routes: Routes = [
-  { path: '', component: MigrationDashboardComponent },
-  { path: 'data-import', component: DataImportComponent },
+  { path: '', component: SourceDataImportComponent },
+  { path: 'destination-setup', component: DestinationSetupComponent },
+  { path: 'migration-dashboard', component: MigrationDashboardComponent },
   { path: 'creation-details', component: CreationDetailsComponent },
   { path: 'assignment-details', component: AssignmentDetailsComponent },
   { path: 'business-log-details', component: BusinessLogDetailsComponent },
@@ -31,10 +33,11 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     AppComponent,
+    SourceDataImportComponent,
+    DestinationSetupComponent,
     MigrationDashboardComponent,
     PhaseCardComponent,
     StatisticsCardComponent,
-    DataImportComponent,
     CreationDetailsComponent,
     AssignmentDetailsComponent,
     BusinessLogDetailsComponent,

@@ -117,6 +117,46 @@ export class DataImportService {
       );
   }
   
+  // External agencies import
+  importExternalAgencies(): Observable<ImportResponse> {
+    console.log('Calling import external agencies API');
+    return this.http.post<ImportResponse>('http://localhost:8080/api/import/external-agencies', {})
+      .pipe(
+        tap((response) => console.log('Import external agencies response:', response)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error importing external agencies:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to import external agencies: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
+  // Users to destination import
+  importUsersToDestination(): Observable<ImportResponse> {
+    console.log('Calling import users to destination API');
+    return this.http.post<ImportResponse>('http://localhost:8080/api/user-import/users-to-destination', {})
+      .pipe(
+        tap((response) => console.log('Import users to destination response:', response)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error importing users to destination:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to import users to destination: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
   // Import specific correspondence related data
   importCorrespondenceAttachments(docGuid: string): Observable<ImportResponse> {
     console.log('Calling import correspondence attachments API for doc:', docGuid);

@@ -3,8 +3,8 @@
   <div class="bg-white shadow rounded-lg p-6">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-xl font-semibold text-gray-900">Migration Progress</h2>
-        <p class="text-sm text-gray-600 mt-1">Execute migration phases in sequence</p>
+        <h2 class="text-2xl font-semibold text-gray-900">Incoming Correspondence Migration</h2>
+        <p class="text-sm text-gray-600 mt-1">Execute migration phases in sequence to migrate correspondences to destination system</p>
       </div>
       <div class="flex space-x-3">
         <button 
@@ -13,6 +13,12 @@
           [disabled]="isLoading">
           <span class="mr-2">🔄</span>
           Refresh
+        </button>
+        <button 
+          routerLink="/creation-details"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+          <span class="mr-2">📋</span>
+          View Details
         </button>
         <button 
           (click)="retryFailed()"
@@ -25,6 +31,37 @@
     </div>
   </div>
 
+  <!-- Phase Details Navigation -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Phase Details</h3>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <a routerLink="/creation-details" 
+         class="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+        <span class="mr-1">📝</span>
+        Creation
+      </a>
+      <a routerLink="/assignment-details" 
+         class="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+        <span class="mr-1">📋</span>
+        Assignment
+      </a>
+      <a routerLink="/business-log-details" 
+         class="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+        <span class="mr-1">📊</span>
+        Business Log
+      </a>
+      <a routerLink="/comment-details" 
+         class="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+        <span class="mr-1">💬</span>
+        Comments
+      </a>
+      <a routerLink="/closing-details" 
+         class="flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200">
+        <span class="mr-1">🔒</span>
+        Closing
+      </a>
+    </div>
+  </div>
   <!-- Statistics Overview -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6" *ngIf="statistics">
     <app-statistics-card 
