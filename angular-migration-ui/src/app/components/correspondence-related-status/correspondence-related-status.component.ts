@@ -186,7 +186,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
     console.log('Starting bulk import of all correspondences with related data');
     this.isLoading = true;
     
-    this.dataImportService.importAllCorrespondencesWithRelatedTracked()
+    this.dataImportService.importAllCorrespondencesWithRelated()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response: ImportResponse) => {
@@ -201,7 +201,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
             alert(`Bulk import completed with issues: ${response.successfulImports} success, ${response.failedImports} failed.`);
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error in bulk import:', error);
           this.isLoading = false;
           alert('Error in bulk import. Please check the logs.');
@@ -236,7 +236,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
             alert(`Related data import failed: ${response.error || 'Unknown error'}`);
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error importing related data:', error);
           this.isLoading = false;
           alert('Error importing related data. Please check the logs.');
@@ -270,7 +270,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
             alert(`${entityType.name} import failed: ${response.message}`);
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error importing specific entity:', error);
           this.isLoading = false;
           alert('Error importing entity. Please check the logs.');
@@ -305,7 +305,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
             alert(`Retry completed with issues: ${response.successfulImports} success, ${response.failedImports} failed.`);
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error in retry:', error);
           this.isLoading = false;
           alert('Error in retry. Please check the logs.');
@@ -339,7 +339,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
             alert(`Reset failed: ${response.error || 'Unknown error'}`);
           }
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error resetting status:', error);
           this.isLoading = false;
           alert('Error resetting status. Please check the logs.');
