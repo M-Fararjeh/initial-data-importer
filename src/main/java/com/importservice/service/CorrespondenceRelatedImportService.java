@@ -482,34 +482,34 @@ public class CorrespondenceRelatedImportService {
         
         // Only retry failed entities
         if ("FAILED".equals(importStatus.getAttachmentsStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "attachments", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "attachments", importStatus.getId());
         }
         if ("FAILED".equals(importStatus.getCommentsStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "comments", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "comments", importStatus.getId());
         }
         if ("FAILED".equals(importStatus.getCopyTosStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "copytos", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "copytos", importStatus.getId());
         }
         if ("FAILED".equals(importStatus.getCurrentDepartmentsStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "currentdepartments", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "currentdepartments", importStatus.getId());
         }
         if ("FAILED".equals(importStatus.getCurrentPositionsStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "currentpositions", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "currentpositions", importStatus.getId());
         }
         if ("FAILED".equals(importStatus.getCurrentUsersStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "currentusers", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "currentusers", importStatus.getId());
         }
         if ("FAILED".equals(importStatus.getCustomFieldsStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "customfields", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "customfields", importStatus.getId());
         }
         if ("FAILED".equals(importStatus.getLinksStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "links", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "links", importStatus.getId());
         }
         if ("FAILED".equals(importStatus.getSendTosStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "sendtos", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "sendtos", importStatus.getId());
         }
         if ("FAILED".equals(importStatus.getTransactionsStatus())) {
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "transactions", importStatus);
+            overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "transactions", importStatus.getId());
         }
         
         return overallSuccess;
