@@ -14,9 +14,12 @@ import { BusinessLogDetailsComponent } from './components/business-log-details/b
 import { CommentDetailsComponent } from './components/comment-details/comment-details.component';
 import { ClosingDetailsComponent } from './components/closing-details/closing-details.component';
 import { MigrationService } from './services/migration.service';
+import { DataImportComponent } from './components/data-import/data-import.component';
+import { DataImportService } from './services/data-import.service';
 
 const routes: Routes = [
   { path: '', component: MigrationDashboardComponent },
+  { path: 'data-import', component: DataImportComponent },
   { path: 'creation-details', component: CreationDetailsComponent },
   { path: 'assignment-details', component: AssignmentDetailsComponent },
   { path: 'business-log-details', component: BusinessLogDetailsComponent },
@@ -31,6 +34,7 @@ const routes: Routes = [
     MigrationDashboardComponent,
     PhaseCardComponent,
     StatisticsCardComponent,
+    DataImportComponent,
     CreationDetailsComponent,
     AssignmentDetailsComponent,
     BusinessLogDetailsComponent,
@@ -44,7 +48,8 @@ const routes: Routes = [
     RouterModule.forRoot(routes)
   ],
   providers: [
-    MigrationService
+    MigrationService,
+    DataImportService
   ],
   bootstrap: [AppComponent]
 })

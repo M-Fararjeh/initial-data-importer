@@ -18,6 +18,11 @@ import { Component, OnInit } from '@angular/core';
                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200">
                   Dashboard
                 </a>
+                <a routerLink="/data-import" 
+                   routerLinkActive="text-indigo-600 border-indigo-500"
+                   class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200">
+                  Data Import
+                </a>
                 <a routerLink="/creation-details" 
                    routerLinkActive="text-indigo-600 border-indigo-500"
                    class="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200">
