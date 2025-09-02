@@ -813,6 +813,50 @@ public class DataImportService {
         }
     }
 
+    // Import all basic entities in sequence
+    @Transactional
+    public ImportResponseDto importAllBasicEntities() {
+        logger.info("Starting import of all basic entities");
+        
+        List<String> errors = new ArrayList<>();
+        int totalSuccessful = 0;
+        int totalFailed = 0;
+        int totalRecords = 0;
+        
+        // Import entities in logical order
+        ImportResponseDto[] results = {
+            importClassifications(),
+            importContacts(),
+            importDecisions(),
+            importDepartments(),
+            importForms(),
+            importFormTypes(),
+            importImportance(),
+            importPositions(),
+            importPosRoles(),
+            importPriority(),
+            importRoles(),
+            importSecrecy(),
+            importUserPositions(),
+            importUsers()
+        };
+        
+        for (ImportResponseDto result : results) {
+            totalRecords += result.getTotalRecords();
+            totalSuccessful += result.getSuccessfulImports();
+            totalFailed += result.getFailedImports();
+            if (result.getErrors() != null) {
+                errors.addAll(result.getErrors());
+            }
+        }
+        
+        String status = totalFailed == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+        String message = String.format("All basic entities import completed. Success: %d, Failed: %d", 
+                                     totalSuccessful, totalFailed);
+        
+        return new ImportResponseDto(status, message, totalRecords, totalSuccessful, totalFailed, errors);
+    }
+
     private ImportResponseDto importCorrespondenceData() {
         List<String> errors = new ArrayList<>();
         int successfulImports = 0;
