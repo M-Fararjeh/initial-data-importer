@@ -45,9 +45,6 @@ public class CorrespondenceRelatedImportService {
     @Autowired
     private CorrespondenceRepository correspondenceRepository;
     
-    @Autowired
-    private DataImportService dataImportService;
-    
     // Correspondence-related repositories
     @Autowired
     private CorrespondenceAttachmentRepository correspondenceAttachmentRepository;

@@ -117,9 +117,6 @@ public class DataImportService {
     @Autowired
     private CorrespondenceTransactionRepository correspondenceTransactionRepository;
 
-    @Autowired
-    private CorrespondenceRelatedImportService correspondenceRelatedImportService;
-
     // Basic entity import methods
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
@@ -466,26 +463,90 @@ public class DataImportService {
     public ImportResponseDto importAllCorrespondencesWithRelated() {
         logger.debug("Starting bulk import of all correspondences with related data");
         
-        // Delegate to CorrespondenceRelatedImportService for proper status tracking
-        return correspondenceRelatedImportService.importAllCorrespondencesWithRelatedData();
+        List<String> errors = new ArrayList<>();
+        int totalCorrespondences = 0;
+        int successfulCorrespondences = 0;
+        int failedCorrespondences = 0;
+        
+        try {
+            // Get all correspondences from database
+            List<Correspondence> correspondences = correspondenceRepository.findAll();
+            totalCorrespondences = correspondences.size();
+            
+            logger.info("Found {} correspondences to process for related data import", totalCorrespondences);
+            
+            if (correspondences.isEmpty()) {
+                return new ImportResponseDto("SUCCESS", "No correspondences found in database", 0, 0, 0, new ArrayList<>());
+            }
+            
+            for (Correspondence correspondence : correspondences) {
+                try {
+                    ImportResponseDto result = importAllCorrespondenceRelated(correspondence.getGuid());
+                    if ("SUCCESS".equals(result.getStatus()) || "PARTIAL_SUCCESS".equals(result.getStatus())) {
+                        successfulCorrespondences++;
+                    } else {
+                        failedCorrespondences++;
+                        errors.add("Failed to import related data for correspondence: " + correspondence.getGuid());
+                    }
+                } catch (Exception e) {
+                    failedCorrespondences++;
+                    String errorMsg = "Error processing correspondence " + correspondence.getGuid() + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            
+            String status = failedImports == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("Correspondence related data import completed. Success: %d, Failed: %d", 
+                                         successfulCorrespondences, failedCorrespondences);
+            
+            return new ImportResponseDto(status, message, totalCorrespondences, 
+                                       successfulCorrespondences, failedCorrespondences, errors);
+            
+        } catch (Exception e) {
+            logger.error("Error in comprehensive correspondence import", e);
+            return new ImportResponseDto("ERROR", "Import failed: " + e.getMessage(), 
+                                       0, 0, 0, Arrays.asList(e.getMessage()));
+        }
     }
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public ImportResponseDto importAllCorrespondenceRelated(String docGuid) {
         logger.debug("Starting import of all correspondence-related data for doc: {}", docGuid);
         
-        // Delegate to CorrespondenceRelatedImportService for proper status tracking
-        boolean success = correspondenceRelatedImportService.importRelatedDataForCorrespondence(docGuid);
+        List<String> errors = new ArrayList<>();
+        int totalSuccessful = 0;
+        int totalFailed = 0;
+        int totalRecords = 0;
         
-        if (success) {
-            return new ImportResponseDto("SUCCESS", 
-                "All correspondence-related data imported successfully for doc: " + docGuid, 
-                1, 1, 0, new ArrayList<>());
-        } else {
-            return new ImportResponseDto("ERROR", 
-                "Failed to import correspondence-related data for doc: " + docGuid, 
-                1, 0, 1, Arrays.asList("Import failed for doc: " + docGuid));
+        // Import all related entities for this correspondence
+        ImportResponseDto[] results = {
+            importCorrespondenceAttachments(docGuid),
+            importCorrespondenceComments(docGuid),
+            importCorrespondenceCopyTos(docGuid),
+            importCorrespondenceCurrentDepartments(docGuid),
+            importCorrespondenceCurrentPositions(docGuid),
+            importCorrespondenceCurrentUsers(docGuid),
+            importCorrespondenceCustomFields(docGuid),
+            importCorrespondenceLinks(docGuid),
+            importCorrespondenceSendTos(docGuid),
+            importCorrespondenceTransactions(docGuid)
+        };
+        
+        for (ImportResponseDto result : results) {
+            totalRecords += result.getTotalRecords();
+            totalSuccessful += result.getSuccessfulImports();
+            totalFailed += result.getFailedImports();
+            if (result.getErrors() != null) {
+                errors.addAll(result.getErrors());
+            }
         }
+        
+        String status = totalFailed == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+        String message = String.format("All correspondence-related data import completed for doc %s. Success: %d, Failed: %d", 
+                                     docGuid, totalSuccessful, totalFailed);
+        
+        return new ImportResponseDto(status, message, totalRecords, totalSuccessful, totalFailed, errors);
     }
 
     // Helper method to process import results
