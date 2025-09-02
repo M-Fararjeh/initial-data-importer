@@ -519,21 +519,49 @@ public class CorrespondenceRelatedImportService {
      * Gets import statistics for all correspondences
      */
     public Map<String, Object> getImportStatistics() {
+        logger.info("Getting import statistics from correspondence_import_status table");
+        
         try {
             Map<String, Object> statistics = new HashMap<>();
             
+            // First check if we have any records at all
+            long totalRecords = importStatusRepository.count();
+            logger.info("Total records in correspondence_import_status table: {}", totalRecords);
+            
+            if (totalRecords == 0) {
+                logger.warn("No records found in correspondence_import_status table");
+                statistics.put("pending", 0L);
+                statistics.put("inProgress", 0L);
+                statistics.put("completed", 0L);
+                statistics.put("failed", 0L);
+                statistics.put("total", 0L);
+                statistics.put("message", "No import status records found");
+                return statistics;
+            }
+            
             // Overall statistics
             Object[] overallStats = importStatusRepository.getImportStatistics();
+            logger.info("Raw overall statistics from database: {}", Arrays.toString(overallStats));
+            
             if (overallStats != null && overallStats.length >= 5) {
                 statistics.put("pending", overallStats[0] != null ? ((Number) overallStats[0]).longValue() : 0L);
                 statistics.put("inProgress", overallStats[1] != null ? ((Number) overallStats[1]).longValue() : 0L);
                 statistics.put("completed", overallStats[2] != null ? ((Number) overallStats[2]).longValue() : 0L);
                 statistics.put("failed", overallStats[3] != null ? ((Number) overallStats[3]).longValue() : 0L);
                 statistics.put("total", overallStats[4] != null ? ((Number) overallStats[4]).longValue() : 0L);
+            } else {
+                logger.warn("Invalid overall statistics result: {}", Arrays.toString(overallStats));
+                statistics.put("pending", 0L);
+                statistics.put("inProgress", 0L);
+                statistics.put("completed", 0L);
+                statistics.put("failed", 0L);
+                statistics.put("total", totalRecords);
             }
             
             // Entity-specific statistics
             Object[] entityStats = importStatusRepository.getEntityStatistics();
+            logger.info("Raw entity statistics from database: {}", Arrays.toString(entityStats));
+            
             if (entityStats != null && entityStats.length >= 10) {
                 Map<String, Object> entityStatistics = new HashMap<>();
                 entityStatistics.put("attachments", entityStats[0] != null ? ((Number) entityStats[0]).longValue() : 0L);
@@ -547,8 +575,12 @@ public class CorrespondenceRelatedImportService {
                 entityStatistics.put("sendTos", entityStats[8] != null ? ((Number) entityStats[8]).longValue() : 0L);
                 entityStatistics.put("transactions", entityStats[9] != null ? ((Number) entityStats[9]).longValue() : 0L);
                 statistics.put("entityDetails", entityStatistics);
+            } else {
+                logger.warn("Invalid entity statistics result: {}", Arrays.toString(entityStats));
+                statistics.put("entityDetails", new HashMap<>());
             }
             
+            logger.info("Final statistics response: {}", statistics);
             return statistics;
             
         } catch (Exception e) {

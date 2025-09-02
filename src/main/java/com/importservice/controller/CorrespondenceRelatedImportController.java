@@ -147,11 +147,20 @@ public class CorrespondenceRelatedImportController {
         
         try {
             Map<String, Object> statistics = correspondenceRelatedImportService.getImportStatistics();
+            
+            // Log the statistics for debugging
+            logger.info("Statistics response: {}", statistics);
+            
             return ResponseEntity.ok(statistics);
         } catch (Exception e) {
             logger.error("Error getting correspondence import statistics", e);
             Map<String, Object> errorMap = new java.util.HashMap<>();
             errorMap.put("error", "Failed to get statistics: " + e.getMessage());
+            errorMap.put("pending", 0L);
+            errorMap.put("inProgress", 0L);
+            errorMap.put("completed", 0L);
+            errorMap.put("failed", 0L);
+            errorMap.put("total", 0L);
             return ResponseEntity.status(500).body(errorMap);
         }
     }
