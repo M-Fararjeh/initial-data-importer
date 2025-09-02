@@ -120,7 +120,7 @@ public class CreationPhaseService {
         
         for (String correspondenceGuid : correspondenceGuids) {
             try {
-                boolean success = processCorrespondenceCreation(correspondenceGuid);
+                boolean success = processCorrespondenceCreationInNewTransaction(correspondenceGuid);
                 if (success) {
                     successfulImports++;
                     phaseService.updatePhaseStatus(correspondenceGuid, "CREATION", "COMPLETED", null);
@@ -148,7 +148,7 @@ public class CreationPhaseService {
     /**
      * Processes correspondence creation for a single correspondence
      */
-    private boolean processCorrespondenceCreation(String correspondenceGuid) {
+    private boolean processCorrespondenceCreationInNewTransaction(String correspondenceGuid) {
         try {
             Optional<IncomingCorrespondenceMigration> migrationOpt = 
                 migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
@@ -158,7 +158,7 @@ public class CreationPhaseService {
                 return false;
             }
             
-            return processCorrespondenceCreationWorkflow(migrationOpt.get());
+            return processCorrespondenceCreation(migrationOpt.get());
         } catch (Exception e) {
             logger.error("Error in new transaction for correspondence: {}", correspondenceGuid, e);
             return false;
@@ -168,7 +168,7 @@ public class CreationPhaseService {
     /**
      * Processes the complete creation workflow for a single correspondence
      */
-    private boolean processCorrespondenceCreationWorkflow(IncomingCorrespondenceMigration migration) {
+    private boolean processCorrespondenceCreation(IncomingCorrespondenceMigration migration) {
         String correspondenceGuid = migration.getCorrespondenceGuid();
         logger.info("Processing creation for correspondence: {}", correspondenceGuid);
         
