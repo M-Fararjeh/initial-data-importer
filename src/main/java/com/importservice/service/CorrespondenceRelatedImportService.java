@@ -349,10 +349,6 @@ public class CorrespondenceRelatedImportService {
             return importStatusRepository.save(newStatus);
         }
     }
-            logger.debug("Created new import status record for correspondence: {}", correspondenceGuid);
-            return savedStatus;
-        }
-    }
     
     /**
      * Retries failed imports for correspondences that haven't exceeded max retries
