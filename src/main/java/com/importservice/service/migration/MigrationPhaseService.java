@@ -28,7 +28,7 @@ public class MigrationPhaseService {
     /**
      * Updates migration phase status
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 60)
+    @Transactional(timeout = 60)
     public void updatePhaseStatus(String correspondenceGuid, String phase, String status, String error) {
         try {
             IncomingCorrespondenceMigration migration = migrationRepository
