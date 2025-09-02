@@ -108,7 +108,7 @@ public class AssignmentPhaseService {
     /**
      * Executes assignment for specific transactions
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
+    @Transactional(timeout = 180)
     public ImportResponseDto executeAssignmentForSpecific(List<String> transactionGuids) {
         logger.info("Starting assignment for {} specific transactions", transactionGuids.size());
         
@@ -118,7 +118,7 @@ public class AssignmentPhaseService {
         
         for (String transactionGuid : transactionGuids) {
             try {
-                boolean success = processAssignmentInNewTransaction(transactionGuid);
+                boolean success = processAssignmentForTransaction(transactionGuid);
                 
                 if (success) {
                     successfulImports++;
@@ -143,10 +143,9 @@ public class AssignmentPhaseService {
     }
     
     /**
-     * Processes assignment in a new transaction to prevent connection leaks
+     * Processes assignment for a single transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
-    private boolean processAssignmentInNewTransaction(String transactionGuid) {
+    private boolean processAssignmentForTransaction(String transactionGuid) {
         try {
             Optional<CorrespondenceTransaction> transactionOpt = 
                 transactionRepository.findById(transactionGuid);
@@ -169,7 +168,7 @@ public class AssignmentPhaseService {
             
             return success;
         } catch (Exception e) {
-            logger.error("Error in assignment transaction for: {}", transactionGuid, e);
+            logger.error("Error processing assignment for: {}", transactionGuid, e);
             return false;
         }
     }

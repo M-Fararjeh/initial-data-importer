@@ -104,7 +104,7 @@ public class CommentPhaseService {
     /**
      * Executes comment for specific comments
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
+    @Transactional(timeout = 180)
     public ImportResponseDto executeCommentForSpecific(List<String> commentGuids) {
         logger.info("Starting comment for {} specific comments", commentGuids.size());
         
@@ -114,7 +114,7 @@ public class CommentPhaseService {
         
         for (String commentGuid : commentGuids) {
             try {
-                boolean success = processCommentInNewTransaction(commentGuid);
+                boolean success = processCommentForGuid(commentGuid);
                 
                 if (success) {
                     successfulImports++;
@@ -139,10 +139,9 @@ public class CommentPhaseService {
     }
     
     /**
-     * Processes comment in a new transaction to prevent connection leaks
+     * Processes comment for a single comment GUID
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
-    private boolean processCommentInNewTransaction(String commentGuid) {
+    private boolean processCommentForGuid(String commentGuid) {
         try {
             Optional<CorrespondenceComment> commentOpt = 
                 commentRepository.findById(commentGuid);
@@ -165,7 +164,7 @@ public class CommentPhaseService {
             
             return success;
         } catch (Exception e) {
-            logger.error("Error in comment transaction for: {}", commentGuid, e);
+            logger.error("Error processing comment for: {}", commentGuid, e);
             return false;
         }
     }

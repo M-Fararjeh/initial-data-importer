@@ -248,7 +248,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports a specific entity type with status tracking in new transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
     public boolean importEntityWithTrackingInNewTransaction(String correspondenceGuid, String entityType, Long importStatusId) {
         try {
             logger.info("Importing {} for correspondence: {} (Status ID: {})", entityType, correspondenceGuid, importStatusId);

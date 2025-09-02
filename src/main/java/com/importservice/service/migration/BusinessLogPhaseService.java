@@ -103,7 +103,7 @@ public class BusinessLogPhaseService {
     /**
      * Executes business log for specific transactions
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
+    @Transactional(timeout = 180)
     public ImportResponseDto executeBusinessLogForSpecific(List<String> transactionGuids) {
         logger.info("Starting business log for {} specific transactions", transactionGuids.size());
         
@@ -113,7 +113,7 @@ public class BusinessLogPhaseService {
         
         for (String transactionGuid : transactionGuids) {
             try {
-                boolean success = processBusinessLogInNewTransaction(transactionGuid);
+                boolean success = processBusinessLogForTransaction(transactionGuid);
                 
                 if (success) {
                     successfulImports++;
@@ -138,10 +138,9 @@ public class BusinessLogPhaseService {
     }
     
     /**
-     * Processes business log in a new transaction to prevent connection leaks
+     * Processes business log for a single transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
-    private boolean processBusinessLogInNewTransaction(String transactionGuid) {
+    private boolean processBusinessLogForTransaction(String transactionGuid) {
         try {
             Optional<CorrespondenceTransaction> transactionOpt = 
                 transactionRepository.findById(transactionGuid);
@@ -164,7 +163,7 @@ public class BusinessLogPhaseService {
             
             return success;
         } catch (Exception e) {
-            logger.error("Error in business log transaction for: {}", transactionGuid, e);
+            logger.error("Error processing business log for: {}", transactionGuid, e);
             return false;
         }
     }

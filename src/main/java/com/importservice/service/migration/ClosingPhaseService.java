@@ -109,7 +109,7 @@ public class ClosingPhaseService {
     /**
      * Executes closing for specific correspondences
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 180)
+    @Transactional(timeout = 180)
     public ImportResponseDto executeClosingForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting closing for {} specific correspondences", correspondenceGuids.size());
         
@@ -119,7 +119,7 @@ public class ClosingPhaseService {
         
         for (String correspondenceGuid : correspondenceGuids) {
             try {
-                boolean success = processClosingInNewTransaction(correspondenceGuid);
+                boolean success = processClosingForCorrespondence(correspondenceGuid);
                 if (success) {
                     successfulImports++;
                     phaseService.updatePhaseStatus(correspondenceGuid, "CLOSING", "COMPLETED", null);
@@ -145,10 +145,9 @@ public class ClosingPhaseService {
     }
     
     /**
-     * Processes closing in a new transaction to prevent connection leaks
+     * Processes closing for a single correspondence
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
-    private boolean processClosingInNewTransaction(String correspondenceGuid) {
+    private boolean processClosingForCorrespondence(String correspondenceGuid) {
         try {
             Optional<IncomingCorrespondenceMigration> migrationOpt = 
                 migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
@@ -176,7 +175,7 @@ public class ClosingPhaseService {
             
             return success;
         } catch (Exception e) {
-            logger.error("Error in closing transaction for: {}", correspondenceGuid, e);
+            logger.error("Error processing closing for: {}", correspondenceGuid, e);
             return false;
         }
     }

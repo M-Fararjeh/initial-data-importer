@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Primary;
 import javax.sql.DataSource;
 
 @Configuration
-public class HikariConfiguration {
+public class HikariConfig {
 
     @Value("${spring.datasource.url}")
     private String jdbcUrl;
