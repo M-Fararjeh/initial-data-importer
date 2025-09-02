@@ -91,7 +91,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports all correspondence-related data with comprehensive status tracking
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 600)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public ImportResponseDto importAllCorrespondencesWithRelatedData() {
         logger.info("Starting comprehensive import of all correspondences with related data");
         
@@ -113,12 +113,16 @@ public class CorrespondenceRelatedImportService {
             
             for (Correspondence correspondence : correspondences) {
                 try {
+                    logger.info("Processing correspondence: {} ({}/{})", 
+                               correspondence.getGuid(), successfulCorrespondences + failedCorrespondences + 1, totalCorrespondences);
                     boolean success = importRelatedDataForCorrespondence(correspondence.getGuid());
                     if (success) {
                         successfulCorrespondences++;
+                        logger.info("Successfully completed import for correspondence: {}", correspondence.getGuid());
                     } else {
                         failedCorrespondences++;
                         errors.add("Failed to import related data for correspondence: " + correspondence.getGuid());
+                        logger.warn("Failed to complete import for correspondence: {}", correspondence.getGuid());
                     }
                 } catch (Exception e) {
                     failedCorrespondences++;
@@ -145,13 +149,15 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports related data for a specific correspondence with status tracking
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NOT_SUPPORTED)
     public boolean importRelatedDataForCorrespondence(String correspondenceGuid) {
         logger.info("Importing related data for correspondence: {}", correspondenceGuid);
         
         try {
             // Get or create import status record
             CorrespondenceImportStatus importStatus = createOrGetImportStatusInNewTransaction(correspondenceGuid);
+            logger.info("Import status record created/retrieved with ID: {} for correspondence: {}", 
+                       importStatus.getId(), correspondenceGuid);
             
             // Skip if already completed
             if (importStatus.isCompleted()) {
@@ -162,34 +168,43 @@ public class CorrespondenceRelatedImportService {
             importStatus.setOverallStatus("IN_PROGRESS");
             importStatus.setStartedAt(LocalDateTime.now());
             updateImportStatusInNewTransaction(importStatus);
+            logger.info("Updated import status to IN_PROGRESS for correspondence: {}", correspondenceGuid);
             
             // Import each entity type with status tracking
             boolean overallSuccess = true;
             
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "attachments", importStatus);
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "comments", importStatus);
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "copytos", importStatus);
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "currentdepartments", importStatus);
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "currentpositions", importStatus);
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "currentusers", importStatus);
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "customfields", importStatus);
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "links", importStatus);
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "sendtos", importStatus);
-            overallSuccess &= importEntityWithTracking(correspondenceGuid, "transactions", importStatus);
-            
-            // Update final status
-            if (overallSuccess) {
-                importStatus.setOverallStatus("COMPLETED");
-                importStatus.setCompletedAt(LocalDateTime.now());
-            } else {
-                importStatus.setOverallStatus("FAILED");
-                importStatus.incrementRetryCount();
+            try {
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "attachments", importStatus.getId());
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "comments", importStatus.getId());
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "copytos", importStatus.getId());
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "currentdepartments", importStatus.getId());
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "currentpositions", importStatus.getId());
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "currentusers", importStatus.getId());
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "customfields", importStatus.getId());
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "links", importStatus.getId());
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "sendtos", importStatus.getId());
+                overallSuccess &= importEntityWithTrackingInNewTransaction(correspondenceGuid, "transactions", importStatus.getId());
+            } catch (Exception e) {
+                logger.error("Error during entity import for correspondence: {}", correspondenceGuid, e);
+                overallSuccess = false;
             }
             
-            updateImportStatusInNewTransaction(importStatus);
+            // Update final status
+            CorrespondenceImportStatus finalStatus = getImportStatusByIdInNewTransaction(importStatus.getId());
+            if (overallSuccess) {
+                finalStatus.setOverallStatus("COMPLETED");
+                finalStatus.setCompletedAt(LocalDateTime.now());
+            } else {
+                finalStatus.setOverallStatus("FAILED");
+                finalStatus.incrementRetryCount();
+            }
+            
+            updateImportStatusInNewTransaction(finalStatus);
+            logger.info("Final status update completed for correspondence: {} with status: {}", 
+                       correspondenceGuid, finalStatus.getOverallStatus());
             
             logger.info("Completed related data import for correspondence: {} with status: {}", 
-                       correspondenceGuid, importStatus.getOverallStatus());
+                       correspondenceGuid, finalStatus.getOverallStatus());
             
             return overallSuccess;
             
@@ -202,6 +217,7 @@ public class CorrespondenceRelatedImportService {
                 importStatus.setOverallStatus("FAILED");
                 importStatus.incrementRetryCount();
                 updateImportStatusInNewTransaction(importStatus);
+                logger.info("Updated status to FAILED for correspondence: {}", correspondenceGuid);
             } catch (Exception statusUpdateError) {
                 logger.error("Error updating import status for correspondence: {}", correspondenceGuid, statusUpdateError);
             }
@@ -211,36 +227,71 @@ public class CorrespondenceRelatedImportService {
     }
     
     /**
-     * Imports a specific entity type with status tracking
+     * Gets import status by ID in a new transaction
      */
-    private boolean importEntityWithTracking(String correspondenceGuid, String entityType, CorrespondenceImportStatus importStatus) {
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
+    public CorrespondenceImportStatus getImportStatusByIdInNewTransaction(Long id) {
         try {
-            logger.debug("Importing {} for correspondence: {}", entityType, correspondenceGuid);
+            Optional<CorrespondenceImportStatus> status = importStatusRepository.findById(id);
+            if (status.isPresent()) {
+                logger.debug("Retrieved import status with ID: {}", id);
+                return status.get();
+            } else {
+                throw new RuntimeException("Import status not found with ID: " + id);
+            }
+        } catch (Exception e) {
+            logger.error("Error retrieving import status with ID: {}", id, e);
+            throw new RuntimeException("Failed to retrieve import status: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Imports a specific entity type with status tracking in new transaction
+     */
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
+    public boolean importEntityWithTrackingInNewTransaction(String correspondenceGuid, String entityType, Long importStatusId) {
+        try {
+            logger.info("Importing {} for correspondence: {} (Status ID: {})", entityType, correspondenceGuid, importStatusId);
+            
+            // Get fresh import status from database
+            CorrespondenceImportStatus importStatus = getImportStatusByIdInNewTransaction(importStatusId);
             
             // Mark as in progress
             importStatus.markEntityInProgress(entityType);
             updateImportStatusInNewTransaction(importStatus);
+            logger.debug("Marked {} as IN_PROGRESS for correspondence: {}", entityType, correspondenceGuid);
             
             // Call appropriate import method
             ImportResponseDto result = callImportMethod(correspondenceGuid, entityType);
             
+            // Get fresh status again to avoid stale data
+            importStatus = getImportStatusByIdInNewTransaction(importStatusId);
+            
             if ("SUCCESS".equals(result.getStatus()) || "PARTIAL_SUCCESS".equals(result.getStatus())) {
                 importStatus.markEntitySuccess(entityType, result.getSuccessfulImports());
-                logger.debug("Successfully imported {} for correspondence: {}", entityType, correspondenceGuid);
+                updateImportStatusInNewTransaction(importStatus);
+                logger.info("Successfully imported {} ({} records) for correspondence: {}", 
+                           entityType, result.getSuccessfulImports(), correspondenceGuid);
                 return true;
             } else {
                 importStatus.markEntityFailed(entityType, result.getMessage());
-                logger.warn("Failed to import {} for correspondence: {} - {}", entityType, correspondenceGuid, result.getMessage());
+                updateImportStatusInNewTransaction(importStatus);
+                logger.warn("Failed to import {} for correspondence: {} - {}", 
+                           entityType, correspondenceGuid, result.getMessage());
                 return false;
             }
             
         } catch (Exception e) {
-            String errorMsg = "Error importing " + entityType + " for correspondence " + correspondenceGuid + ": " + e.getMessage();
-            importStatus.markEntityFailed(entityType, errorMsg);
-            logger.error(errorMsg, e);
+            try {
+                CorrespondenceImportStatus importStatus = getImportStatusByIdInNewTransaction(importStatusId);
+                String errorMsg = "Error importing " + entityType + " for correspondence " + correspondenceGuid + ": " + e.getMessage();
+                importStatus.markEntityFailed(entityType, errorMsg);
+                updateImportStatusInNewTransaction(importStatus);
+                logger.error(errorMsg, e);
+            } catch (Exception statusError) {
+                logger.error("Error updating status after import failure for {} - {}", entityType, statusError.getMessage());
+            }
             return false;
-        } finally {
-            updateImportStatusInNewTransaction(importStatus);
         }
     }
     
@@ -286,7 +337,7 @@ public class CorrespondenceRelatedImportService {
      */
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
     public CorrespondenceImportStatus createOrGetImportStatusInNewTransaction(String correspondenceGuid) {
-        logger.info("Creating or getting import status for correspondence: {}", correspondenceGuid);
+        logger.info("[NEW_TRANSACTION] Creating or getting import status for correspondence: {}", correspondenceGuid);
         
         try {
             // First check if it exists
@@ -294,12 +345,13 @@ public class CorrespondenceRelatedImportService {
                 importStatusRepository.findByCorrespondenceGuid(correspondenceGuid);
             
             if (existingStatus.isPresent()) {
-                logger.info("Found existing import status for correspondence: {}", correspondenceGuid);
+                logger.info("[NEW_TRANSACTION] Found existing import status with ID: {} for correspondence: {}", 
+                           existingStatus.get().getId(), correspondenceGuid);
                 return existingStatus.get();
             }
             
             // Create new status record
-            logger.info("Creating new import status record for correspondence: {}", correspondenceGuid);
+            logger.info("[NEW_TRANSACTION] Creating new import status record for correspondence: {}", correspondenceGuid);
             CorrespondenceImportStatus newStatus = new CorrespondenceImportStatus(correspondenceGuid);
             newStatus.setOverallStatus("PENDING");
             newStatus.setStartedAt(LocalDateTime.now());
@@ -308,13 +360,23 @@ public class CorrespondenceRelatedImportService {
             CorrespondenceImportStatus savedStatus = importStatusRepository.save(newStatus);
             importStatusRepository.flush();
             
-            logger.info("Successfully created import status record with ID: {} for correspondence: {}", 
+            logger.info("[NEW_TRANSACTION] Successfully created and committed import status record with ID: {} for correspondence: {}", 
                        savedStatus.getId(), correspondenceGuid);
+            
+            // Verify the record was actually saved by querying it back
+            Optional<CorrespondenceImportStatus> verifyStatus = 
+                importStatusRepository.findByCorrespondenceGuid(correspondenceGuid);
+            if (verifyStatus.isPresent()) {
+                logger.info("[NEW_TRANSACTION] VERIFIED: Record exists in database with ID: {}", verifyStatus.get().getId());
+            } else {
+                logger.error("[NEW_TRANSACTION] ERROR: Record not found after save and flush!");
+                throw new RuntimeException("Record not persisted after save and flush");
+            }
             
             return savedStatus;
             
         } catch (Exception e) {
-            logger.error("Error creating import status for correspondence: {}", correspondenceGuid, e);
+            logger.error("[NEW_TRANSACTION] Error creating import status for correspondence: {}", correspondenceGuid, e);
             throw new RuntimeException("Failed to create import status: " + e.getMessage(), e);
         }
     }
@@ -325,12 +387,25 @@ public class CorrespondenceRelatedImportService {
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
     public void updateImportStatusInNewTransaction(CorrespondenceImportStatus importStatus) {
         try {
-            logger.debug("Updating import status for correspondence: {}", importStatus.getCorrespondenceGuid());
+            logger.info("[NEW_TRANSACTION] Updating import status ID: {} for correspondence: {}", 
+                       importStatus.getId(), importStatus.getCorrespondenceGuid());
             importStatusRepository.save(importStatus);
             importStatusRepository.flush();
-            logger.debug("Successfully updated import status for correspondence: {}", importStatus.getCorrespondenceGuid());
+            logger.info("[NEW_TRANSACTION] Successfully updated and committed import status for correspondence: {}", 
+                       importStatus.getCorrespondenceGuid());
+            
+            // Verify the update was persisted
+            Optional<CorrespondenceImportStatus> verifyStatus = 
+                importStatusRepository.findById(importStatus.getId());
+            if (verifyStatus.isPresent()) {
+                logger.info("[NEW_TRANSACTION] VERIFIED: Updated record exists with status: {}", 
+                           verifyStatus.get().getOverallStatus());
+            } else {
+                logger.error("[NEW_TRANSACTION] ERROR: Record not found after update!");
+            }
         } catch (Exception e) {
-            logger.error("Error updating import status for correspondence: {}", importStatus.getCorrespondenceGuid(), e);
+            logger.error("[NEW_TRANSACTION] Error updating import status for correspondence: {}", 
+                        importStatus.getCorrespondenceGuid(), e);
             throw new RuntimeException("Failed to update import status: " + e.getMessage(), e);
         }
     }
