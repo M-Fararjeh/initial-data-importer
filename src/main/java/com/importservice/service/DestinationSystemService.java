@@ -18,6 +18,7 @@ import com.importservice.entity.CorrespondenceComment;
 import com.importservice.entity.Correspondence;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
+import com.importservice.util.CorrespondenceSubjectGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.importservice.util.HijriDateUtils;
 import org.slf4j.Logger;
@@ -70,6 +71,9 @@ public class DestinationSystemService {
     
     @Autowired
     private ObjectMapper objectMapper;
+    
+    @Autowired
+    private CorrespondenceSubjectGenerator subjectGenerator;
     
     /**
      * Logs request details if logging is enabled
@@ -239,7 +243,15 @@ public class DestinationSystemService {
             
             // Build incCorrespondence context
             Map<String, Object> incCorrespondence = new HashMap<>();
-            incCorrespondence.put("corr:subject", subject != null ? subject : "");
+            
+            // Use subject generator if subject is empty and random generation is enabled
+            String finalSubject = subject;
+            if ((subject == null || subject.trim().isEmpty()) && subjectGenerator.isRandomSubjectEnabled()) {
+                finalSubject = subjectGenerator.generateSubjectWithCategory(category);
+                logger.info("Generated random subject for correspondence {}: {}", correspondence.getGuid(), finalSubject);
+            }
+            
+            incCorrespondence.put("corr:subject", finalSubject != null ? finalSubject : "");
             incCorrespondence.put("corr:externalCorrespondenceNumber", externalRef != null ? externalRef : "");
             incCorrespondence.put("corr:remarks", notes != null ? notes : "");
             incCorrespondence.put("corr:referenceNumber", referenceNo != null ? referenceNo : "");

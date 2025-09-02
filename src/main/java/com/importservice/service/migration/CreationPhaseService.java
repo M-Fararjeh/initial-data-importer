@@ -14,6 +14,7 @@ import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
 import com.importservice.util.DepartmentUtils;
 import com.importservice.util.HijriDateUtils;
+import com.importservice.util.CorrespondenceSubjectGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,9 @@ public class CreationPhaseService {
     
     @Autowired
     private DepartmentUtils departmentUtils;
+    
+    @Autowired
+    private CorrespondenceSubjectGenerator subjectGenerator;
     
     /**
      * Phase 2: Creation
@@ -279,7 +283,9 @@ public class CreationPhaseService {
                           correspondence.getCreationUserName() : "itba-emp1";
             
             // Map correspondence data for destination system
-            String subject = correspondence.getSubject() != null ? correspondence.getSubject() : "";
+            String originalSubject = correspondence.getSubject();
+            String subject = subjectGenerator.generateSubject(originalSubject);
+            
             String externalRef = correspondence.getExternalReferenceNumber() != null ? 
                                correspondence.getExternalReferenceNumber() : "";
             String notes = correspondence.getNotes() != null ? CorrespondenceUtils.cleanHtmlTags(correspondence.getNotes()) : "";
@@ -287,6 +293,12 @@ public class CreationPhaseService {
             
             // Map category, priority, secrecy
             String category = CorrespondenceUtils.mapCategory(correspondence.getClassificationGuid());
+            
+            // If no original subject and random generation is enabled, generate by category
+            if ((originalSubject == null || originalSubject.trim().isEmpty()) && subjectGenerator.isRandomSubjectEnabled()) {
+                subject = subjectGenerator.generateSubjectWithCategory(category);
+            }
+            
             String priority = CorrespondenceUtils.mapPriority(correspondence.getPriorityId());
             String secrecyLevel = CorrespondenceUtils.mapSecrecyLevel(correspondence.getSecrecyId());
             
