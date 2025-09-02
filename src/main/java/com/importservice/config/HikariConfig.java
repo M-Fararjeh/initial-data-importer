@@ -27,7 +27,7 @@ public class HikariConfig {
     @Bean
     @Primary
     public DataSource dataSource() {
-        HikariConfig config = new HikariConfig();
+        com.zaxxer.hikari.HikariConfig config = new com.zaxxer.hikari.HikariConfig();
         
         // Basic connection settings
         config.setJdbcUrl(jdbcUrl);
