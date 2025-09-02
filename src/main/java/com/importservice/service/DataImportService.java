@@ -6,7 +6,6 @@ import com.importservice.dto.ApiResponseDto;
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.entity.*;
 import com.importservice.repository.*;
-import com.importservice.service.CorrespondenceRelatedImportService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -118,8 +117,6 @@ public class DataImportService {
     @Autowired
     private CorrespondenceTransactionRepository correspondenceTransactionRepository;
 
-    @Autowired
-    private CorrespondenceRelatedImportService correspondenceRelatedImportService;
 
     // Basic entity import methods
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
@@ -467,9 +464,52 @@ public class DataImportService {
     public ImportResponseDto importAllCorrespondencesWithRelated() {
         logger.debug("Starting bulk import of all correspondences with related data");
         
-        // Delegate to the new service that handles status tracking
-        logger.info("Delegating to CorrespondenceRelatedImportService for tracked import");
-        return correspondenceRelatedImportService.importAllCorrespondencesWithRelatedData();
+        List<String> errors = new ArrayList<>();
+        int totalCorrespondences = 0;
+        int successfulCorrespondences = 0;
+        int failedCorrespondences = 0;
+        
+        try {
+            // Get all correspondences from database
+            List<Correspondence> correspondences = correspondenceRepository.findAll();
+            totalCorrespondences = correspondences.size();
+            
+            logger.info("Found {} correspondences to process for related data import", totalCorrespondences);
+            
+            if (correspondences.isEmpty()) {
+                return new ImportResponseDto("SUCCESS", "No correspondences found in database", 
+                    0, 0, 0, new ArrayList<>());
+            }
+            
+            for (Correspondence correspondence : correspondences) {
+                try {
+                    ImportResponseDto result = importAllCorrespondenceRelated(correspondence.getGuid());
+                    if ("SUCCESS".equals(result.getStatus()) || "PARTIAL_SUCCESS".equals(result.getStatus())) {
+                        successfulCorrespondences++;
+                    } else {
+                        failedCorrespondences++;
+                        errors.add("Failed to import related data for correspondence: " + correspondence.getGuid());
+                    }
+                } catch (Exception e) {
+                    failedCorrespondences++;
+                    String errorMsg = "Error processing correspondence " + correspondence.getGuid() + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            
+            String status = failedCorrespondences == 0 ? "SUCCESS" : "PARTIAL_SUCCESS";
+            String message = String.format("Bulk correspondence import completed. Success: %d, Failed: %d", 
+                                         successfulCorrespondences, failedCorrespondences);
+            
+            return new ImportResponseDto(status, message, totalCorrespondences, 
+                                       successfulCorrespondences, failedCorrespondences, errors);
+                                       
+        } catch (Exception e) {
+            logger.error("Error in bulk correspondence import", e);
+            return new ImportResponseDto("ERROR", "Bulk import failed: " + e.getMessage(), 
+                0, 0, 0, Arrays.asList(e.getMessage()));
+        }
     }
 
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)

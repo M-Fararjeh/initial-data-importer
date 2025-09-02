@@ -477,7 +477,7 @@ public class DataImportController {
 
     @PostMapping("/all-correspondences-with-related")
     @Operation(summary = "Import All Correspondences with Related Data", 
-               description = "Retrieves all correspondences from database and imports all related entities for each")
+               description = "Import all correspondences with related data using DataImportService")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Import completed successfully"),
         @ApiResponse(responseCode = "400", description = "Import failed with errors"),
@@ -487,8 +487,7 @@ public class DataImportController {
         logger.info("Received request to import all correspondences with related data");
         
         try {
-            // Use the new service that provides status tracking
-            ImportResponseDto response = correspondenceRelatedImportService.importAllCorrespondencesWithRelatedData();
+            ImportResponseDto response = dataImportService.importAllCorrespondencesWithRelated();
             return getResponseEntity(response);
         } catch (Exception e) {
             logger.error("Unexpected error during correspondence related import", e);
@@ -498,7 +497,7 @@ public class DataImportController {
     
     @PostMapping("/correspondence-related/{correspondenceGuid}")
     @Operation(summary = "Import Related Data for Specific Correspondence", 
-               description = "Import all related data for a specific correspondence with status tracking")
+               description = "Import all related data for a specific correspondence")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Import completed successfully"),
         @ApiResponse(responseCode = "400", description = "Import failed with errors"),
@@ -509,12 +508,14 @@ public class DataImportController {
         logger.info("Received request to import related data for correspondence: {}", correspondenceGuid);
         
         try {
-            boolean success = correspondenceRelatedImportService.importRelatedDataForCorrespondence(correspondenceGuid);
+            ImportResponseDto result = dataImportService.importAllCorrespondenceRelated(correspondenceGuid);
+            boolean success = "SUCCESS".equals(result.getStatus()) || "PARTIAL_SUCCESS".equals(result.getStatus());
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", success);
             response.put("correspondenceGuid", correspondenceGuid);
-            response.put("message", success ? "Import completed successfully" : "Import failed");
+            response.put("message", result.getMessage());
+            response.put("details", result);
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -529,7 +530,7 @@ public class DataImportController {
     
     @GetMapping("/correspondence-import-statistics")
     @Operation(summary = "Get Correspondence Import Statistics", 
-               description = "Returns statistics about correspondence-related data import progress")
+               description = "Returns basic statistics about correspondence import")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
     })
@@ -537,7 +538,14 @@ public class DataImportController {
         logger.info("Received request for correspondence import statistics");
         
         try {
-            Map<String, Object> statistics = correspondenceRelatedImportService.getImportStatistics();
+            Map<String, Object> statistics = new HashMap<>();
+            
+            // Get basic counts from repositories
+            statistics.put("totalCorrespondences", correspondenceRepository.count());
+            statistics.put("totalAttachments", correspondenceAttachmentRepository.count());
+            statistics.put("totalComments", correspondenceCommentRepository.count());
+            statistics.put("totalTransactions", correspondenceTransactionRepository.count());
+            
             return ResponseEntity.ok(statistics);
         } catch (Exception e) {
             logger.error("Error getting correspondence import statistics", e);
@@ -549,7 +557,7 @@ public class DataImportController {
     
     @GetMapping("/correspondence-import-status")
     @Operation(summary = "Get All Correspondence Import Statuses", 
-               description = "Returns detailed import status for all correspondences")
+               description = "Returns basic import status information")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statuses retrieved successfully")
     })
@@ -557,9 +565,19 @@ public class DataImportController {
         logger.info("Received request for all correspondence import statuses");
         
         try {
+            // Return basic correspondence information
             List<Object> statuses = new ArrayList<>();
-            correspondenceRelatedImportService.getAllImportStatuses()
-                .forEach(status -> statuses.add(status));
+            List<Correspondence> correspondences = correspondenceRepository.findAll();
+            
+            for (Correspondence correspondence : correspondences) {
+                Map<String, Object> statusInfo = new HashMap<>();
+                statusInfo.put("correspondenceGuid", correspondence.getGuid());
+                statusInfo.put("subject", correspondence.getSubject());
+                statusInfo.put("referenceNo", correspondence.getReferenceNo());
+                statusInfo.put("importStatus", correspondence.getImportStatus());
+                statuses.add(statusInfo);
+            }
+            
             return ResponseEntity.ok(statuses);
         } catch (Exception e) {
             logger.error("Error getting all import statuses", e);
