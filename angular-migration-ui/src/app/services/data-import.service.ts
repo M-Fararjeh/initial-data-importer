@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, tap, map } from 'rxjs/operators';
 
 export interface ImportResponse {
   status: string;
@@ -108,7 +108,7 @@ export class DataImportService {
     console.log('Getting entity count for endpoint:', endpoint);
     return this.http.get<{count: number}>(`${this.baseUrl}/${endpoint}/count`)
       .pipe(
-        map(response => response.count || 0),
+        map((response: {count: number}) => response.count || 0),
         tap((count) => console.log(`Entity ${endpoint} count:`, count)),
         catchError((error: HttpErrorResponse) => {
           console.error(`Error getting count for ${endpoint}:`, error);

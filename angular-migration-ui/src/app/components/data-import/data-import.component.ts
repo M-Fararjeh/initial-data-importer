@@ -513,7 +513,7 @@ export class DataImportComponent implements OnInit, OnDestroy {
   
   clearLogs(): void {
     this.importLogs = [];
-    this.addLog('info', 'Import log cleared');
+      entity.lastResult && (entity.lastResult.status === 'SUCCESS' || entity.lastResult.status === 'PARTIAL_SUCCESS')
   }
   
   // Styling helper methods
@@ -522,7 +522,7 @@ export class DataImportComponent implements OnInit, OnDestroy {
       return 'border-red-200 bg-red-50';
     } else if (entity.isImporting) {
       return 'border-blue-200 bg-blue-50 status-importing';
-    } else if (entity.lastResult && entity.lastResult.status === 'SUCCESS') {
+    } else if (entity.lastResult && (entity.lastResult.status === 'SUCCESS' || entity.lastResult.status === 'PARTIAL_SUCCESS')) {
       return 'border-green-200 bg-green-50';
     } else {
       return 'border-gray-200 bg-white';
@@ -536,7 +536,7 @@ export class DataImportComponent implements OnInit, OnDestroy {
     
     if (entity.hasError) {
       return 'bg-red-600 text-white hover:bg-red-700';
-    } else if (entity.lastResult && entity.lastResult.status === 'SUCCESS') {
+    } else if (entity.lastResult && (entity.lastResult.status === 'SUCCESS' || entity.lastResult.status === 'PARTIAL_SUCCESS')) {
       return 'bg-green-600 text-white hover:bg-green-700';
     } else {
       return 'bg-indigo-600 text-white hover:bg-indigo-700';
@@ -548,7 +548,7 @@ export class DataImportComponent implements OnInit, OnDestroy {
       return 'Importing...';
     } else if (entity.hasError) {
       return 'Retry Import';
-    } else if (entity.lastResult && entity.lastResult.status === 'SUCCESS') {
+    } else if (entity.lastResult && (entity.lastResult.status === 'SUCCESS' || entity.lastResult.status === 'PARTIAL_SUCCESS')) {
       return 'Re-import';
     } else {
       return 'Import';
