@@ -19,6 +19,7 @@ import com.importservice.entity.Correspondence;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.importservice.util.HijriDateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -331,10 +332,12 @@ public class DestinationSystemService {
             request.setDocDate(attachment.getFileCreationDate() != null ? 
                              attachment.getFileCreationDate().toString() + "Z" : 
                              LocalDateTime.now().toString() + "Z");
-            request.setAsUser(attachment.getCreationUserName() != null ? attachment.getCreationUserName() : "itba-emp1");
+            //request.setAsUser(attachment.getCreationUserName() != null ? attachment.getCreationUserName() : "itba-emp1");
             request.setDocID(correspondenceDocumentId); // Use the correspondence document ID from destination system
             request.setGuid(attachment.getGuid()); // Use attachment GUID
-            
+            request.setAsUser("cts_admin");
+            request.setDocCreator(attachment.getCreationUserName() != null ? attachment.getCreationUserName() : "itba-emp1");
+
             // Build attachment context
             Map<String, Object> attachmentData = new HashMap<>();
             attachmentData.put("title", CorrespondenceUtils.cleanFileName(attachment.getName()));
@@ -360,7 +363,7 @@ public class DestinationSystemService {
             fileContent.put("upload-fileId", "0");
             fileContent.put("mime-type", CorrespondenceUtils.getMimeType(attachment.getName()));
             attachmentData.put("file:content", fileContent);
-            
+            request.getContext().put("tenantId", "ITBA");
             request.setAttachment(attachmentData);
             
             logApiCall("CREATE_ATTACHMENT", url, request);
@@ -637,12 +640,12 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_Assignment_Create");
-            request.setAsUser("cts_admin");
             request.setDocID(documentId);
-            request.setDocDate(actionDate != null ? 
-                             actionDate.toString() + "Z" : 
-                             LocalDateTime.now().toString() + "Z");
+            request.setDocDate(actionDate != null ?
+                             HijriDateUtils.addYears(actionDate,5).toString() + "Z" :
+                             HijriDateUtils.addYears(LocalDateTime.now(),5).toString() + "Z");
             request.setGuid(transactionGuid);
+            request.setAsUser("cts_admin");
             request.setDocCreator(asUser);
             
             // Build assignment context

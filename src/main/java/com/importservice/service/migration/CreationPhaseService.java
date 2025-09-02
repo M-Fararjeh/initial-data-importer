@@ -294,10 +294,11 @@ public class CreationPhaseService {
             String fromAgency = AgencyMappingUtils.mapAgencyGuidToCode(correspondence.getComingFromGuid());
             
             // Map department
-            String toDepartment = DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getFromDepartmentGuid());
+            String toDepartment = "COF"; // Default department
+/*            DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getFromDepartmentGuid());
             if (toDepartment == null) {
                 toDepartment = "COF"; // Default department
-            }
+            }*/
             
             // Convert dates to Hijri
             String gDueDate = correspondence.getDueDate() != null ? 

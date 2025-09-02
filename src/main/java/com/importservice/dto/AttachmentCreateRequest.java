@@ -53,7 +53,11 @@ public class AttachmentCreateRequest {
     public void setGuid(String guid) {
         this.params.put("guid", guid);
     }
-    
+
+    public void setDocCreator(String docCreator) {
+        this.params.put("docCreator", docCreator);
+    }
+
     // Helper method for context
     public void setAttachment(Map<String, Object> attachment) {
         this.context.put("attachment", attachment);

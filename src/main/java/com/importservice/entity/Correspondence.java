@@ -2,6 +2,7 @@ package com.importservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.importservice.util.CorrespondenceUtils;
+import com.importservice.util.HijriDateUtils;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -227,7 +228,7 @@ public class Correspondence extends BaseEntity {
     }
     
     public LocalDateTime getDueDate() {
-        return dueDate;
+        return HijriDateUtils.addYears(dueDate,5);
     }
     
     public void setDueDate(LocalDateTime dueDate) {
