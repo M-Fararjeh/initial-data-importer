@@ -59,9 +59,12 @@
           <p class="text-sm text-gray-600 mb-3">{{ entity.description }}</p>
           
           <!-- Import Results -->
-          <div *ngIf="entity.lastResult" class="text-xs text-gray-500 mb-3">
-            <div class="flex justify-between">
-              <span>Total: {{ entity.lastResult.totalRecords }}</span>
+          <div class="text-xs text-gray-500 mb-3">
+            <div class="flex justify-between" *ngIf="entity.recordCount !== undefined">
+              <span class="font-medium">Records in DB: {{ entity.recordCount | number }}</span>
+            </div>
+            <div class="flex justify-between" *ngIf="entity.lastResult">
+              <span>Last Import: {{ entity.lastResult.totalRecords }}</span>
               <span class="text-green-600">Success: {{ entity.lastResult.successfulImports }}</span>
               <span class="text-red-600" *ngIf="entity.lastResult.failedImports > 0">
                 Failed: {{ entity.lastResult.failedImports }}
@@ -69,19 +72,26 @@
             </div>
           </div>
           
+          <!-- Loading State for Count -->
+          <div *ngIf="entity.recordCount === undefined && !entity.lastResult" class="text-xs text-gray-400 mb-3">
+            <div class="flex justify-between">
+              <span>Loading count...</span>
+            </div>
+          </div>
+          
           <!-- Action Button -->
           <button 
             (click)="importEntity(entity)"
-            [disabled]="isLoading || entity.status === 'importing'"
+            [disabled]="isLoading"
             class="w-full px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200"
             [ngClass]="getEntityButtonClass(entity)">
             
-            <span *ngIf="entity.status === 'importing'" class="animate-spin mr-2">⟳</span>
+            <span *ngIf="entity.isImporting" class="animate-spin mr-2">⟳</span>
             {{ getEntityButtonText(entity) }}
           </button>
           
           <!-- Error Details -->
-          <div *ngIf="entity.status === 'error' && entity.lastResult?.errors?.length" 
+          <div *ngIf="entity.hasError && entity.lastResult?.errors?.length" 
                class="mt-3 p-2 bg-red-50 border border-red-200 rounded text-xs">
             <div class="font-medium text-red-800 mb-1">Errors:</div>
             <div class="text-red-700">
@@ -130,14 +140,122 @@
               <span class="text-lg">📄</span>
               <h4 class="font-medium text-gray-900">Correspondences</h4>
             </div>
-            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium"
-                  [ngClass]="getStatusBadgeClass(correspondenceImport.status)">
-              {{ correspondenceImport.status }}
-            </span>
+            <div class="text-sm text-gray-600" *ngIf="correspondenceImport.recordCount !== undefined">
+              {{ correspondenceImport.recordCount | number }} records
+            </div>
           </div>
           <p class="text-sm text-gray-600 mb-3">Import main correspondence records from source system</p>
           
-          <div *ngIf="correspondenceImport.lastResult" class="text-xs text-gray-500 mb-3">
+          <div class="text-xs text-gray-500 mb-3">
+            <div class="flex justify-between" *ngIf="correspondenceImport.recordCount !== undefined">
+              <span class="font-medium">Records in DB: {{ correspondenceImport.recordCount | number }}</span>
+            </div>
+            <div class="flex justify-between" *ngIf="correspondenceImport.lastResult">
+              <span>Last Import: {{ correspondenceImport.lastResult.totalRecords }}</span>
+              <span class="text-green-600">Success: {{ correspondenceImport.lastResult.successfulImports }}</span>
+              <span class="text-red-600" *ngIf="correspondenceImport.lastResult.failedImports > 0">
+                Failed: {{ correspondenceImport.lastResult.failedImports }}
+              </span>
+            </div>
+          </div>
+          
+          <button 
+            (click)="importCorrespondences()"
+            [disabled]="isLoading"
+            class="w-full px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200"
+            [ngClass]="getEntityButtonClass(correspondenceImport)">
+            
+            <span *ngIf="correspondenceImport.isImporting" class="animate-spin mr-2">⟳</span>
+            {{ getEntityButtonText(correspondenceImport) }}
+          </button>
+        </div>
+        
+        <!-- Related Data Import Card -->
+        <div class="border rounded-lg p-4" [ngClass]="getEntityCardClass(relatedDataImport)">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center space-x-2">
+              <span class="text-lg">📦</span>
+              <h4 class="font-medium text-gray-900">Related Data</h4>
+            </div>
+            <div class="text-sm text-gray-600" *ngIf="relatedDataImport.recordCount !== undefined">
+              Multiple tables
+            </div>
+          </div>
+          <p class="text-sm text-gray-600 mb-3">Import attachments, comments, transactions, and other related data</p>
+          
+          <div class="text-xs text-gray-500 mb-3">
+            <div class="flex justify-between" *ngIf="relatedDataImport.lastResult">
+              <span>Last Import: {{ relatedDataImport.lastResult.totalRecords }}</span>
+              <span class="text-green-600">Success: {{ relatedDataImport.lastResult.successfulImports }}</span>
+              <span class="text-red-600" *ngIf="relatedDataImport.lastResult.failedImports > 0">
+                Failed: {{ relatedDataImport.lastResult.failedImports }}
+              </span>
+            </div>
+          </div>
+          
+          <button 
+            (click)="importAllCorrespondencesWithRelated()"
+            [disabled]="isLoading"
+            class="w-full px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200"
+            [ngClass]="getEntityButtonClass(relatedDataImport)">
+            
+            <span *ngIf="relatedDataImport.isImporting" class="animate-spin mr-2">⟳</span>
+            {{ getEntityButtonText(relatedDataImport) }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Log Section -->
+  <div class="bg-white shadow rounded-lg overflow-hidden" *ngIf="importLogs.length > 0">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-medium text-gray-900">Import Activity Log</h3>
+        <button 
+          (click)="clearLogs()"
+          class="text-sm text-gray-500 hover:text-gray-700">
+          Clear Log
+        </button>
+      </div>
+    </div>
+    
+    <div class="max-h-96 overflow-y-auto log-container">
+      <div class="p-4 space-y-2">
+        <div *ngFor="let log of importLogs.slice().reverse()" 
+             class="flex items-start space-x-3 p-3 rounded-lg log-entry"
+             [ngClass]="getLogEntryClass(log.type)">
+          <span class="text-sm">{{ getLogIcon(log.type) }}</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium" [ngClass]="getLogTextClass(log.type)">
+              {{ log.message }}
+            </div>
+            <div class="text-xs text-gray-500 mt-1">
+              {{ formatDate(log.timestamp) }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div *ngIf="isLoading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 loading-overlay">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+        <span class="text-gray-900 font-medium">{{ currentOperation }}</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div class="bg-indigo-600 h-2 rounded-full transition-all duration-300 progress-bar" 
+             [style.width.%]="loadingProgress"></div>
+      </div>
+      <div class="text-sm text-gray-600 mt-2 text-center">
+        {{ loadingProgress }}% Complete
+      </div>
+    </div>
+  </div>
+</div>
             <div class="flex justify-between">
               <span>Total: {{ correspondenceImport.lastResult.totalRecords }}</span>
               <span class="text-green-600">Success: {{ correspondenceImport.lastResult.successfulImports }}</span>

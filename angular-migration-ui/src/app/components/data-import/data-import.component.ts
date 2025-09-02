@@ -9,7 +9,9 @@ export interface ImportEntity {
   description: string;
   icon: string;
   endpoint: string;
-  status: 'pending' | 'importing' | 'completed' | 'error';
+  recordCount?: number;
+  isImporting: boolean;
+  hasError: boolean;
   lastResult?: ImportResponse;
   order: number;
 }
@@ -42,12 +44,6 @@ export class DataImportComponent implements OnInit, OnDestroy {
   loadingProgress = 0;
   
   importLogs: ImportLog[] = [];
-  overallProgress: OverallProgress = {
-    total: 0,
-    completed: 0,
-    inProgress: 0,
-    failed: 0
-  };
   
   basicEntities: ImportEntity[] = [
     {
@@ -56,7 +52,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Document classification categories and types',
       icon: '📂',
       endpoint: 'classifications',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 1
     },
     {
@@ -65,7 +62,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Contact information and external parties',
       icon: '👥',
       endpoint: 'contacts',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 2
     },
     {
@@ -74,7 +72,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Decision types and workflow actions',
       icon: '⚖️',
       endpoint: 'decisions',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 3
     },
     {
@@ -83,7 +82,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Organizational departments and units',
       icon: '🏢',
       endpoint: 'departments',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 4
     },
     {
@@ -92,7 +92,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Document forms and templates',
       icon: '📋',
       endpoint: 'forms',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 5
     },
     {
@@ -101,7 +102,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Form type definitions and categories',
       icon: '📝',
       endpoint: 'form-types',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 6
     },
     {
@@ -110,7 +112,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Document importance levels',
       icon: '⭐',
       endpoint: 'importance',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 7
     },
     {
@@ -119,7 +122,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Job positions and organizational roles',
       icon: '💼',
       endpoint: 'positions',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 8
     },
     {
@@ -128,7 +132,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Position-role mappings and assignments',
       icon: '🔗',
       endpoint: 'pos-roles',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 9
     },
     {
@@ -137,7 +142,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Document priority levels and urgency',
       icon: '🚨',
       endpoint: 'priority',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 10
     },
     {
@@ -146,7 +152,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'User roles and permissions',
       icon: '👤',
       endpoint: 'roles',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 11
     },
     {
@@ -155,7 +162,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'Security classification levels',
       icon: '🔒',
       endpoint: 'secrecy',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 12
     },
     {
@@ -164,7 +172,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'User-position assignments and mappings',
       icon: '👨‍💼',
       endpoint: 'user-positions',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 13
     },
     {
@@ -173,7 +182,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
       description: 'System users and account information',
       icon: '👨‍👩‍👧‍👦',
       endpoint: 'users',
-      status: 'pending',
+      isImporting: false,
+      hasError: false,
       order: 14
     }
   ];
@@ -184,7 +194,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
     description: 'Main correspondence records',
     icon: '📄',
     endpoint: 'correspondences',
-    status: 'pending',
+    isImporting: false,
+    hasError: false,
     order: 15
   };
   
@@ -194,7 +205,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
     description: 'Attachments, comments, transactions, etc.',
     icon: '📦',
     endpoint: 'all-correspondences-with-related',
-    status: 'pending',
+    isImporting: false,
+    hasError: false,
     order: 16
   };
   
@@ -203,7 +215,7 @@ export class DataImportComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     console.log('DataImportComponent initialized');
     this.addLog('info', 'Data Import page loaded');
-    this.updateOverallProgress();
+    this.loadRecordCounts();
   }
   
   ngOnDestroy(): void {
@@ -212,7 +224,7 @@ export class DataImportComponent implements OnInit, OnDestroy {
   }
   
   importEntity(entity: ImportEntity): void {
-    if (this.isLoading || entity.status === 'importing') {
+    if (this.isLoading || entity.isImporting) {
       return;
     }
     
@@ -220,7 +232,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.currentOperation = `Importing ${entity.name}...`;
     this.loadingProgress = 0;
-    entity.status = 'importing';
+    entity.isImporting = true;
+    entity.hasError = false;
     
     this.addLog('info', `Starting import of ${entity.name}`);
     
@@ -240,25 +253,27 @@ export class DataImportComponent implements OnInit, OnDestroy {
           
           console.log(`${entity.name} import completed:`, response);
           entity.lastResult = response;
+          entity.isImporting = false;
           
           if (response.status === 'SUCCESS') {
-            entity.status = 'completed';
+            entity.hasError = false;
             this.addLog('success', `${entity.name} imported successfully: ${response.successfulImports} records`);
           } else if (response.status === 'PARTIAL_SUCCESS') {
-            entity.status = 'completed';
+            entity.hasError = false;
             this.addLog('warning', `${entity.name} partially imported: ${response.successfulImports} success, ${response.failedImports} failed`);
           } else {
-            entity.status = 'error';
+            entity.hasError = true;
             this.addLog('error', `${entity.name} import failed: ${response.message}`);
           }
           
           this.isLoading = false;
-          this.updateOverallProgress();
+          this.loadRecordCounts();
         },
         error: (error) => {
           clearInterval(progressInterval);
           console.error(`Error importing ${entity.name}:`, error);
-          entity.status = 'error';
+          entity.isImporting = false;
+          entity.hasError = true;
           entity.lastResult = {
             status: 'ERROR',
             message: error.message || 'Unknown error',
@@ -270,7 +285,7 @@ export class DataImportComponent implements OnInit, OnDestroy {
           
           this.addLog('error', `${entity.name} import failed: ${error.message}`);
           this.isLoading = false;
-          this.updateOverallProgress();
+          this.loadRecordCounts();
         }
       });
   }
@@ -299,7 +314,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
           
           // Update all entity statuses
           this.basicEntities.forEach(entity => {
-            entity.status = 'completed';
+            entity.isImporting = false;
+            entity.hasError = false;
             entity.lastResult = response; // Simplified - in real scenario, you'd want individual results
           });
           
@@ -312,13 +328,13 @@ export class DataImportComponent implements OnInit, OnDestroy {
           }
           
           this.isLoading = false;
-          this.updateOverallProgress();
+          this.loadRecordCounts();
         },
         error: (error) => {
           console.error('Error importing all basic entities:', error);
           this.addLog('error', `Bulk import failed: ${error.message}`);
           this.isLoading = false;
-          this.updateOverallProgress();
+          this.loadRecordCounts();
         }
       });
   }
@@ -332,7 +348,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.currentOperation = 'Importing correspondences...';
     this.loadingProgress = 0;
-    this.correspondenceImport.status = 'importing';
+    this.correspondenceImport.isImporting = true;
+    this.correspondenceImport.hasError = false;
     
     this.addLog('info', 'Starting correspondence import');
     
@@ -351,28 +368,30 @@ export class DataImportComponent implements OnInit, OnDestroy {
           
           console.log('Correspondences import completed:', response);
           this.correspondenceImport.lastResult = response;
+          this.correspondenceImport.isImporting = false;
           
           if (response.status === 'SUCCESS') {
-            this.correspondenceImport.status = 'completed';
+            this.correspondenceImport.hasError = false;
             this.addLog('success', `Correspondences imported successfully: ${response.successfulImports} records`);
           } else if (response.status === 'PARTIAL_SUCCESS') {
-            this.correspondenceImport.status = 'completed';
+            this.correspondenceImport.hasError = false;
             this.addLog('warning', `Correspondences partially imported: ${response.successfulImports} success, ${response.failedImports} failed`);
           } else {
-            this.correspondenceImport.status = 'error';
+            this.correspondenceImport.hasError = true;
             this.addLog('error', `Correspondences import failed: ${response.message}`);
           }
           
           this.isLoading = false;
-          this.updateOverallProgress();
+          this.loadRecordCounts();
         },
         error: (error) => {
           clearInterval(progressInterval);
           console.error('Error importing correspondences:', error);
-          this.correspondenceImport.status = 'error';
+          this.correspondenceImport.isImporting = false;
+          this.correspondenceImport.hasError = true;
           this.addLog('error', `Correspondences import failed: ${error.message}`);
           this.isLoading = false;
-          this.updateOverallProgress();
+          this.loadRecordCounts();
         }
       });
   }
@@ -390,7 +409,8 @@ export class DataImportComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.currentOperation = 'Importing correspondences with related data...';
     this.loadingProgress = 0;
-    this.relatedDataImport.status = 'importing';
+    this.relatedDataImport.isImporting = true;
+    this.relatedDataImport.hasError = false;
     
     this.addLog('info', 'Starting bulk import of correspondences with related data');
     
@@ -409,28 +429,30 @@ export class DataImportComponent implements OnInit, OnDestroy {
           
           console.log('All correspondences with related data import completed:', response);
           this.relatedDataImport.lastResult = response;
+          this.relatedDataImport.isImporting = false;
           
           if (response.status === 'SUCCESS') {
-            this.relatedDataImport.status = 'completed';
+            this.relatedDataImport.hasError = false;
             this.addLog('success', `All correspondence data imported successfully: ${response.successfulImports} total records`);
           } else if (response.status === 'PARTIAL_SUCCESS') {
-            this.relatedDataImport.status = 'completed';
+            this.relatedDataImport.hasError = false;
             this.addLog('warning', `Correspondence data partially imported: ${response.successfulImports} success, ${response.failedImports} failed`);
           } else {
-            this.relatedDataImport.status = 'error';
+            this.relatedDataImport.hasError = true;
             this.addLog('error', `Correspondence data import failed: ${response.message}`);
           }
           
           this.isLoading = false;
-          this.updateOverallProgress();
+          this.loadRecordCounts();
         },
         error: (error) => {
           clearInterval(progressInterval);
           console.error('Error importing all correspondences with related data:', error);
-          this.relatedDataImport.status = 'error';
+          this.relatedDataImport.isImporting = false;
+          this.relatedDataImport.hasError = true;
           this.addLog('error', `Bulk correspondence import failed: ${error.message}`);
           this.isLoading = false;
-          this.updateOverallProgress();
+          this.loadRecordCounts();
         }
       });
   }
@@ -438,25 +460,41 @@ export class DataImportComponent implements OnInit, OnDestroy {
   refreshAllStatus(): void {
     console.log('Refreshing all import status');
     this.addLog('info', 'Refreshing import status for all entities');
-    this.updateOverallProgress();
+    this.loadRecordCounts();
   }
   
-  updateOverallProgress(): void {
-    const allEntities = [...this.basicEntities, this.correspondenceImport, this.relatedDataImport];
+  loadRecordCounts(): void {
+    console.log('Loading record counts for all entities');
     
-    this.overallProgress.total = allEntities.length;
-    this.overallProgress.completed = allEntities.filter(e => e.status === 'completed').length;
-    this.overallProgress.inProgress = allEntities.filter(e => e.status === 'importing').length;
-    this.overallProgress.failed = allEntities.filter(e => e.status === 'error').length;
-  }
-  
-  getOverallProgressPercentage(): number {
-    if (this.overallProgress.total === 0) return 0;
-    return Math.round((this.overallProgress.completed / this.overallProgress.total) * 100);
-  }
-  
-  getCompletedBasicEntities(): number {
-    return this.basicEntities.filter(e => e.status === 'completed').length;
+    // Load counts for basic entities
+    this.basicEntities.forEach(entity => {
+      this.dataImportService.getEntityCount(entity.endpoint)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (count) => {
+            entity.recordCount = count;
+            console.log(`${entity.name} record count: ${count}`);
+          },
+          error: (error) => {
+            console.error(`Error loading count for ${entity.name}:`, error);
+            entity.recordCount = 0;
+          }
+        });
+    });
+    
+    // Load correspondence count
+    this.dataImportService.getEntityCount('correspondences')
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (count) => {
+          this.correspondenceImport.recordCount = count;
+          console.log(`Correspondences record count: ${count}`);
+        },
+        error: (error) => {
+          console.error('Error loading correspondences count:', error);
+          this.correspondenceImport.recordCount = 0;
+        }
+      });
   }
   
   addLog(type: 'info' | 'success' | 'error' | 'warning', message: string, entity?: string): void {
@@ -480,7 +518,45 @@ export class DataImportComponent implements OnInit, OnDestroy {
   
   // Styling helper methods
   getEntityCardClass(entity: ImportEntity): string {
-    switch (entity.status) {
+    if (entity.hasError) {
+      return 'border-red-200 bg-red-50';
+    } else if (entity.isImporting) {
+      return 'border-blue-200 bg-blue-50 status-importing';
+    } else if (entity.lastResult && entity.lastResult.status === 'SUCCESS') {
+      return 'border-green-200 bg-green-50';
+    } else {
+      return 'border-gray-200 bg-white';
+    }
+  }
+  
+  getEntityButtonClass(entity: ImportEntity): string {
+    if (entity.isImporting || this.isLoading) {
+      return 'bg-gray-300 text-gray-500 cursor-not-allowed';
+    }
+    
+    if (entity.hasError) {
+      return 'bg-red-600 text-white hover:bg-red-700';
+    } else if (entity.lastResult && entity.lastResult.status === 'SUCCESS') {
+      return 'bg-green-600 text-white hover:bg-green-700';
+    } else {
+      return 'bg-indigo-600 text-white hover:bg-indigo-700';
+    }
+  }
+  
+  getEntityButtonText(entity: ImportEntity): string {
+    if (entity.isImporting) {
+      return 'Importing...';
+    } else if (entity.hasError) {
+      return 'Retry Import';
+    } else if (entity.lastResult && entity.lastResult.status === 'SUCCESS') {
+      return 'Re-import';
+    } else {
+      return 'Import';
+    }
+  }
+  
+  getStatusBadgeClass(status: string): string {
+    switch (status) {
       case 'completed':
         return 'border-green-200 bg-green-50';
       case 'importing':
@@ -489,46 +565,6 @@ export class DataImportComponent implements OnInit, OnDestroy {
         return 'border-red-200 bg-red-50';
       default:
         return 'border-gray-200 bg-white';
-    }
-  }
-  
-  getStatusBadgeClass(status: string): string {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'importing':
-        return 'bg-blue-100 text-blue-800';
-      case 'error':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  }
-  
-  getEntityButtonClass(entity: ImportEntity): string {
-    if (entity.status === 'importing' || this.isLoading) {
-      return 'bg-gray-300 text-gray-500 cursor-not-allowed';
-    }
-    
-    switch (entity.status) {
-      case 'completed':
-        return 'bg-green-600 text-white hover:bg-green-700';
-      case 'error':
-        return 'bg-red-600 text-white hover:bg-red-700';
-      default:
-        return 'bg-indigo-600 text-white hover:bg-indigo-700';
-    }
-  }
-  
-  getEntityButtonText(entity: ImportEntity): string {
-    if (entity.status === 'importing') {
-      return 'Importing...';
-    } else if (entity.status === 'completed') {
-      return 'Re-import';
-    } else if (entity.status === 'error') {
-      return 'Retry Import';
-    } else {
-      return 'Import';
     }
   }
   

@@ -103,6 +103,20 @@ export class DataImportService {
       );
   }
   
+  // Get entity record count from database
+  getEntityCount(endpoint: string): Observable<number> {
+    console.log('Getting entity count for endpoint:', endpoint);
+    return this.http.get<{count: number}>(`${this.baseUrl}/${endpoint}/count`)
+      .pipe(
+        map(response => response.count || 0),
+        tap((count) => console.log(`Entity ${endpoint} count:`, count)),
+        catchError((error: HttpErrorResponse) => {
+          console.error(`Error getting count for ${endpoint}:`, error);
+          return of(0);
+        })
+      );
+  }
+  
   // Import specific correspondence related data
   importCorrespondenceAttachments(docGuid: string): Observable<ImportResponse> {
     console.log('Calling import correspondence attachments API for doc:', docGuid);

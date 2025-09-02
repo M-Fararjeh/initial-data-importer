@@ -431,6 +431,143 @@ public class DataImportController {
         ImportResponseDto response = dataImportService.importAllCorrespondencesWithRelated();
         return getResponseEntity(response);
     }
+    
+    // Entity count endpoints
+    @GetMapping("/classifications/count")
+    @Operation(summary = "Get Classifications Count", description = "Returns the count of classifications in database")
+    public ResponseEntity<Map<String, Object>> getClassificationsCount() {
+        long count = classificationRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/contacts/count")
+    @Operation(summary = "Get Contacts Count", description = "Returns the count of contacts in database")
+    public ResponseEntity<Map<String, Object>> getContactsCount() {
+        long count = contactRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/decisions/count")
+    @Operation(summary = "Get Decisions Count", description = "Returns the count of decisions in database")
+    public ResponseEntity<Map<String, Object>> getDecisionsCount() {
+        long count = decisionRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/departments/count")
+    @Operation(summary = "Get Departments Count", description = "Returns the count of departments in database")
+    public ResponseEntity<Map<String, Object>> getDepartmentsCount() {
+        long count = departmentRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/forms/count")
+    @Operation(summary = "Get Forms Count", description = "Returns the count of forms in database")
+    public ResponseEntity<Map<String, Object>> getFormsCount() {
+        long count = formRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/form-types/count")
+    @Operation(summary = "Get Form Types Count", description = "Returns the count of form types in database")
+    public ResponseEntity<Map<String, Object>> getFormTypesCount() {
+        long count = formTypeRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/importance/count")
+    @Operation(summary = "Get Importance Count", description = "Returns the count of importance levels in database")
+    public ResponseEntity<Map<String, Object>> getImportanceCount() {
+        long count = importanceRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/positions/count")
+    @Operation(summary = "Get Positions Count", description = "Returns the count of positions in database")
+    public ResponseEntity<Map<String, Object>> getPositionsCount() {
+        long count = positionRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/pos-roles/count")
+    @Operation(summary = "Get Position Roles Count", description = "Returns the count of position roles in database")
+    public ResponseEntity<Map<String, Object>> getPosRolesCount() {
+        long count = posRoleRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/priority/count")
+    @Operation(summary = "Get Priority Count", description = "Returns the count of priority levels in database")
+    public ResponseEntity<Map<String, Object>> getPriorityCount() {
+        long count = priorityRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/roles/count")
+    @Operation(summary = "Get Roles Count", description = "Returns the count of roles in database")
+    public ResponseEntity<Map<String, Object>> getRolesCount() {
+        long count = roleRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/secrecy/count")
+    @Operation(summary = "Get Secrecy Count", description = "Returns the count of secrecy levels in database")
+    public ResponseEntity<Map<String, Object>> getSecrecyCount() {
+        long count = secrecyRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/user-positions/count")
+    @Operation(summary = "Get User Positions Count", description = "Returns the count of user positions in database")
+    public ResponseEntity<Map<String, Object>> getUserPositionsCount() {
+        long count = userPositionRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/users/count")
+    @Operation(summary = "Get Users Count", description = "Returns the count of users in database")
+    public ResponseEntity<Map<String, Object>> getUsersCount() {
+        long count = userRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
+    @GetMapping("/correspondences/count")
+    @Operation(summary = "Get Correspondences Count", description = "Returns the count of correspondences in database")
+    public ResponseEntity<Map<String, Object>> getCorrespondencesCount() {
+        long count = correspondenceRepository.count();
+        Map<String, Object> response = new HashMap<>();
+        response.put("count", count);
+        return ResponseEntity.ok(response);
+    }
+    
     private ResponseEntity<ImportResponseDto> getResponseEntity(ImportResponseDto response) {
         if ("ERROR".equals(response.getStatus())) {
             return ResponseEntity.badRequest().body(response);
@@ -438,4 +575,50 @@ public class DataImportController {
             return ResponseEntity.ok(response);
         }
     }
+    
+    // Inject repositories for count endpoints
+    @Autowired
+    private ClassificationRepository classificationRepository;
+    
+    @Autowired
+    private ContactRepository contactRepository;
+    
+    @Autowired
+    private DecisionRepository decisionRepository;
+    
+    @Autowired
+    private DepartmentRepository departmentRepository;
+    
+    @Autowired
+    private FormRepository formRepository;
+    
+    @Autowired
+    private FormTypeRepository formTypeRepository;
+    
+    @Autowired
+    private ImportanceRepository importanceRepository;
+    
+    @Autowired
+    private PositionRepository positionRepository;
+    
+    @Autowired
+    private PosRoleRepository posRoleRepository;
+    
+    @Autowired
+    private PriorityRepository priorityRepository;
+    
+    @Autowired
+    private RoleRepository roleRepository;
+    
+    @Autowired
+    private SecrecyRepository secrecyRepository;
+    
+    @Autowired
+    private UserPositionRepository userPositionRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private CorrespondenceRepository correspondenceRepository;
 }
