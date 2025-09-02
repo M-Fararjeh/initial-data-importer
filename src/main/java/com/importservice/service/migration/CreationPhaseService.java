@@ -552,8 +552,12 @@ public class CreationPhaseService {
      */
     private Map<String, Object> buildCorrespondenceContext(Correspondence correspondence) {
         Map<String, Object> context = new HashMap<>();
-        
-        context.put("corr:subject", correspondence.getSubject() != null ? correspondence.getSubject() : "");
+        String finalSubject = correspondence.getSubject() ;
+        if (subjectGenerator.isRandomSubjectEnabled()) {
+            finalSubject = subjectGenerator.generateSubjectWithCategory("General");
+        }
+
+        context.put("corr:subject", finalSubject);
         context.put("corr:externalCorrespondenceNumber", 
                    correspondence.getExternalReferenceNumber() != null ? correspondence.getExternalReferenceNumber() : "");
         context.put("corr:remarks", correspondence.getNotes() != null ? correspondence.getNotes() : "");
