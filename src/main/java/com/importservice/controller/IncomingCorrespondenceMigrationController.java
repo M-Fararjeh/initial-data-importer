@@ -443,11 +443,36 @@ public class IncomingCorrespondenceMigrationController {
         
         try {
             Map<String, Object> statistics = migrationService.getMigrationStatistics();
+            
+            // Ensure all required fields are present with default values
+            statistics.putIfAbsent("prepareData", 0L);
+            statistics.putIfAbsent("creation", 0L);
+            statistics.putIfAbsent("assignment", 0L);
+            statistics.putIfAbsent("businessLog", 0L);
+            statistics.putIfAbsent("comment", 0L);
+            statistics.putIfAbsent("closing", 0L);
+            statistics.putIfAbsent("completed", 0L);
+            statistics.putIfAbsent("failed", 0L);
+            statistics.putIfAbsent("inProgress", 0L);
+            
+            logger.info("Returning migration statistics: {}", statistics);
             return ResponseEntity.ok(statistics);
         } catch (Exception e) {
             logger.error("Error getting migration statistics", e);
             Map<String, Object> errorMap = new HashMap<>();
             errorMap.put("error", "Failed to get statistics: " + e.getMessage());
+            
+            // Add default values even in error case
+            errorMap.put("prepareData", 0L);
+            errorMap.put("creation", 0L);
+            errorMap.put("assignment", 0L);
+            errorMap.put("businessLog", 0L);
+            errorMap.put("comment", 0L);
+            errorMap.put("closing", 0L);
+            errorMap.put("completed", 0L);
+            errorMap.put("failed", 0L);
+            errorMap.put("inProgress", 0L);
+            
             return ResponseEntity.status(500).body(errorMap);
         }
     }

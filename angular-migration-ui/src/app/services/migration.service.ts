@@ -272,10 +272,24 @@ export class MigrationService {
   
   // Statistics methods
   getStatistics(): Observable<MigrationStatistics> {
-    console.log('Calling getStatistics API');
-    return this.http.get<MigrationStatistics>(`${this.baseUrl}/statistics`)
+    console.log('Calling getStatistics API at:', `${this.baseUrl}/statistics`);
+    return this.http.get<any>(`${this.baseUrl}/statistics`)
       .pipe(
         tap((stats) => console.log('Statistics response:', stats)),
+        map((response: any) => {
+          // Ensure all required fields are present
+          return {
+            prepareData: response.prepareData || 0,
+            creation: response.creation || 0,
+            assignment: response.assignment || 0,
+            businessLog: response.businessLog || 0,
+            comment: response.comment || 0,
+            closing: response.closing || 0,
+            completed: response.completed || 0,
+            failed: response.failed || 0,
+            inProgress: response.inProgress || 0
+          } as MigrationStatistics;
+        }),
         catchError((error: HttpErrorResponse) => {
           console.error('Error getting statistics:', error);
           return of({

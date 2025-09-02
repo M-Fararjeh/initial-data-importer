@@ -37,17 +37,28 @@ public class MigrationStatisticsService {
             Map<String, Object> statistics = new HashMap<>();
             
             // Phase-specific counts
-            statistics.put("prepareData", migrationRepository.countByCurrentPhase("PREPARE_DATA"));
-            statistics.put("creation", migrationRepository.countByCurrentPhase("CREATION"));
-            statistics.put("assignment", migrationRepository.countByCurrentPhase("ASSIGNMENT"));
-            statistics.put("businessLog", migrationRepository.countByCurrentPhase("BUSINESS_LOG"));
-            statistics.put("comment", migrationRepository.countByCurrentPhase("COMMENT"));
-            statistics.put("closing", migrationRepository.countByCurrentPhase("CLOSING"));
+            Long prepareDataCount = migrationRepository.countByCurrentPhase("PREPARE_DATA");
+            Long creationCount = migrationRepository.countByCurrentPhase("CREATION");
+            Long assignmentCount = migrationRepository.countByCurrentPhase("ASSIGNMENT");
+            Long businessLogCount = migrationRepository.countByCurrentPhase("BUSINESS_LOG");
+            Long commentCount = migrationRepository.countByCurrentPhase("COMMENT");
+            Long closingCount = migrationRepository.countByCurrentPhase("CLOSING");
+            
+            statistics.put("prepareData", prepareDataCount != null ? prepareDataCount : 0L);
+            statistics.put("creation", creationCount != null ? creationCount : 0L);
+            statistics.put("assignment", assignmentCount != null ? assignmentCount : 0L);
+            statistics.put("businessLog", businessLogCount != null ? businessLogCount : 0L);
+            statistics.put("comment", commentCount != null ? commentCount : 0L);
+            statistics.put("closing", closingCount != null ? closingCount : 0L);
             
             // Overall status counts
-            statistics.put("completed", migrationRepository.countByOverallStatus("COMPLETED"));
-            statistics.put("failed", migrationRepository.countByOverallStatus("FAILED"));
-            statistics.put("inProgress", migrationRepository.countByOverallStatus("IN_PROGRESS"));
+            Long completedCount = migrationRepository.countByOverallStatus("COMPLETED");
+            Long failedCount = migrationRepository.countByOverallStatus("FAILED");
+            Long inProgressCount = migrationRepository.countByOverallStatus("IN_PROGRESS");
+            
+            statistics.put("completed", completedCount != null ? completedCount : 0L);
+            statistics.put("failed", failedCount != null ? failedCount : 0L);
+            statistics.put("inProgress", inProgressCount != null ? inProgressCount : 0L);
             
             // Assignment statistics
             Object[] assignmentStats = transactionRepository.getAssignmentStatistics();
@@ -83,9 +94,13 @@ public class MigrationStatisticsService {
             }
             
             // Closing statistics
-            statistics.put("needToCloseCount", migrationRepository.countByIsNeedToClose(true));
-            statistics.put("closingCompleted", migrationRepository.countByClosingStatus("COMPLETED"));
-            statistics.put("closingFailed", migrationRepository.countByClosingStatus("FAILED"));
+            Long needToCloseCount = migrationRepository.countByIsNeedToClose(true);
+            Long closingCompletedCount = migrationRepository.countByClosingStatus("COMPLETED");
+            Long closingFailedCount = migrationRepository.countByClosingStatus("FAILED");
+            
+            statistics.put("needToCloseCount", needToCloseCount != null ? needToCloseCount : 0L);
+            statistics.put("closingCompleted", closingCompletedCount != null ? closingCompletedCount : 0L);
+            statistics.put("closingFailed", closingFailedCount != null ? closingFailedCount : 0L);
             
             logger.debug("Generated migration statistics: {}", statistics);
             return statistics;
@@ -94,6 +109,21 @@ public class MigrationStatisticsService {
             logger.error("Error getting migration statistics", e);
             Map<String, Object> errorStats = new HashMap<>();
             errorStats.put("error", "Failed to get statistics: " + e.getMessage());
+            
+            // Add default values for all expected fields
+            errorStats.put("prepareData", 0L);
+            errorStats.put("creation", 0L);
+            errorStats.put("assignment", 0L);
+            errorStats.put("businessLog", 0L);
+            errorStats.put("comment", 0L);
+            errorStats.put("closing", 0L);
+            errorStats.put("completed", 0L);
+            errorStats.put("failed", 0L);
+            errorStats.put("inProgress", 0L);
+            errorStats.put("needToCloseCount", 0L);
+            errorStats.put("closingCompleted", 0L);
+            errorStats.put("closingFailed", 0L);
+            
             return errorStats;
         }
     }
