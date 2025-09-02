@@ -1,15 +1,27 @@
 package com.importservice.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.importservice.dto.ImportResponseDto;
+import com.importservice.dto.ApiResponseDto;
 import com.importservice.entity.Correspondence;
 import com.importservice.entity.CorrespondenceImportStatus;
+import com.importservice.entity.*;
 import com.importservice.repository.CorrespondenceImportStatusRepository;
 import com.importservice.repository.CorrespondenceRepository;
+import com.importservice.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,6 +47,49 @@ public class CorrespondenceRelatedImportService {
     
     @Autowired
     private DataImportService dataImportService;
+    
+    // Correspondence-related repositories
+    @Autowired
+    private CorrespondenceAttachmentRepository correspondenceAttachmentRepository;
+    
+    @Autowired
+    private CorrespondenceCommentRepository correspondenceCommentRepository;
+    
+    @Autowired
+    private CorrespondenceCopyToRepository correspondenceCopyToRepository;
+    
+    @Autowired
+    private CorrespondenceCurrentDepartmentRepository correspondenceCurrentDepartmentRepository;
+    
+    @Autowired
+    private CorrespondenceCurrentPositionRepository correspondenceCurrentPositionRepository;
+    
+    @Autowired
+    private CorrespondenceCurrentUserRepository correspondenceCurrentUserRepository;
+    
+    @Autowired
+    private CorrespondenceCustomFieldRepository correspondenceCustomFieldRepository;
+    
+    @Autowired
+    private CorrespondenceLinkRepository correspondenceLinkRepository;
+    
+    @Autowired
+    private CorrespondenceSendToRepository correspondenceSendToRepository;
+    
+    @Autowired
+    private CorrespondenceTransactionRepository correspondenceTransactionRepository;
+    
+    @Autowired
+    private RestTemplate restTemplate;
+    
+    @Autowired
+    private ObjectMapper objectMapper;
+    
+    @Value("${source.api.base-url}")
+    private String sourceApiBaseUrl;
+    
+    @Value("${source.api.key}")
+    private String sourceApiKey;
     
     /**
      * Imports all correspondence-related data with comprehensive status tracking
@@ -198,25 +253,25 @@ public class CorrespondenceRelatedImportService {
     private ImportResponseDto callImportMethod(String correspondenceGuid, String entityType) {
         switch (entityType.toLowerCase()) {
             case "attachments":
-                return dataImportService.importCorrespondenceAttachments(correspondenceGuid);
+                return importCorrespondenceAttachmentsWithDirectCall(correspondenceGuid);
             case "comments":
-                return dataImportService.importCorrespondenceComments(correspondenceGuid);
+                return importCorrespondenceCommentsWithDirectCall(correspondenceGuid);
             case "copytos":
-                return dataImportService.importCorrespondenceCopyTos(correspondenceGuid);
+                return importCorrespondenceCopyTosWithDirectCall(correspondenceGuid);
             case "currentdepartments":
-                return dataImportService.importCorrespondenceCurrentDepartments(correspondenceGuid);
+                return importCorrespondenceCurrentDepartmentsWithDirectCall(correspondenceGuid);
             case "currentpositions":
-                return dataImportService.importCorrespondenceCurrentPositions(correspondenceGuid);
+                return importCorrespondenceCurrentPositionsWithDirectCall(correspondenceGuid);
             case "currentusers":
-                return dataImportService.importCorrespondenceCurrentUsers(correspondenceGuid);
+                return importCorrespondenceCurrentUsersWithDirectCall(correspondenceGuid);
             case "customfields":
-                return dataImportService.importCorrespondenceCustomFields(correspondenceGuid);
+                return importCorrespondenceCustomFieldsWithDirectCall(correspondenceGuid);
             case "links":
-                return dataImportService.importCorrespondenceLinks(correspondenceGuid);
+                return importCorrespondenceLinksWithDirectCall(correspondenceGuid);
             case "sendtos":
-                return dataImportService.importCorrespondenceSendTos(correspondenceGuid);
+                return importCorrespondenceSendTosWithDirectCall(correspondenceGuid);
             case "transactions":
-                return dataImportService.importCorrespondenceTransactions(correspondenceGuid);
+                return importCorrespondenceTransactionsWithDirectCall(correspondenceGuid);
             default:
                 throw new IllegalArgumentException("Unknown entity type: " + entityType);
         }
