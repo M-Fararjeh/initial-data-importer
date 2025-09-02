@@ -99,7 +99,8 @@ export class CreationDetailsComponent implements OnInit, OnDestroy {
       filtered = filtered.filter(m => 
         m.correspondenceGuid.toLowerCase().includes(term) ||
         (m.correspondenceSubject && m.correspondenceSubject.toLowerCase().includes(term)) ||
-        (m.correspondenceReferenceNo && m.correspondenceReferenceNo.toLowerCase().includes(term))
+        (m.correspondenceReferenceNo && m.correspondenceReferenceNo.toLowerCase().includes(term)) ||
+        (m.creationUserName && m.creationUserName.toLowerCase().includes(term))
       );
     }
     

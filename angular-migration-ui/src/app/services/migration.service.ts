@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
+import { tap, catchError, map } from 'rxjs/operators';
 
 export interface ImportResponse {
   status: string;
@@ -226,9 +226,19 @@ export class MigrationService {
   // Creation phase specific methods
   getCreationMigrations(): Observable<CreationMigration[]> {
     console.log('Calling getCreationMigrations API');
-    return this.http.get<CreationMigration[]>(`${this.baseUrl}/creation/details`)
+    return this.http.get<any>(`${this.baseUrl}/creation/details`)
       .pipe(
-        tap((migrations) => console.log('Creation migrations response:', migrations)),
+        tap((response) => console.log('Creation migrations response:', response)),
+        map((response: any) => {
+          // Handle both array response and paginated response
+          if (Array.isArray(response)) {
+            return response;
+          } else if (response && response.content) {
+            return response.content;
+          } else {
+            return [];
+          }
+        }),
         catchError((error: HttpErrorResponse) => {
           console.error('Error getting creation migrations:', error);
           return of([]);
