@@ -3,6 +3,7 @@ package com.importservice.controller;
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.repository.*;
 import com.importservice.service.DataImportService;
+import com.importservice.entity.Correspondence;
 import com.importservice.service.CorrespondenceRelatedImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -79,6 +80,15 @@ public class DataImportController {
     
     @Autowired
     private CorrespondenceRepository correspondenceRepository;
+
+    @Autowired
+    private CorrespondenceAttachmentRepository correspondenceAttachmentRepository;
+    
+    @Autowired
+    private CorrespondenceCommentRepository correspondenceCommentRepository;
+    
+    @Autowired
+    private CorrespondenceTransactionRepository correspondenceTransactionRepository;
 
     // Basic entity imports
     @PostMapping("/classifications")
