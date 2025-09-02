@@ -49,7 +49,15 @@ public class IncomingCorrespondenceCreateRequest {
     public void setDocDate(String docDate) {
         this.params.put("docDate", docDate);
     }
-    
+
+    public void setDocCreator(String docCreator) {
+        this.params.put("docCreator", docCreator);
+    }
+
+    public void setTenantID(String tenantID) {
+        this.context.put("tenantID", tenantID);
+    }
+
     // Helper method for context
     public void setIncCorrespondence(Map<String, Object> incCorrespondence) {
         this.context.put("incCorrespondence", incCorrespondence);

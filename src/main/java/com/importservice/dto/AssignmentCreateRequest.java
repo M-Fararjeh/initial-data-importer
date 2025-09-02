@@ -57,6 +57,13 @@ public class AssignmentCreateRequest {
     public void setDocCreator(String docCreator) {
         this.params.put("docCreator", docCreator);
     }
+
+    public void setUpdateProp(String completeDater) {
+        Map<String, Object> updateProp=new HashMap<>();
+        updateProp.put("assign:completeDater", completeDater);
+        this.params.put("updateProp", updateProp);
+
+    }
     
     // Helper method for context
     public void setAssignment(Map<String, Object> assignment) {

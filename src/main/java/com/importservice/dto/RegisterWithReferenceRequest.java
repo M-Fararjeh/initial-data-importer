@@ -45,7 +45,15 @@ public class RegisterWithReferenceRequest {
     public void setDocID(String docID) {
         this.params.put("docID", docID);
     }
-    
+
+    public void setDocCreator(String docCreator) {
+        this.params.put("docCreator", docCreator);
+    }
+
+    public void setTenantID(String tenantID) {
+        this.context.put("tenantID", tenantID);
+    }
+
     // Helper method for context
     public void setIncCorrespondence(Map<String, Object> incCorrespondence) {
         this.context.put("incCorrespondence", incCorrespondence);

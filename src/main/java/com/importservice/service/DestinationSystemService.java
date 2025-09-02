@@ -240,10 +240,13 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_IncomingCorrespondence_Create_Application");
-            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setAsUser("cts_admin");
+            //request.setAsUser(asUser);
+            request.setDocCreator(asUser);
             request.setGuid(guid);
             request.setDocDate(docDate);
-            
+            request.getContext().put("tenantId", "ITBA");
+            request.getContext().put("docCreator", asUser);
             // Build incCorrespondence context
             Map<String, Object> incCorrespondence = new HashMap<>();
             
@@ -468,9 +471,12 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_Correspondence_ReadyToRegister");
-            request.setAsUser(asUser != null ? asUser : "itba-emp1");
             request.setDocID(correspondenceGuid);
-            
+            request.setAsUser("cts_admin");
+            //request.setAsUser(asUser);
+            request.setDocCreator(asUser);
+            request.getContext().put("tenantId", "ITBA");
+            request.getContext().put("docCreator", asUser);
             logApiCall("SET_READY_TO_REGISTER", url, request);
             
             HttpHeaders headers = createHeaders();
@@ -513,9 +519,12 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_IncomingCorrespondence_Register_WithReference");
-            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setAsUser("cts_admin");
+            //request.setAsUser(asUser);
+            request.setDocCreator(asUser);
             request.setDocID(correspondenceGuid);
-            
+            request.getContext().put("tenantId", "ITBA");
+            request.getContext().put("docCreator", asUser);
             // Set context - reuse the same context from correspondence creation and add required parameters
             Map<String, Object> updatedContext = new HashMap<>(incCorrespondenceContext);
             updatedContext.put("corr:action", action != null ? action : "ForAdvice");
@@ -565,9 +574,12 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_IncomingCorrespondence_Send");
-            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setAsUser("cts_admin");
+            //request.setAsUser(asUser);
+            request.setDocCreator(asUser);
             request.setDocID(correspondenceGuid);
-            
+            request.getContext().put("tenantId", "ITBA");
+            request.getContext().put("docCreator", asUser);
             logApiCall("START_WORK", url, request);
             
             HttpHeaders headers = createHeaders();
@@ -609,9 +621,12 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_Correspondence_SetOwner");
-            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setAsUser("cts_admin");
+            //request.setAsUser(asUser);
+            request.setDocCreator(asUser);
             request.setDocID(correspondenceGuid);
-            
+            request.getContext().put("tenantId", "ITBA");
+            request.getContext().put("docCreator", asUser);
             logApiCall("SET_OWNER", url, request);
             
             HttpHeaders headers = createHeaders();
@@ -655,13 +670,17 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_Assignment_Create");
+            request.setAsUser("cts_admin");
             request.setDocID(documentId);
             request.setDocDate(actionDate != null ?
                              HijriDateUtils.addYears(actionDate,5).toString() + "Z" :
                              HijriDateUtils.addYears(LocalDateTime.now(),5).toString() + "Z");
             request.setGuid(transactionGuid);
-            request.setAsUser("cts_admin");
             request.setDocCreator(asUser);
+            request.setUpdateProp(actionDate != null ?
+                    HijriDateUtils.addYears(actionDate,5).toString() + "Z" :
+                    HijriDateUtils.addYears(LocalDateTime.now(),5).toString() + "Z"
+            );
             
             // Build assignment context
             Map<String, Object> assignment = new HashMap<>();

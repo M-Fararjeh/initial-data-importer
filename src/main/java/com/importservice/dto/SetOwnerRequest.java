@@ -45,7 +45,15 @@ public class SetOwnerRequest {
     public void setDocID(String docID) {
         this.params.put("docID", docID);
     }
-    
+
+    public void setDocCreator(String docCreator) {
+        this.params.put("docCreator", docCreator);
+    }
+
+    public void setTenantID(String tenantID) {
+        this.context.put("tenantID", tenantID);
+    }
+
     @Override
     public String toString() {
         return "SetOwnerRequest{" +
