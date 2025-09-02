@@ -519,7 +519,7 @@ public class DestinationSystemService {
             // Set context - reuse the same context from correspondence creation and add required parameters
             Map<String, Object> updatedContext = new HashMap<>(incCorrespondenceContext);
             updatedContext.put("corr:action", action != null ? action : "ForAdvice");
-            updatedContext.put("corr:to", toDepartment != null ? toDepartment : "COF");
+            updatedContext.put("corr:to",  "COF");
             updatedContext.put("corr:from", "");
             
             request.setIncCorrespondence(updatedContext);
