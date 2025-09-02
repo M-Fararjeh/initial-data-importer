@@ -17,10 +17,10 @@ export interface ImportResponse {
 })
 export class DataImportService {
   
-  private baseUrl = 'http://localhost:8080/data-import/api/data-import';
-  private importBaseUrl = 'http://localhost:8080/data-import/api/import';
-  private userImportBaseUrl = 'http://localhost:8080/data-import/api/user-import';
-  private correspondenceImportBaseUrl = 'http://localhost:8080/data-import/api/correspondence-import';
+  private baseUrl = 'http://localhost:8080/api/data-import';
+  private importBaseUrl = 'http://localhost:8080/api/import';
+  private userImportBaseUrl = 'http://localhost:8080/api/user-import';
+  private correspondenceImportBaseUrl = 'http://localhost:8080/api/correspondence-import';
   
   constructor(private http: HttpClient) {
     console.log('DataImportService initialized');
