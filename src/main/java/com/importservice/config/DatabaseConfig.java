@@ -48,7 +48,7 @@ public class DatabaseConfig {
         config.setConnectionTestQuery("SELECT 1");
         
         // Auto-commit and transaction settings
-        config.setAutoCommit(true); // Enable auto-commit for read operations
+        config.setAutoCommit(false); // Disable auto-commit for proper transaction management
         
         // Pool name for monitoring - use unique name to avoid conflicts
         config.setPoolName("DataImportHikariCP-" + System.currentTimeMillis());

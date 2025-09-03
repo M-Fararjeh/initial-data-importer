@@ -28,9 +28,12 @@ public class MigrationPhaseService {
     /**
      * Updates migration phase status
      */
-    @Transactional(readOnly = false, timeout = 120)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
     public void updatePhaseStatus(String correspondenceGuid, String phase, String status, String error) {
         try {
+            logger.info("[NEW_TRANSACTION] Updating phase status for correspondence: {} - Phase: {}, Status: {}", 
+                       correspondenceGuid, phase, status);
+            
             IncomingCorrespondenceMigration migration = migrationRepository
                 .findByCorrespondenceGuid(correspondenceGuid)
                 .orElse(null);
@@ -50,10 +53,12 @@ public class MigrationPhaseService {
             
             migrationRepository.save(migration);
             migrationRepository.flush(); // Ensure immediate persistence
-            logger.debug("Updated phase {} status to {} for correspondence: {}", phase, status, correspondenceGuid);
+            logger.info("[NEW_TRANSACTION] Successfully updated and committed phase {} status to {} for correspondence: {}", 
+                       phase, status, correspondenceGuid);
             
         } catch (Exception e) {
-            logger.error("Error updating phase status for correspondence: {}", correspondenceGuid, e);
+            logger.error("[NEW_TRANSACTION] Error updating phase status for correspondence: {}", correspondenceGuid, e);
+            throw new RuntimeException("Failed to update phase status: " + e.getMessage(), e);
         }
     }
     

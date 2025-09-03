@@ -71,16 +71,19 @@ public class IncomingCorrespondenceMigrationService {
         return creationPhaseService.executeCreationForSpecific(correspondenceGuids);
     }
     
+    @Transactional(readOnly = true, timeout = 60)
     public List<IncomingCorrespondenceMigration> getCreationMigrations() {
         logger.info("Delegating to CreationPhaseService for creation migrations");
         return creationPhaseService.getCreationMigrations();
     }
     
+    @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getCreationMigrationsWithDetails() {
         logger.info("Delegating to CreationPhaseService for creation migrations with details");
         return creationPhaseService.getCreationMigrationsWithDetails();
     }
     
+    @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getCreationStatistics() {
         logger.info("Delegating to CreationPhaseService for creation statistics");
         return creationPhaseService.getCreationStatistics();
