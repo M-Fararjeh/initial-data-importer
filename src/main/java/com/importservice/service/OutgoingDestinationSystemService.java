@@ -11,6 +11,7 @@ import com.importservice.util.CorrespondenceSubjectGenerator;
 import com.importservice.util.DepartmentUtils;
 import com.importservice.util.HijriDateUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -534,7 +535,11 @@ public class OutgoingDestinationSystemService {
             // Build assignment context
             Map<String, Object> assignment = new HashMap<>();
             assignment.put("title", "assignment-" + transactionGuid);
-            assignment.put("assign:assignee", Arrays.asList(toUserName != null ? toUserName : "itba-emp1"));
+            if (StringUtils.isNotEmpty(toUserName)){
+                assignment.put("assign:assignee", Arrays.asList(toUserName));
+            }else{
+                assignment.put("assign:assignee", Arrays.asList());
+            }
             assignment.put("assign:department", Arrays.asList(departmentCode != null ? departmentCode : "CEO"));
             assignment.put("assign:dueDate", actionDate != null ? 
                          actionDate.toString() + "Z" : 

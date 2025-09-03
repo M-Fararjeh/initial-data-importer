@@ -60,7 +60,7 @@ public class AssignmentCreateRequest {
 
     public void setUpdateProp(String completeDater) {
         Map<String, Object> updateProp=new HashMap<>();
-        updateProp.put("assign:completeDater", completeDater);
+        updateProp.put("assign:completeDate", completeDater);
         this.params.put("updateProp", updateProp);
 
     }
