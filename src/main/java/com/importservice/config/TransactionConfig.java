@@ -24,7 +24,7 @@ public class TransactionConfig {
         transactionManager.setRollbackOnCommitFailure(true);
         
         // Set nested transaction allowed
-        transactionManager.setNestedTransactionAllowed(true);
+        transactionManager.setNestedTransactionAllowed(false);
         
         // Ensure proper connection release
         transactionManager.setValidateExistingTransaction(true);
