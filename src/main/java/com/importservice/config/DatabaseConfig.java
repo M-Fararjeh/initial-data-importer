@@ -48,7 +48,7 @@ public class DatabaseConfig {
         config.setConnectionTestQuery("SELECT 1");
         
         // Auto-commit and transaction settings
-        config.setAutoCommit(false); // Disable auto-commit for proper transaction management
+        config.setAutoCommit(true); // Enable auto-commit for immediate visibility
         
         // Pool name for monitoring - use unique name to avoid conflicts
         config.setPoolName("DataImportHikariCP-" + System.currentTimeMillis());
@@ -72,7 +72,8 @@ public class DatabaseConfig {
         config.addDataSourceProperty("maintainTimeStats", "false");
         config.addDataSourceProperty("useLocalTransactionState", "true");
         config.addDataSourceProperty("readOnlyPropagatesToServer", "true");
-        config.addDataSourceProperty("enableQueryTimeouts", "true");
+        config.addDataSourceProperty("enableQueryTimeouts", "false");
+        config.addDataSourceProperty("queryTimeoutKillsConnection", "false");
         
         return new HikariDataSource(config);
     }
