@@ -63,7 +63,7 @@ public class CreationPhaseService {
      * Phase 2: Creation
      * Creates correspondences in destination system
      */
-    @Transactional(timeout = 600)
+    @Transactional()
     public ImportResponseDto executeCreationPhase() {
         logger.info("Starting Phase 2: Creation");
         
@@ -110,7 +110,7 @@ public class CreationPhaseService {
     /**
      * Executes creation for specific correspondences
      */
-    @Transactional(timeout = 300)
+    @Transactional()
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting creation for {} specific correspondences", correspondenceGuids.size());
         
@@ -267,7 +267,8 @@ public class CreationPhaseService {
             updateCreationStep(migration, "SET_READY_TO_REGISTER");
             String asUserForRegister = correspondence.getCreationUserName() != null ? 
                                      correspondence.getCreationUserName() : "itba-emp1";
-            boolean readyToRegisterSuccess = destinationService.setIncomingReadyToRegister(documentId, asUserForRegister);
+            //boolean readyToRegisterSuccess = destinationService.setIncomingReadyToRegister(documentId, asUserForRegister);
+            boolean readyToRegisterSuccess=true;
             if (!readyToRegisterSuccess) {
                 String errorMsg = "Failed to set ready to register for correspondence: " + correspondenceGuid;
                 logger.error(errorMsg);
@@ -290,7 +291,7 @@ public class CreationPhaseService {
                 migrationRepository.save(migration);
                 return false;
             }
-            
+            Thread.sleep(20000);
             // Step 9: Start work
             updateCreationStep(migration, "START_WORK");
             String asUserForWork = correspondence.getCreationUserName() != null ? 

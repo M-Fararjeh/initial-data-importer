@@ -229,7 +229,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Gets import status by ID in a new transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 60, readOnly = true)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, , readOnly = true)
     public CorrespondenceImportStatus getImportStatusByIdInNewTransaction(Long id) {
         try {
             Optional<CorrespondenceImportStatus> status = importStatusRepository.findById(id);
@@ -248,7 +248,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports a specific entity type with status tracking in new transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, )
     public boolean importEntityWithTrackingInNewTransaction(String correspondenceGuid, String entityType, Long importStatusId) {
         try {
             logger.info("Importing {} for correspondence: {} (Status ID: {})", entityType, correspondenceGuid, importStatusId);
@@ -335,7 +335,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Creates or gets import status in a completely separate transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, )
     public CorrespondenceImportStatus createOrGetImportStatusInNewTransaction(String correspondenceGuid) {
         logger.info("[NEW_TRANSACTION] Creating or getting import status for correspondence: {}", correspondenceGuid);
         
@@ -384,7 +384,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Updates import status in a separate transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, )
     public void updateImportStatusInNewTransaction(CorrespondenceImportStatus importStatus) {
         try {
             logger.info("[NEW_TRANSACTION] Updating import status ID: {} for correspondence: {}", 
@@ -428,7 +428,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Retries failed imports for correspondences that haven't exceeded max retries
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 900)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, )
     public ImportResponseDto retryFailedImports() {
         logger.info("Starting retry of failed correspondence imports");
         
@@ -623,7 +623,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Resets import status for a correspondence (for manual retry)
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, )
     public boolean resetImportStatus(String correspondenceGuid) {
         logger.info("Resetting import status for correspondence: {}", correspondenceGuid);
         
