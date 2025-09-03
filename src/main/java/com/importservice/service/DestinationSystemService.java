@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -35,6 +36,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Base64;
@@ -54,9 +57,6 @@ public class DestinationSystemService {
     
     @Value("${file.upload.use-sample:false}")
     private boolean useSampleFile;
-    
-    @Value("${file.upload.sample.base64:testbase64}")
-    private String sampleBase64;
     
     @Value("${file.upload.sample.filename:sample_document.pdf}")
     private String sampleFileName;
@@ -175,15 +175,59 @@ public class DestinationSystemService {
             
             if (useSampleFile) {
                 logger.info("Using sample file for upload instead of real file data");
-                byte[] sampleFileData = Base64.getDecoder().decode(sampleBase64);
+                byte[] sampleFileData = readSampleFileFromResources();
+                if (sampleFileData == null) {
+                    logger.error("Failed to read sample file from resources");
+                    return false;
+                }
                 return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, url);
             } else {
-                byte[] fileData = Base64.getDecoder().decode(base64Data);
-                return uploadFileToBatch(batchId, fileId, fileData, fileName, url);
+                // Check if we should use sample file when base64Data is null or invalid
+                if (base64Data == null || base64Data.trim().isEmpty() || "testbase64".equals(base64Data)) {
+                    logger.info("No valid file data provided, using sample file from resources");
+                    byte[] sampleFileData = readSampleFileFromResources();
+                    if (sampleFileData == null) {
+                        logger.error("Failed to read sample file from resources");
+                        return false;
+                    }
+                    return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, url);
+                } else {
+                    byte[] fileData = Base64.getDecoder().decode(base64Data);
+                    return uploadFileToBatch(batchId, fileId, fileData, fileName, url);
+                }
             }
         } catch (IllegalArgumentException e) {
             logger.error("Invalid base64 data for file: {}", fileName, e);
-            return false;
+            // Fallback to sample file if base64 decoding fails
+            logger.info("Base64 decoding failed, falling back to sample file from resources");
+            byte[] sampleFileData = readSampleFileFromResources();
+            if (sampleFileData == null) {
+                logger.error("Failed to read sample file from resources as fallback");
+                return false;
+            }
+            return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, url);
+        }
+    }
+    
+    /**
+     * Reads the test.pdf file from resources and converts it to byte array
+     */
+    private byte[] readSampleFileFromResources() {
+        try {
+            ClassPathResource resource = new ClassPathResource("test.pdf");
+            if (!resource.exists()) {
+                logger.error("test.pdf file not found in resources folder");
+                return null;
+            }
+            
+            try (InputStream inputStream = resource.getInputStream()) {
+                byte[] fileData = inputStream.readAllBytes();
+                logger.info("Successfully read test.pdf from resources: {} bytes", fileData.length);
+                return fileData;
+            }
+        } catch (IOException e) {
+            logger.error("Error reading test.pdf from resources", e);
+            return null;
         }
     }
     
