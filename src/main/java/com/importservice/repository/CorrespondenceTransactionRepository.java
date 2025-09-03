@@ -68,8 +68,8 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
                    "AND (:status IS NULL OR ct.migrate_status = :status) " +
                    "AND (:search IS NULL OR :search = '' OR " +
-                   "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(ct.doc_guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.doc_guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(icm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -92,8 +92,8 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
                    "AND (:status IS NULL OR ct.migrate_status = :status) " +
                    "AND (:search IS NULL OR :search = '' OR " +
-                   "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(ct.doc_guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.doc_guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(icm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -325,8 +325,8 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
                    "AND (:status IS NULL OR ct.migrate_status = :status) " +
                    "AND (:search IS NULL OR :search = '' OR " +
-                   "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(ct.doc_guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.doc_guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(ocm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -350,8 +350,8 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
                    "AND (:status IS NULL OR ct.migrate_status = :status) " +
                    "AND (:search IS NULL OR :search = '' OR " +
-                   "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(ct.doc_guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.doc_guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(ocm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
