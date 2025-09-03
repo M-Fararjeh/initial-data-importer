@@ -160,6 +160,39 @@ public class OutgoingCorrespondenceMigrationController {
         }
     }
     
+    @GetMapping("/assignment/details")
+    @Operation(summary = "Get Outgoing Assignment Phase Details", 
+               description = "Returns detailed information about outgoing assignment phase migrations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
+    })
+    @Transactional(readOnly = true, timeout = 60)
+    public ResponseEntity<Map<String, Object>> getAssignmentDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(defaultValue = "") String search) {
+        logger.info("Received request for outgoing assignment phase details - page: {}, size: {}, status: {}, search: '{}'", 
+                   page, size, status, search);
+        
+        try {
+            Map<String, Object> assignments = migrationService.getAssignmentMigrations(page, size, status, search);
+            return ResponseEntity.ok(assignments);
+        } catch (Exception e) {
+            logger.error("Error getting outgoing assignment details", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("content", new ArrayList<>());
+            errorResponse.put("totalElements", 0L);
+            errorResponse.put("totalPages", 0);
+            errorResponse.put("currentPage", page);
+            errorResponse.put("pageSize", size);
+            errorResponse.put("hasNext", false);
+            errorResponse.put("hasPrevious", false);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
     @PostMapping("/assignment/execute-specific")
     @Operation(summary = "Execute Outgoing Assignment for Specific Transactions", 
                description = "Executes outgoing assignment phase for specified transaction GUIDs")
