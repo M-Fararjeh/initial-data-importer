@@ -16,8 +16,10 @@ import { BusinessLogDetailsComponent } from './components/business-log-details/b
 import { CommentDetailsComponent } from './components/comment-details/comment-details.component';
 import { ClosingDetailsComponent } from './components/closing-details/closing-details.component';
 import { CorrespondenceRelatedStatusComponent } from './components/correspondence-related-status/correspondence-related-status.component';
+import { OutgoingMigrationDashboardComponent } from './components/outgoing-migration-dashboard/outgoing-migration-dashboard.component';
 import { MigrationService } from './services/migration.service';
 import { DataImportService } from './services/data-import.service';
+import { OutgoingMigrationService } from './services/outgoing-migration.service';
 
 const routes: Routes = [
   { path: '', component: SourceDataImportComponent },
@@ -30,6 +32,7 @@ const routes: Routes = [
   { path: 'business-log-details', component: BusinessLogDetailsComponent },
   { path: 'comment-details', component: CommentDetailsComponent },
   { path: 'closing-details', component: ClosingDetailsComponent },
+  { path: 'outgoing-migration-dashboard', component: OutgoingMigrationDashboardComponent },
   { path: '**', redirectTo: '' }
 ];
 
@@ -46,7 +49,8 @@ const routes: Routes = [
     BusinessLogDetailsComponent,
     CommentDetailsComponent,
     ClosingDetailsComponent,
-    CorrespondenceRelatedStatusComponent
+    CorrespondenceRelatedStatusComponent,
+    OutgoingMigrationDashboardComponent
   ],
   imports: [
     BrowserModule,
@@ -56,7 +60,8 @@ const routes: Routes = [
   ],
   providers: [
     MigrationService,
-    DataImportService
+    DataImportService,
+    OutgoingMigrationService
   ],
   bootstrap: [AppComponent]
 })

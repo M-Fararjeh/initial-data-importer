@@ -109,6 +109,7 @@ POST /api/data-import/correspondences
 ### Migration System
 ```bash
 # Phase execution
+# Incoming Correspondence Migration
 POST /api/incoming-migration/prepare-data
 POST /api/incoming-migration/creation
 POST /api/incoming-migration/assignment
@@ -116,9 +117,20 @@ POST /api/incoming-migration/business-log
 POST /api/incoming-migration/comment
 POST /api/incoming-migration/closing
 
+# Outgoing Correspondence Migration
+POST /api/outgoing-migration/prepare-data
+POST /api/outgoing-migration/creation
+POST /api/outgoing-migration/assignment
+POST /api/outgoing-migration/approval
+POST /api/outgoing-migration/business-log
+POST /api/outgoing-migration/comment
+POST /api/outgoing-migration/closing
+
 # Statistics and monitoring
 GET /api/incoming-migration/statistics
+GET /api/outgoing-migration/statistics
 GET /api/incoming-migration/creation/details
+GET /api/outgoing-migration/creation/details
 GET /api/incoming-migration/assignment/details
 
 # Retry failed migrations
@@ -133,7 +145,9 @@ POST /api/user-import/users-to-destination
 
 ## 🔄 Migration Process
 
-The migration system processes incoming correspondences through 6 sequential phases:
+The migration system processes correspondences through sequential phases:
+
+### Incoming Correspondence Migration (6 Phases)
 
 ### Phase 1: Prepare Data
 **Purpose**: Select and prepare incoming correspondences for migration
@@ -210,6 +224,96 @@ The migration system processes incoming correspondences through 6 sequential pha
 
 **API**: `POST /api/incoming-migration/closing`
 
+### Outgoing Correspondence Migration (7 Phases)
+
+The outgoing correspondence migration system follows the same fault-tolerant, step-based approach as incoming correspondences but includes an additional approval phase.
+
+### Phase 1: Prepare Data
+**Purpose**: Select and prepare outgoing correspondences for migration
+
+**Process**:
+- Filters correspondences where `correspondenceType = 1` (outgoing)
+- Excludes deleted, draft, and cancelled correspondences
+- Creates migration tracking records in `outgoing_correspondence_migrations` table
+- Sets `isNeedToClose` based on `isArchive` field from correspondence
+
+**API**: `POST /api/outgoing-migration/prepare-data`
+
+### Phase 2: Creation
+**Purpose**: Create outgoing correspondences in destination system with attachments
+
+**Sub-steps**:
+1. **Get Details**: Retrieve and validate outgoing correspondence data
+2. **Upload Main Attachment**: Create batch and upload primary attachment (if exists)
+3. **Create Correspondence**: Create outgoing correspondence record using `AC_UA_OutgoingCorrespondence_Create`
+4. **Upload Other Attachments**: Process and upload remaining attachments
+5. **Create Physical Attachment**: Handle manual attachments using `AC_UA_PhysicalAttachment_Add`
+
+**Key Differences from Incoming**:
+- Uses `AC_UA_OutgoingCorrespondence_Create` operation
+- Maps `out_corr:signee` to "SECTOR"
+- Sets `corr:fromAgency` to "ITBA"
+- Maps `corr:toAgency` using agency mapping utilities
+- Includes `out_corr:multiRecivers` array
+
+**API**: `POST /api/outgoing-migration/creation`
+
+### Phase 3: Assignment
+**Purpose**: Assign outgoing correspondences to users and departments
+
+**Process**:
+- Creates readonly assignments using `AC_UA_Assignment_Create`
+- Sets `isReadOnly: true` in context
+- Maps department GUIDs to department codes
+- Includes `assign:completeDate` in updateProp
+
+**API**: `POST /api/outgoing-migration/assignment`
+
+### Phase 4: Approval *(New Phase)*
+**Purpose**: Approve outgoing correspondences and register them for sending
+
+**Sub-steps**:
+1. **Approve Correspondence**: Uses `AC_UA_OutgoingCorrespondence_SendWithoutApproval`
+2. **Register with Reference**: Uses `AC_UA_OutgoingCorrespondence_Register_WithReference`
+3. **Send Correspondence**: Uses `AC_UA_OutgoingCorrespondence_Send`
+
+**Step-based Processing**:
+- Tracks current approval step in `approval_step` field
+- Can resume from failed approval steps
+- Maintains outgoing correspondence context throughout process
+
+**API**: `POST /api/outgoing-migration/approval`
+
+### Phase 5: Business Log
+**Purpose**: Process business logic and workflows for outgoing correspondences
+
+**Process**:
+- Similar to incoming business log but for outgoing correspondence transactions
+- Uses `Document.CreateBusinessLog` with `documentTypes: "OutgoingCorrespondence"`
+- Processes all non-assignment transactions
+
+**API**: `POST /api/outgoing-migration/business-log`
+
+### Phase 6: Comment
+**Purpose**: Process comments and annotations for outgoing correspondences
+
+**Process**:
+- Migrates correspondence comments for outgoing correspondences
+- Uses same comment creation API as incoming
+- Preserves comment threading and user attribution
+
+**API**: `POST /api/outgoing-migration/comment`
+
+### Phase 7: Closing
+**Purpose**: Close outgoing correspondences that need archiving
+
+**Process**:
+- Uses `AC_UA_OutgoingCorrespondence_Close` operation
+- Includes `corr:closeDate` in updateProp
+- Only processes correspondences where `isNeedToClose = true`
+
+**API**: `POST /api/outgoing-migration/closing`
+
 ## 🎯 Service Architecture
 
 The application follows a modular service architecture:
@@ -228,6 +332,13 @@ The application follows a modular service architecture:
 - **`BusinessLogPhaseService`**: Phase 4 implementation
 - **`CommentPhaseService`**: Phase 5 implementation
 - **`ClosingPhaseService`**: Phase 6 implementation
+- **`OutgoingPrepareDataService`**: Outgoing Phase 1 implementation
+- **`OutgoingCreationPhaseService`**: Outgoing Phase 2 implementation with 5 sub-steps
+- **`OutgoingAssignmentPhaseService`**: Outgoing Phase 3 implementation
+- **`OutgoingApprovalPhaseService`**: Outgoing Phase 4 implementation with 3 sub-steps
+- **`OutgoingBusinessLogPhaseService`**: Outgoing Phase 5 implementation
+- **`OutgoingCommentPhaseService`**: Outgoing Phase 6 implementation
+- **`OutgoingClosingPhaseService`**: Outgoing Phase 7 implementation
 - **`MigrationPhaseService`**: Common phase utilities
 - **`MigrationStatisticsService`**: Statistics and reporting
 
@@ -284,13 +395,23 @@ The Angular-based migration interface provides:
 - **Phase Cards**: Visual representation of each migration phase with status indicators
 - **Sequential Execution**: Phases must be executed in order with dependency checking
 - **Error Handling**: Detailed error information and retry capabilities
+- **Dual Migration Support**: Separate dashboards for incoming and outgoing correspondences
 
 ### Detail Views
+#### Incoming Correspondence Details
 - **Creation Details**: Monitor correspondence creation progress with step-by-step tracking
 - **Assignment Details**: View assignment transactions with user and department mapping
 - **Business Log Details**: Track business logic processing and workflow events
 - **Comment Details**: Monitor comment migration with type filtering
 - **Closing Details**: Manage correspondence closing process
+
+#### Outgoing Correspondence Details
+- **Creation Details**: Monitor outgoing correspondence creation with 5-step process
+- **Assignment Details**: View readonly assignment creation for outgoing correspondences
+- **Approval Details**: Track 3-step approval process (approve, register, send)
+- **Business Log Details**: Monitor outgoing business logic processing
+- **Comment Details**: Track outgoing comment migration
+- **Closing Details**: Manage outgoing correspondence closing process
 
 ### Running the Migration UI
 
@@ -509,6 +630,9 @@ JSON/API Data    →  Phase Processing  →  REST API Calls
 Attachments      →  File Upload       →  Document Storage
 Metadata         →  Field Mapping     →  Structured Data
 Relationships    →  Dependency Mgmt   →  Linked Records
+
+Incoming Flow: 6 Phases → IncomingCorrespondence APIs
+Outgoing Flow: 7 Phases → OutgoingCorrespondence APIs (includes Approval)
 ```
 
 ## 📝 Development Guidelines
@@ -524,6 +648,14 @@ Relationships    →  Dependency Mgmt   →  Linked Records
    - Allow resumption from last successful step
    - Validate each step independently
    - Provide clear error messages for each step
+
+### Adding Outgoing Migration Features
+1. Follow the same patterns as incoming migration services
+2. Create services in `com.importservice.service.migration.outgoing` package
+3. Use `OutgoingCorrespondenceMigration` entity for tracking
+4. Implement step-based processing for complex phases (Creation, Approval)
+5. Add corresponding Angular components with "outgoing-" prefix
+6. Update routing and navigation to include outgoing migration pages
 
 ### Code Organization Principles
 - **Single Responsibility**: Each service handles one specific concern
