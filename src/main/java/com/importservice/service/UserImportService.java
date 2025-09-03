@@ -3,6 +3,7 @@ package com.importservice.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.importservice.dto.*;
+import com.importservice.service.KeycloakTokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,9 @@ public class UserImportService {
 
     @Autowired
     private RestTemplate restTemplate;
+    
+    @Autowired
+    private KeycloakTokenService keycloakTokenService;
     
     private final ObjectMapper objectMapper;
 
@@ -425,7 +429,17 @@ public class UserImportService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Accept", "application/json");
         headers.set("Accept-Language", "en-US,en;q=0.9,ar;q=0.8");
-        headers.set("Authorization", "Bearer " + authToken);
+        
+        // Use dynamic token from Keycloak service if available
+        String token = keycloakTokenService.getCurrentToken();
+        if (token != null) {
+            headers.set("Authorization", "Bearer " + token);
+            logger.debug("Using dynamic Keycloak token for user import");
+        } else {
+            headers.set("Authorization", "Bearer " + authToken);
+            logger.debug("Using static token from configuration for user import");
+        }
+        
         headers.set("Connection", "keep-alive");
         headers.set("Content-Type", "application/json");
         return headers;

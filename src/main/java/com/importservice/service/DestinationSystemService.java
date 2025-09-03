@@ -21,6 +21,7 @@ import com.importservice.util.CorrespondenceUtils;
 import com.importservice.util.CorrespondenceSubjectGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.importservice.util.HijriDateUtils;
+import com.importservice.service.KeycloakTokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +75,9 @@ public class DestinationSystemService {
     
     @Autowired
     private CorrespondenceSubjectGenerator subjectGenerator;
+    
+    @Autowired
+    private KeycloakTokenService keycloakTokenService;
     
     /**
      * Logs request details if logging is enabled
@@ -893,7 +897,17 @@ public class DestinationSystemService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Accept", "application/json");
         headers.set("Accept-Language", "en-US,en;q=0.9,ar;q=0.8");
-        headers.set("Authorization", "Bearer " + authToken);
+        
+        // Use dynamic token from Keycloak service if available
+        String token = keycloakTokenService.getCurrentToken();
+        if (token != null) {
+            headers.set("Authorization", "Bearer " + token);
+            logger.debug("Using dynamic Keycloak token for API request");
+        } else {
+            headers.set("Authorization", "Bearer " + authToken);
+            logger.debug("Using static token from configuration");
+        }
+        
         headers.set("Connection", "keep-alive");
         return headers;
     }

@@ -300,13 +300,21 @@ npm start
 
 #### Application Properties
 ```properties
+# Keycloak Configuration
+keycloak.auth.enabled=true
+keycloak.auth.server-url=http://18.206.121.44/auth
+keycloak.auth.realm=itba
+keycloak.auth.client-id=cspfrontend
+keycloak.auth.username=cts_admin
+keycloak.auth.password=your_actual_password
+
 # Source API Configuration
 source.api.base-url=https://itba.tarasol.cloud/Tarasol4ExtractorApi/Api/secure
 source.api.key=test
 
 # Destination API Configuration
 destination.api.url=http://18.206.121.44/nuxeo/api/v1/custom-automation/
-destination.api.token=<JWT_TOKEN>
+destination.api.token=fallback_token_if_keycloak_fails
 
 # Database Configuration
 spring.datasource.url=jdbc:mysql://localhost:3306/data_import_db
@@ -338,13 +346,24 @@ destination.api.logging.include-response=true
 
 ### Common Issues and Solutions
 
+#### 1. Keycloak Token Issues
+**Problem**: Authentication failures or expired tokens
+**Solution**: 
+- Verify Keycloak credentials in `application.properties`
+- Check token status: `GET /api/health/keycloak-token`
+- Force token refresh: `POST /api/health/keycloak-token/refresh`
+- Ensure Keycloak server is accessible at configured URL
+
 #### 1. Empty Statistics in UI
 **Problem**: Angular UI shows zero statistics
 **Solution**: Ensure Spring Boot service is running on port 8080 and check CORS configuration
 
 #### 2. Authentication Failures
 **Problem**: 401 Unauthorized errors
-**Solution**: Verify JWT token is valid and not expired in `application.properties`
+**Solution**: 
+- Check Keycloak token status via health endpoint
+- Verify Keycloak credentials are correct
+- Ensure fallback token is valid if Keycloak is disabled
 
 #### 3. File Upload Failures
 **Problem**: Large attachments fail to upload
@@ -382,6 +401,12 @@ ORDER BY (data_length + index_length) DESC;
 ### API Testing Examples
 
 ```bash
+# Check Keycloak token status
+curl http://localhost:8080/data-import/api/health/keycloak-token
+
+# Force token refresh
+curl -X POST http://localhost:8080/data-import/api/health/keycloak-token/refresh
+
 # Test health endpoint
 curl http://localhost:8080/data-import/api/health
 

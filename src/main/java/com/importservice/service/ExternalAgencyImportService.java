@@ -6,6 +6,7 @@ import com.importservice.dto.DestinationRequestDto;
 import com.importservice.dto.ExternalAgencyDto;
 import com.importservice.dto.ExternalAgencyInfoDto;
 import com.importservice.dto.ImportResponseDto;
+import com.importservice.service.KeycloakTokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +45,9 @@ public class ExternalAgencyImportService {
     @Autowired
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    
+    @Autowired
+    private KeycloakTokenService keycloakTokenService;
 
     public ExternalAgencyImportService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -161,7 +165,17 @@ public class ExternalAgencyImportService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Accept", "application/json");
         headers.set("Accept-Language", "en-US,en;q=0.9,ar;q=0.8");
-        headers.set("Authorization", "Bearer " + authToken);
+        
+        // Use dynamic token from Keycloak service if available
+        String token = keycloakTokenService.getCurrentToken();
+        if (token != null) {
+            headers.set("Authorization", "Bearer " + token);
+            logger.debug("Using dynamic Keycloak token for external agency import");
+        } else {
+            headers.set("Authorization", "Bearer " + authToken);
+            logger.debug("Using static token from configuration for external agency import");
+        }
+        
         headers.set("Connection", "keep-alive");
         headers.set("Content-Type", "application/json");
         return headers;
