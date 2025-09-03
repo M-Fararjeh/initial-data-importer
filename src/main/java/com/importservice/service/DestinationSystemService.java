@@ -190,10 +190,10 @@ public class DestinationSystemService {
                         logger.error("Failed to read sample file from resources");
                         return false;
                     }
-                    return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, url);
+                    return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, "");
                 } else {
                     byte[] fileData = Base64.getDecoder().decode(base64Data);
-                    return uploadFileToBatch(batchId, fileId, fileData, fileName, url);
+                    return uploadFileToBatch(batchId, fileId, fileData, fileName, "");
                 }
             }
         } catch (IllegalArgumentException e) {
@@ -205,7 +205,7 @@ public class DestinationSystemService {
                 logger.error("Failed to read sample file from resources as fallback");
                 return false;
             }
-            return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, url);
+            return uploadFileToBatch(batchId, fileId, sampleFileData, sampleFileName, "");
         }
     }
     
@@ -221,7 +221,14 @@ public class DestinationSystemService {
             }
             
             try (InputStream inputStream = resource.getInputStream()) {
-                byte[] fileData = inputStream.readAllBytes();
+                // Java 8 compatible way to read all bytes from InputStream
+                java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
+                int nRead;
+                byte[] data = new byte[16384];
+                while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                    buffer.write(data, 0, nRead);
+                }
+                byte[] fileData = buffer.toByteArray();
                 logger.info("Successfully read test.pdf from resources: {} bytes", fileData.length);
                 return fileData;
             }
@@ -234,8 +241,10 @@ public class DestinationSystemService {
     /**
      * Uploads file data to batch
      */
-    private boolean uploadFileToBatch(String batchId, String fileId, byte[] fileData, String fileName, String url) {
+    private boolean uploadFileToBatch(String batchId, String fileId, byte[] fileData, String fileName, String unusedParam) {
         try {
+            String uploadUrl = getUploadEndpoint() + batchId + "/" + fileId;
+            
             ByteArrayResource resource = new ByteArrayResource(fileData) {
                 @Override
                 public String getFilename() {
@@ -249,7 +258,7 @@ public class DestinationSystemService {
             HttpEntity<ByteArrayResource> entity = new HttpEntity<>(resource, headers);
             
             ResponseEntity<String> response = restTemplate.exchange(
-                url,
+                uploadUrl,
                 HttpMethod.POST,
                 entity,
                 String.class
