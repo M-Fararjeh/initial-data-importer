@@ -58,12 +58,12 @@ public class CreationPhaseService {
     
     @Autowired
     private CorrespondenceSubjectGenerator subjectGenerator;
-    
+
     /**
      * Phase 2: Creation
      * Creates correspondences in destination system
      */
-    @Transactional(readOnly = false, timeout = 600)
+    //@Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCreationPhase() {
         logger.info("Starting Phase 2: Creation");
         
@@ -232,135 +232,160 @@ public class CreationPhaseService {
         
         try {
             // Step 1: Get correspondence details
-            updateCreationStep(migration, "GET_DETAILS");
+            //updateCreationStep(migration, "GET_DETAILS");
             Optional<Correspondence> correspondenceOpt = correspondenceRepository.findById(correspondenceGuid);
             if (!correspondenceOpt.isPresent()) {
                 logger.error("Correspondence not found: {}", correspondenceGuid);
                 return false;
             }
             Correspondence correspondence = correspondenceOpt.get();
-            
-            // Step 2: Get attachments
-            updateCreationStep(migration, "GET_ATTACHMENTS");
-            List<CorrespondenceAttachment> attachments = attachmentRepository.findByDocGuid(correspondenceGuid);
-            CorrespondenceAttachment primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
-            
-            String batchId = null;
-            
-            // Step 3: Upload main attachment if exists
-            if (primaryAttachment != null && AttachmentUtils.isValidForUpload(primaryAttachment)) {
-                updateCreationStep(migration, "UPLOAD_MAIN_ATTACHMENT");
-                batchId = destinationService.createBatch();
-                if (batchId != null) {
-                    migration.setBatchId(batchId);
-                    
-                    String fileData = AttachmentUtils.getFileDataForUpload(
-                        primaryAttachment.getFileData(), 
-                        primaryAttachment.getName(), 
-                        true
-                    );
-                    
-                    boolean uploaded = destinationService.uploadBase64FileToBatch(
-                        batchId, "0", fileData, 
-                        AttachmentUtils.getFileNameForUpload(primaryAttachment.getName(), true)
-                    );
-                    
-                    if (!uploaded) {
-                        logger.warn("Failed to upload primary attachment for correspondence: {}", correspondenceGuid);
+            CorrespondenceAttachment primaryAttachment=null;
+            List<CorrespondenceAttachment> attachments = null;
+            String documentId = null;
+            if("GET_DETAILS".equals(migration.getCreationStep())){
+                attachments = attachmentRepository.findByDocGuid(correspondenceGuid);
+                primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
+
+                String batchId = null;
+
+                // Step 3: Upload main attachment if exists
+                if (primaryAttachment != null && AttachmentUtils.isValidForUpload(primaryAttachment)) {
+                    //updateCreationStep(migration, "UPLOAD_MAIN_ATTACHMENT");
+                    batchId = destinationService.createBatch();
+                    if (batchId != null) {
+                        migration.setBatchId(batchId);
+
+                        String fileData = AttachmentUtils.getFileDataForUpload(
+                                primaryAttachment.getFileData(),
+                                primaryAttachment.getName(),
+                                true
+                        );
+
+                        boolean uploaded = destinationService.uploadBase64FileToBatch(
+                                batchId, "0", fileData,
+                                AttachmentUtils.getFileNameForUpload(primaryAttachment.getName(), true)
+                        );
+
+                        if (!uploaded) {
+                            logger.warn("Failed to upload primary attachment for correspondence: {}", correspondenceGuid);
+                            return false;
+                        }
+
+                        updateCreationStep(migration, "CREATE_CORRESPONDENCE");
+                        documentId = createCorrespondenceInDestination(correspondence, batchId);
+                        if (documentId == null) {
+                            logger.error("Failed to create correspondence in destination system: {}", correspondenceGuid);
+                            return false;
+                        }
+
+                        migration.setCreatedDocumentId(documentId);
+
+                        // Step 5: Upload other attachments
+                        updateCreationStep(migration, "UPLOAD_OTHER_ATTACHMENTS");
+
+                    } else {
+                        logger.error("Failed to create batch for primary attachment upload: {}", correspondenceGuid);
                         return false;
                     }
-                } else {
-                    logger.error("Failed to create batch for primary attachment upload: {}", correspondenceGuid);
-                    return false;
                 }
+
             }
+            if (documentId==null){
+                documentId=migration.getCreatedDocumentId();
+            }
+            // Step 2: Get attachments
+            //updateCreationStep(migration, "GET_ATTACHMENTS");
+
             
             // Step 4: Create correspondence
-            updateCreationStep(migration, "CREATE_CORRESPONDENCE");
-            String documentId = createCorrespondenceInDestination(correspondence, batchId);
-            if (documentId == null) {
-                logger.error("Failed to create correspondence in destination system: {}", correspondenceGuid);
-                return false;
+
+            if("UPLOAD_OTHER_ATTACHMENTS".equals(migration.getCreationStep())){
+                boolean otherAttachmentsSuccess = uploadOtherAttachments(attachments, primaryAttachment, documentId);
+                if (!otherAttachmentsSuccess) {
+                    logger.error("Failed to upload other attachments for correspondence: {}", correspondenceGuid);
+                    return false;
+                }
+
+                // Step 6: Create physical attachment
+                updateCreationStep(migration, "CREATE_PHYSICAL_ATTACHMENT");
             }
-            
-            migration.setCreatedDocumentId(documentId);
-            
-            // Step 5: Upload other attachments
-            updateCreationStep(migration, "UPLOAD_OTHER_ATTACHMENTS");
-            boolean otherAttachmentsSuccess = uploadOtherAttachments(attachments, primaryAttachment, documentId);
-            if (!otherAttachmentsSuccess) {
-                logger.error("Failed to upload other attachments for correspondence: {}", correspondenceGuid);
-                return false;
+
+            if("CREATE_PHYSICAL_ATTACHMENT".equals(migration.getCreationStep())) {
+                boolean physicalAttachmentSuccess = createPhysicalAttachment(correspondence, documentId);
+                if (!physicalAttachmentSuccess) {
+                    logger.error("Failed to create physical attachment for correspondence: {}", correspondenceGuid);
+                    return false;
+                }
+                // Step 7: Set ready to register
+                updateCreationStep(migration, "SET_READY_TO_REGISTER");
             }
-            
-            // Step 6: Create physical attachment
-            updateCreationStep(migration, "CREATE_PHYSICAL_ATTACHMENT");
-            boolean physicalAttachmentSuccess = createPhysicalAttachment(correspondence, documentId);
-            if (!physicalAttachmentSuccess) {
-                logger.error("Failed to create physical attachment for correspondence: {}", correspondenceGuid);
-                return false;
+
+            if("SET_READY_TO_REGISTER".equals(migration.getCreationStep())) {
+                String asUserForRegister = correspondence.getCreationUserName() != null ?
+                        correspondence.getCreationUserName() : "itba-emp1";
+                //boolean readyToRegisterSuccess = destinationService.setIncomingReadyToRegister(documentId, asUserForRegister);
+                boolean readyToRegisterSuccess=true;
+                if (!readyToRegisterSuccess) {
+                    String errorMsg = "Failed to set ready to register for correspondence: " + correspondenceGuid;
+                    logger.error(errorMsg);
+                    return false;
+                }
+
+                // Step 8: Register with reference
+                updateCreationStep(migration, "REGISTER_WITH_REFERENCE");
             }
-            
-            // Step 7: Set ready to register
-            updateCreationStep(migration, "SET_READY_TO_REGISTER");
-            String asUserForRegister = correspondence.getCreationUserName() != null ? 
-                                     correspondence.getCreationUserName() : "itba-emp1";
-            //boolean readyToRegisterSuccess = destinationService.setIncomingReadyToRegister(documentId, asUserForRegister);
-            boolean readyToRegisterSuccess=true;
-            if (!readyToRegisterSuccess) {
-                String errorMsg = "Failed to set ready to register for correspondence: " + correspondenceGuid;
-                logger.error(errorMsg);
-                return false;
+
+            if("REGISTER_WITH_REFERENCE".equals(migration.getCreationStep())) {
+                boolean registerSuccess = registerCorrespondenceWithReference(correspondence, documentId);
+                if (!registerSuccess) {
+                    String errorMsg = "Failed to register correspondence with reference: " + correspondenceGuid;
+                    logger.error(errorMsg);
+                    return false;
+                }
+                updateCreationStep(migration, "START_WORK");
+
+                // Add delay for destination system processing
+                try {
+                    Thread.sleep(5000); // Reduced to 5 seconds
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
             }
-            
-            // Step 8: Register with reference
-            updateCreationStep(migration, "REGISTER_WITH_REFERENCE");
-            boolean registerSuccess = registerCorrespondenceWithReference(correspondence, documentId);
-            if (!registerSuccess) {
-                String errorMsg = "Failed to register correspondence with reference: " + correspondenceGuid;
-                logger.error(errorMsg);
-                return false;
+            if("START_WORK".equals(migration.getCreationStep())) {
+                // Step 9: Start work
+                String asUserForWork = correspondence.getCreationUserName() != null ?
+                        correspondence.getCreationUserName() : "itba-emp1";
+                boolean startWorkSuccess = destinationService.startIncomingCorrespondenceWork(documentId, asUserForWork);
+                if (!startWorkSuccess) {
+                    String errorMsg = "Failed to start work for correspondence: " + correspondenceGuid;
+                    logger.error(errorMsg);
+                    return false;
+                }
+
+                // Step 10: Set owner
+                updateCreationStep(migration, "SET_OWNER");
             }
-            
-            // Add delay for destination system processing
-            try {
-                Thread.sleep(5000); // Reduced to 5 seconds
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
+
+            if("SET_OWNER".equals(migration.getCreationStep())) {
+                String asUserForOwner = correspondence.getCreationUserName() != null ?
+                        correspondence.getCreationUserName() : "itba-emp1";
+                boolean setOwnerSuccess = destinationService.setCorrespondenceOwner(documentId, asUserForOwner);
+                if (!setOwnerSuccess) {
+                    String errorMsg = "Failed to set owner for correspondence: " + correspondenceGuid;
+                    logger.error(errorMsg);
+                    return false;
+                }
+
+                // Mark as completed
+                updateCreationStep(migration, "COMPLETED");
+                logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
+                return true;
             }
-            
-            // Step 9: Start work
-            updateCreationStep(migration, "START_WORK");
-            String asUserForWork = correspondence.getCreationUserName() != null ? 
-                                 correspondence.getCreationUserName() : "itba-emp1";
-            boolean startWorkSuccess = destinationService.startIncomingCorrespondenceWork(documentId, asUserForWork);
-            if (!startWorkSuccess) {
-                String errorMsg = "Failed to start work for correspondence: " + correspondenceGuid;
-                logger.error(errorMsg);
-                return false;
-            }
-            
-            // Step 10: Set owner
-            updateCreationStep(migration, "SET_OWNER");
-            String asUserForOwner = correspondence.getCreationUserName() != null ? 
-                                  correspondence.getCreationUserName() : "itba-emp1";
-            boolean setOwnerSuccess = destinationService.setCorrespondenceOwner(documentId, asUserForOwner);
-            if (!setOwnerSuccess) {
-                String errorMsg = "Failed to set owner for correspondence: " + correspondenceGuid;
-                logger.error(errorMsg);
-                return false;
-            }
-            
-            // Mark as completed
-            updateCreationStep(migration, "COMPLETED");
-            
-            logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
-            return true;
-            
         } catch (Exception e) {
             logger.error("Error in creation process for correspondence: {}", correspondenceGuid, e);
             return false;
         }
+        return false;
     }
     
     /**
