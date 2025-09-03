@@ -683,4 +683,60 @@ public class CreationPhaseService {
             return errorResult;
         }
     }
+    
+    /**
+     * Gets creation statistics for UI display
+     */
+    @Transactional(readOnly = true, timeout = 60)
+    public Map<String, Object> getCreationStatistics() {
+        try {
+            List<IncomingCorrespondenceMigration> migrations = migrationRepository.findAll();
+            
+            Map<String, Object> statistics = new HashMap<>();
+            
+            // Calculate status counts
+            long total = migrations.size();
+            long completed = migrations.stream().mapToLong(m -> "COMPLETED".equals(m.getCreationStatus()) ? 1 : 0).sum();
+            long pending = migrations.stream().mapToLong(m -> "PENDING".equals(m.getCreationStatus()) ? 1 : 0).sum();
+            long error = migrations.stream().mapToLong(m -> "ERROR".equals(m.getCreationStatus()) ? 1 : 0).sum();
+            
+            statistics.put("total", total);
+            statistics.put("completed", completed);
+            statistics.put("pending", pending);
+            statistics.put("error", error);
+            
+            // Calculate step statistics
+            Map<String, Long> stepCounts = new HashMap<>();
+            for (IncomingCorrespondenceMigration migration : migrations) {
+                String step = migration.getCreationStep() != null ? migration.getCreationStep() : "UNKNOWN";
+                stepCounts.put(step, stepCounts.getOrDefault(step, 0L) + 1);
+            }
+            
+            List<Map<String, Object>> stepStatistics = new ArrayList<>();
+            for (Map.Entry<String, Long> entry : stepCounts.entrySet()) {
+                Map<String, Object> stepStat = new HashMap<>();
+                stepStat.put("step", entry.getKey());
+                stepStat.put("count", entry.getValue());
+                stepStatistics.add(stepStat);
+            }
+            
+            statistics.put("stepStatistics", stepStatistics);
+            
+            logger.info("Generated creation statistics: total={}, completed={}, pending={}, error={}", 
+                       total, completed, pending, error);
+            
+            return statistics;
+            
+        } catch (Exception e) {
+            logger.error("Error getting creation statistics", e);
+            Map<String, Object> errorStats = new HashMap<>();
+            errorStats.put("total", 0L);
+            errorStats.put("completed", 0L);
+            errorStats.put("pending", 0L);
+            errorStats.put("error", 0L);
+            errorStats.put("stepStatistics", new ArrayList<>());
+            errorStats.put("error", e.getMessage());
+            return errorStats;
+        }
+    }
 }

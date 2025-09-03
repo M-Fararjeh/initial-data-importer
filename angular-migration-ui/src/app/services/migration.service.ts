@@ -317,6 +317,25 @@ export class MigrationService {
     });
   }
   
+  // Creation statistics methods
+  getCreationStatistics(): Observable<any> {
+    console.log('Calling getCreationStatistics API');
+    return this.http.get<any>(`${this.baseUrl}/creation/statistics`)
+      .pipe(
+        tap((stats) => console.log('Creation statistics response:', stats)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting creation statistics:', error);
+          return of({
+            total: 0,
+            completed: 0,
+            pending: 0,
+            error: 0,
+            stepStatistics: []
+          });
+        })
+      );
+  }
+  
   getProgressPercentage(step: string): number {
     const steps = [
       'GET_DETAILS',

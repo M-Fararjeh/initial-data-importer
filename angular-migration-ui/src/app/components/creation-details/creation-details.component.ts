@@ -3,6 +3,18 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MigrationService, ImportResponse } from '../../services/migration.service';
 
+export interface CreationStatistics {
+  total: number;
+  completed: number;
+  pending: number;
+  error: number;
+}
+
+export interface StepStatistics {
+  step: string;
+  count: number;
+}
+
 export interface CreationMigration {
   id: number;
   correspondenceGuid: string;
@@ -37,6 +49,8 @@ export class CreationDetailsComponent implements OnInit, OnDestroy {
   isLoading = false;
   selectedMigrations: CreationMigration[] = [];
   allSelected = false;
+  statistics: CreationStatistics | null = null;
+  stepStatistics: StepStatistics[] = [];
   
   // Filters
   statusFilter = 'all';
@@ -53,6 +67,7 @@ export class CreationDetailsComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     console.log('CreationDetailsComponent initialized');
     this.loadCreationMigrations();
+    this.loadStatistics();
   }
   
   ngOnDestroy(): void {
@@ -70,6 +85,7 @@ export class CreationDetailsComponent implements OnInit, OnDestroy {
         next: (migrations) => {
           console.log('Creation migrations loaded:', migrations);
           this.migrations = migrations;
+          this.calculateStatistics();
           this.applyFilters();
           this.isLoading = false;
         },
@@ -78,6 +94,90 @@ export class CreationDetailsComponent implements OnInit, OnDestroy {
           this.isLoading = false;
         }
       });
+  }
+  
+  loadStatistics(): void {
+    console.log('Loading creation statistics...');
+    
+    this.migrationService.getCreationStatistics()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (stats) => {
+          console.log('Creation statistics loaded:', stats);
+          this.statistics = stats;
+        },
+        error: (error) => {
+          console.error('Error loading creation statistics:', error);
+          // Calculate from local data if API fails
+          this.calculateStatistics();
+        }
+      });
+  }
+  
+  calculateStatistics(): void {
+    if (this.migrations.length === 0) {
+      this.statistics = { total: 0, completed: 0, pending: 0, error: 0 };
+      this.stepStatistics = [];
+      return;
+    }
+    
+    // Calculate status statistics
+    const total = this.migrations.length;
+    const completed = this.migrations.filter(m => m.creationStatus === 'COMPLETED').length;
+    const pending = this.migrations.filter(m => m.creationStatus === 'PENDING').length;
+    const error = this.migrations.filter(m => m.creationStatus === 'ERROR').length;
+    
+    this.statistics = { total, completed, pending, error };
+    
+    // Calculate step statistics
+    const stepCounts = new Map<string, number>();
+    this.migrations.forEach(migration => {
+      const step = migration.creationStep || 'UNKNOWN';
+      stepCounts.set(step, (stepCounts.get(step) || 0) + 1);
+    });
+    
+    this.stepStatistics = Array.from(stepCounts.entries())
+      .map(([step, count]) => ({ step, count }))
+      .sort((a, b) => this.getStepOrder(a.step) - this.getStepOrder(b.step));
+  }
+  
+  getStepDisplayName(step: string): string {
+    const stepNames: { [key: string]: string } = {
+      'GET_DETAILS': 'Get Details',
+      'GET_ATTACHMENTS': 'Get Attachments',
+      'UPLOAD_MAIN_ATTACHMENT': 'Upload Main',
+      'CREATE_CORRESPONDENCE': 'Create Corr.',
+      'UPLOAD_OTHER_ATTACHMENTS': 'Upload Others',
+      'CREATE_PHYSICAL_ATTACHMENT': 'Physical Attach.',
+      'SET_READY_TO_REGISTER': 'Ready to Register',
+      'REGISTER_WITH_REFERENCE': 'Register',
+      'START_WORK': 'Start Work',
+      'SET_OWNER': 'Set Owner',
+      'COMPLETED': 'Completed'
+    };
+    return stepNames[step] || step;
+  }
+  
+  getStepOrder(step: string): number {
+    const stepOrder: { [key: string]: number } = {
+      'GET_DETAILS': 1,
+      'GET_ATTACHMENTS': 2,
+      'UPLOAD_MAIN_ATTACHMENT': 3,
+      'CREATE_CORRESPONDENCE': 4,
+      'UPLOAD_OTHER_ATTACHMENTS': 5,
+      'CREATE_PHYSICAL_ATTACHMENT': 6,
+      'SET_READY_TO_REGISTER': 7,
+      'REGISTER_WITH_REFERENCE': 8,
+      'START_WORK': 9,
+      'SET_OWNER': 10,
+      'COMPLETED': 11
+    };
+    return stepOrder[step] || 999;
+  }
+  
+  getStepPercentage(count: number): number {
+    if (!this.statistics || this.statistics.total === 0) return 0;
+    return Math.round((count / this.statistics.total) * 100);
   }
   
   applyFilters(): void {

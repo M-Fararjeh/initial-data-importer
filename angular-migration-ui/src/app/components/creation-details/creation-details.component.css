@@ -73,3 +73,33 @@ button:not(:disabled):hover {
   border-bottom: 5px solid transparent;
   transform: translateY(-50%);
 }
+
+.assignment-pending {
+  background-color: #fefce8;
+  border-left: 4px solid #eab308;
+}
+
+/* Statistics card styling */
+.stats-card {
+  transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Step statistics styling */
+.step-stat-card {
+  transition: all 0.2s ease;
+}
+
+.step-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress bar in step statistics */
+.step-progress-bar {
+  transition: width 0.5s ease-in-out;
+}

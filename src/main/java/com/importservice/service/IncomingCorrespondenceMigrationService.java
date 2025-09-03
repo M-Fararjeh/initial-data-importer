@@ -81,6 +81,11 @@ public class IncomingCorrespondenceMigrationService {
         return creationPhaseService.getCreationMigrationsWithDetails();
     }
     
+    public Map<String, Object> getCreationStatistics() {
+        logger.info("Delegating to CreationPhaseService for creation statistics");
+        return creationPhaseService.getCreationStatistics();
+    }
+    
     // Phase 3: Assignment
     public ImportResponseDto executeAssignmentPhase() {
         logger.info("Delegating to AssignmentPhaseService");

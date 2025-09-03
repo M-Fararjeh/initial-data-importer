@@ -93,6 +93,32 @@ public class IncomingCorrespondenceMigrationController {
         }
     }
     
+    @GetMapping("/creation/statistics")
+    @Operation(summary = "Get Creation Phase Statistics", 
+               description = "Returns statistics about creation phase status distribution")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
+    })
+    @Transactional(readOnly = true, timeout = 60)
+    public ResponseEntity<Map<String, Object>> getCreationStatistics() {
+        logger.info("Received request for creation phase statistics");
+        
+        try {
+            Map<String, Object> statistics = migrationService.getCreationStatistics();
+            return ResponseEntity.ok(statistics);
+        } catch (Exception e) {
+            logger.error("Error getting creation statistics", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("total", 0);
+            errorResponse.put("completed", 0);
+            errorResponse.put("pending", 0);
+            errorResponse.put("error", 0);
+            errorResponse.put("stepStatistics", new ArrayList<>());
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
     @PostMapping("/creation/execute-specific")
     @Operation(summary = "Execute Creation for Specific Correspondences", 
                description = "Executes creation phase for specified correspondence GUIDs")
