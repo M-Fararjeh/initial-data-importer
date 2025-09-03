@@ -23,13 +23,13 @@ public class TransactionConfig {
         // Enable rollback on commit failure
         transactionManager.setRollbackOnCommitFailure(true);
         
-        // Set nested transaction allowed
+        // Disable nested transactions to avoid complexity
         transactionManager.setNestedTransactionAllowed(false);
         
         // Ensure proper connection release
         transactionManager.setValidateExistingTransaction(true);
         
-        // Enable read-only optimization
+        // Disable global rollback on participation failure for better performance
         transactionManager.setGlobalRollbackOnParticipationFailure(false);
         
         return transactionManager;
