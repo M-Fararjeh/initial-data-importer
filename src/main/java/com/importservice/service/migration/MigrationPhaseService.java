@@ -28,7 +28,7 @@ public class MigrationPhaseService {
     /**
      * Updates migration phase status
      */
-    @Transactional()
+    @Transactional(readOnly = false, timeout = 120)
     public void updatePhaseStatus(String correspondenceGuid, String phase, String status, String error) {
         try {
             IncomingCorrespondenceMigration migration = migrationRepository
@@ -60,6 +60,7 @@ public class MigrationPhaseService {
     /**
      * Gets migrations that need processing for a specific phase
      */
+    @Transactional(readOnly = true, timeout = 60)
     public List<IncomingCorrespondenceMigration> getMigrationsForPhase(String phase) {
         try {
             List<IncomingCorrespondenceMigration> migrations = migrationRepository.findByCurrentPhase(phase);
@@ -74,6 +75,7 @@ public class MigrationPhaseService {
     /**
      * Gets retryable migrations (failed with retry count < max)
      */
+    @Transactional(readOnly = true, timeout = 60)
     public List<IncomingCorrespondenceMigration> getRetryableMigrations() {
         try {
             List<IncomingCorrespondenceMigration> migrations = migrationRepository.findRetryableMigrations();

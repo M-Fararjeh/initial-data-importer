@@ -518,6 +518,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Gets import statistics for all correspondences
      */
+    @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getImportStatistics() {
         logger.info("Getting import statistics from correspondence_import_status table");
         
@@ -599,6 +600,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Gets detailed import status for all correspondences
      */
+    @Transactional(readOnly = true, timeout = 60)
     public List<CorrespondenceImportStatus> getAllImportStatuses() {
         try {
             return importStatusRepository.findAll();
@@ -611,6 +613,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Gets import status for a specific correspondence
      */
+    @Transactional(readOnly = true, timeout = 30)
     public Optional<CorrespondenceImportStatus> getImportStatus(String correspondenceGuid) {
         try {
             return importStatusRepository.findByCorrespondenceGuid(correspondenceGuid);

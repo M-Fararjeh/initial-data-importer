@@ -51,7 +51,7 @@ public class BusinessLogPhaseService {
      * Phase 4: Business Log
      * Processes business logic for correspondences
      */
-    @Transactional
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeBusinessLogPhase() {
         logger.info("Starting Phase 4: Business Log");
         
@@ -103,7 +103,7 @@ public class BusinessLogPhaseService {
     /**
      * Executes business log for specific transactions
      */
-    @Transactional()
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeBusinessLogForSpecific(List<String> transactionGuids) {
         logger.info("Starting business log for {} specific transactions", transactionGuids.size());
         
@@ -206,6 +206,7 @@ public class BusinessLogPhaseService {
     /**
      * Gets business log migrations with pagination and search
      */
+    @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getBusinessLogMigrations(int page, int size, String status, String search) {
         try {
             Pageable pageable = PageRequest.of(page, size);

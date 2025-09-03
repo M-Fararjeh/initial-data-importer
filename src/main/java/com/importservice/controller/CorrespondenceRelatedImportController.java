@@ -142,6 +142,7 @@ public class CorrespondenceRelatedImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getImportStatistics() {
         logger.info("Received request for correspondence import statistics");
         
@@ -171,6 +172,7 @@ public class CorrespondenceRelatedImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statuses retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<List<CorrespondenceImportStatus>> getAllImportStatuses() {
         logger.info("Received request for all correspondence import statuses");
         
@@ -190,6 +192,7 @@ public class CorrespondenceRelatedImportController {
         @ApiResponse(responseCode = "200", description = "Status retrieved successfully"),
         @ApiResponse(responseCode = "404", description = "Correspondence not found")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<CorrespondenceImportStatus> getImportStatus(
             @Parameter(description = "Correspondence GUID") @PathVariable String correspondenceGuid) {
         logger.info("Received request for import status of correspondence: {}", correspondenceGuid);

@@ -52,7 +52,7 @@ public class CommentPhaseService {
      * Phase 5: Comment
      * Processes comments for correspondences
      */
-    @Transactional
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCommentPhase() {
         logger.info("Starting Phase 5: Comment");
         
@@ -104,7 +104,7 @@ public class CommentPhaseService {
     /**
      * Executes comment for specific comments
      */
-    @Transactional()
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCommentForSpecific(List<String> commentGuids) {
         logger.info("Starting comment for {} specific comments", commentGuids.size());
         
@@ -206,6 +206,7 @@ public class CommentPhaseService {
     /**
      * Gets comment migrations with pagination and search
      */
+    @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getCommentMigrations(int page, int size, String status, String commentType, String search) {
         try {
             Pageable pageable = PageRequest.of(page, size);

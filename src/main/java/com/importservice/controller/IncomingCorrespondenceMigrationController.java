@@ -76,6 +76,7 @@ public class IncomingCorrespondenceMigrationController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getCreationDetails() {
         logger.info("Received request for creation phase details");
         
@@ -139,6 +140,7 @@ public class IncomingCorrespondenceMigrationController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getAssignmentDetails(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -213,6 +215,7 @@ public class IncomingCorrespondenceMigrationController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getBusinessLogDetails(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -307,6 +310,7 @@ public class IncomingCorrespondenceMigrationController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getCommentDetails(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -362,6 +366,7 @@ public class IncomingCorrespondenceMigrationController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getClosingDetails(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -438,6 +443,7 @@ public class IncomingCorrespondenceMigrationController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getStatistics() {
         logger.info("Received request for migration statistics");
         

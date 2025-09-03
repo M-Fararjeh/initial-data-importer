@@ -544,6 +544,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getCorrespondenceImportStatistics() {
         logger.info("Received request for correspondence import statistics");
         
@@ -571,6 +572,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statuses retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<List<Object>> getAllCorrespondenceImportStatuses() {
         logger.info("Received request for all correspondence import statuses");
         
@@ -601,6 +603,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getClassificationsCount() {
         logger.info("Received request to get classifications count");
         Map<String, Long> response = new HashMap<>();
@@ -613,6 +616,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getContactsCount() {
         logger.info("Received request to get contacts count");
         Map<String, Long> response = new HashMap<>();
@@ -625,6 +629,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getDecisionsCount() {
         logger.info("Received request to get decisions count");
         Map<String, Long> response = new HashMap<>();
@@ -637,6 +642,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getDepartmentsCount() {
         logger.info("Received request to get departments count");
         Map<String, Long> response = new HashMap<>();
@@ -649,6 +655,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getFormsCount() {
         logger.info("Received request to get forms count");
         Map<String, Long> response = new HashMap<>();
@@ -661,6 +668,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getFormTypesCount() {
         logger.info("Received request to get form types count");
         Map<String, Long> response = new HashMap<>();
@@ -673,6 +681,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getImportanceCount() {
         logger.info("Received request to get importance count");
         Map<String, Long> response = new HashMap<>();
@@ -685,6 +694,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getPositionsCount() {
         logger.info("Received request to get positions count");
         Map<String, Long> response = new HashMap<>();
@@ -697,6 +707,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getPosRolesCount() {
         logger.info("Received request to get pos roles count");
         Map<String, Long> response = new HashMap<>();
@@ -709,6 +720,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getPriorityCount() {
         logger.info("Received request to get priority count");
         Map<String, Long> response = new HashMap<>();
@@ -721,6 +733,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getRolesCount() {
         logger.info("Received request to get roles count");
         Map<String, Long> response = new HashMap<>();
@@ -733,6 +746,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getSecrecyCount() {
         logger.info("Received request to get secrecy count");
         Map<String, Long> response = new HashMap<>();
@@ -745,6 +759,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getUserPositionsCount() {
         logger.info("Received request to get user positions count");
         Map<String, Long> response = new HashMap<>();
@@ -757,6 +772,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getUsersCount() {
         logger.info("Received request to get users count");
         Map<String, Long> response = new HashMap<>();
@@ -769,6 +785,7 @@ public class DataImportController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
     })
+    @Transactional(readOnly = true, timeout = 30)
     public ResponseEntity<Map<String, Long>> getCorrespondencesCount() {
         logger.info("Received request to get correspondences count");
         Map<String, Long> response = new HashMap<>();

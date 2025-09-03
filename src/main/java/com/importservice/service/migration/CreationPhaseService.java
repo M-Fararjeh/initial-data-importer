@@ -63,7 +63,7 @@ public class CreationPhaseService {
      * Phase 2: Creation
      * Creates correspondences in destination system
      */
-    @Transactional()
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCreationPhase() {
         logger.info("Starting Phase 2: Creation");
         
@@ -110,7 +110,7 @@ public class CreationPhaseService {
     /**
      * Executes creation for specific correspondences
      */
-    @Transactional()
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting creation for {} specific correspondences", correspondenceGuids.size());
         
@@ -613,6 +613,7 @@ public class CreationPhaseService {
     /**
      * Gets creation migrations for UI display
      */
+    @Transactional(readOnly = true, timeout = 60)
     public List<IncomingCorrespondenceMigration> getCreationMigrations() {
         try {
             List<IncomingCorrespondenceMigration> migrations = migrationRepository.findAll();
@@ -627,6 +628,7 @@ public class CreationPhaseService {
     /**
      * Gets creation migrations with correspondence details for UI display
      */
+    @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getCreationMigrationsWithDetails() {
         try {
             List<IncomingCorrespondenceMigration> migrations = migrationRepository.findAll();

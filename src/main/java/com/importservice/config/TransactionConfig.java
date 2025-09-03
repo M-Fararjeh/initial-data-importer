@@ -17,8 +17,8 @@ public class TransactionConfig {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(entityManagerFactory);
         
-        // Set extended transaction timeout (10 minutes for migration operations)
-        transactionManager.setDefaultTimeout(600);
+        // Set reasonable transaction timeout (5 minutes for migration operations)
+        transactionManager.setDefaultTimeout(300);
         
         // Enable rollback on commit failure
         transactionManager.setRollbackOnCommitFailure(true);
@@ -28,6 +28,9 @@ public class TransactionConfig {
         
         // Ensure proper connection release
         transactionManager.setValidateExistingTransaction(true);
+        
+        // Enable read-only optimization
+        transactionManager.setGlobalRollbackOnParticipationFailure(false);
         
         return transactionManager;
     }

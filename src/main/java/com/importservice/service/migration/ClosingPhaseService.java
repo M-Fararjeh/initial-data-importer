@@ -52,7 +52,7 @@ public class ClosingPhaseService {
      * Phase 6: Closing
      * Closes correspondences that need to be closed
      */
-    @Transactional
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeClosingPhase() {
         logger.info("Starting Phase 6: Closing");
         
@@ -109,7 +109,7 @@ public class ClosingPhaseService {
     /**
      * Executes closing for specific correspondences
      */
-    @Transactional()
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeClosingForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting closing for {} specific correspondences", correspondenceGuids.size());
         
@@ -214,6 +214,7 @@ public class ClosingPhaseService {
     /**
      * Gets closing migrations with pagination and search
      */
+    @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getClosingMigrations(int page, int size, String status, String needToClose, String search) {
         try {
             Pageable pageable = PageRequest.of(page, size);

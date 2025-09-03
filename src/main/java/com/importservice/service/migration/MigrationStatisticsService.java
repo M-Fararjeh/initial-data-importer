@@ -32,6 +32,7 @@ public class MigrationStatisticsService {
     /**
      * Gets comprehensive migration statistics
      */
+    @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getMigrationStatistics() {
         try {
             Map<String, Object> statistics = new HashMap<>();
@@ -131,6 +132,7 @@ public class MigrationStatisticsService {
     /**
      * Gets retry failed migrations statistics
      */
+    @Transactional(readOnly = true, timeout = 30)
     public Map<String, Object> getRetryStatistics() {
         try {
             Map<String, Object> retryStats = new HashMap<>();

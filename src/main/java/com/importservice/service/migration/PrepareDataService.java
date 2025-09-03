@@ -38,7 +38,7 @@ public class PrepareDataService {
      * Phase 1: Prepare Data
      * Selects incoming correspondences and creates migration tracking records
      */
-    @Transactional
+    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto prepareData() {
         logger.info("Starting Phase 1: Prepare Data");
         

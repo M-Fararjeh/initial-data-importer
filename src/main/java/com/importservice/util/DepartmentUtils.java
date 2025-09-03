@@ -144,6 +144,7 @@ public class DepartmentUtils {
      * @param userEmail The user email to look up
      * @return The department GUID, or null if not found
      */
+    @Transactional(readOnly = true, timeout = 30)
     public String getDepartmentGuidByUserEmail(String userEmail) {
         if (userEmail == null || userEmail.trim().isEmpty()) {
             logger.debug("Null or empty userEmail provided");
@@ -174,6 +175,7 @@ public class DepartmentUtils {
      * @param userGuid The user GUID to look up
      * @return The department GUID, or null if not found
      */
+    @Transactional(readOnly = true, timeout = 30)
     public String getDepartmentGuidByUserGuid(String userGuid) {
         if (userGuid == null || userGuid.trim().isEmpty()) {
             logger.debug("Null or empty userGuid provided");

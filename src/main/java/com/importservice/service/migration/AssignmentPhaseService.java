@@ -56,7 +56,7 @@ public class AssignmentPhaseService {
      * Phase 3: Assignment
      * Assigns correspondences to users and departments
      */
-    @Transactional
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeAssignmentPhase() {
         logger.info("Starting Phase 3: Assignment");
         
@@ -108,7 +108,7 @@ public class AssignmentPhaseService {
     /**
      * Executes assignment for specific transactions
      */
-    @Transactional()
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeAssignmentForSpecific(List<String> transactionGuids) {
         logger.info("Starting assignment for {} specific transactions", transactionGuids.size());
         
@@ -219,6 +219,7 @@ public class AssignmentPhaseService {
     /**
      * Gets assignment migrations with pagination and search
      */
+    @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getAssignmentMigrations(int page, int size, String status, String search) {
         try {
             Pageable pageable = PageRequest.of(page, size);

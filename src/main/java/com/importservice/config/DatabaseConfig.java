@@ -36,19 +36,19 @@ public class DatabaseConfig {
         config.setDriverClassName(driverClassName);
         
         // Optimized pool settings for better performance
-        config.setMaximumPoolSize(10);  // Increased for better concurrency
-        config.setMinimumIdle(2);
+        config.setMaximumPoolSize(15);  // Increased for better concurrency
+        config.setMinimumIdle(5);
         config.setConnectionTimeout(30000); // 30 seconds
         config.setIdleTimeout(600000); // 10 minutes
         config.setMaxLifetime(1800000); // 30 minutes
-        config.setLeakDetectionThreshold(120000); // 2 minutes
+        config.setLeakDetectionThreshold(180000); // 3 minutes
         
         // Connection validation
         config.setValidationTimeout(5000);
         config.setConnectionTestQuery("SELECT 1");
         
         // Auto-commit and transaction settings
-        config.setAutoCommit(false); // Let Spring manage transactions
+        config.setAutoCommit(true); // Enable auto-commit for read operations
         
         // Pool name for monitoring - use unique name to avoid conflicts
         config.setPoolName("DataImportHikariCP-" + System.currentTimeMillis());
@@ -70,6 +70,9 @@ public class DatabaseConfig {
         config.addDataSourceProperty("cacheServerConfiguration", "true");
         config.addDataSourceProperty("elideSetAutoCommits", "true");
         config.addDataSourceProperty("maintainTimeStats", "false");
+        config.addDataSourceProperty("useLocalTransactionState", "true");
+        config.addDataSourceProperty("readOnlyPropagatesToServer", "true");
+        config.addDataSourceProperty("enableQueryTimeouts", "true");
         
         return new HikariDataSource(config);
     }

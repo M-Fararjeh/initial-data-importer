@@ -151,7 +151,7 @@ public class IncomingCorrespondenceMigrationService {
         return statisticsService.getMigrationStatistics();
     }
     
-    @Transactional
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto retryFailedMigrations() {
         logger.info("Starting retry of failed migrations");
         
