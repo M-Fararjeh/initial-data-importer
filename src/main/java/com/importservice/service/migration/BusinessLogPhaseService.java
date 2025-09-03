@@ -103,7 +103,7 @@ public class BusinessLogPhaseService {
     /**
      * Executes business log for specific transactions
      */
-    @Transactional(timeout = 180)
+    @Transactional(timeout = 300)
     public ImportResponseDto executeBusinessLogForSpecific(List<String> transactionGuids) {
         logger.info("Starting business log for {} specific transactions", transactionGuids.size());
         

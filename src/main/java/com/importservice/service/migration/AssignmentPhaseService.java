@@ -108,7 +108,7 @@ public class AssignmentPhaseService {
     /**
      * Executes assignment for specific transactions
      */
-    @Transactional(timeout = 180)
+    @Transactional(timeout = 300)
     public ImportResponseDto executeAssignmentForSpecific(List<String> transactionGuids) {
         logger.info("Starting assignment for {} specific transactions", transactionGuids.size());
         

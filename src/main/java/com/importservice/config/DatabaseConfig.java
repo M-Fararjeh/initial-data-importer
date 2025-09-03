@@ -35,16 +35,16 @@ public class DatabaseConfig {
         config.setPassword(password);
         config.setDriverClassName(driverClassName);
         
-        // Optimized pool settings to prevent connection leaks
-        config.setMaximumPoolSize(6);  // Reduced from 8 to 6
+        // Optimized pool settings for better performance
+        config.setMaximumPoolSize(10);  // Increased for better concurrency
         config.setMinimumIdle(2);
-        config.setConnectionTimeout(15000); // 15 seconds
-        config.setIdleTimeout(300000); // 5 minutes
-        config.setMaxLifetime(600000); // 10 minutes
-        config.setLeakDetectionThreshold(30000); // 30 seconds - detect leaks faster
+        config.setConnectionTimeout(30000); // 30 seconds
+        config.setIdleTimeout(600000); // 10 minutes
+        config.setMaxLifetime(1800000); // 30 minutes
+        config.setLeakDetectionThreshold(120000); // 2 minutes
         
         // Connection validation
-        config.setValidationTimeout(3000);
+        config.setValidationTimeout(5000);
         config.setConnectionTestQuery("SELECT 1");
         
         // Auto-commit and transaction settings

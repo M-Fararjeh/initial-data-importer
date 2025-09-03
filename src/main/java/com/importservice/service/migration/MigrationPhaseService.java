@@ -28,7 +28,7 @@ public class MigrationPhaseService {
     /**
      * Updates migration phase status
      */
-    @Transactional(timeout = 60)
+    @Transactional(timeout = 120)
     public void updatePhaseStatus(String correspondenceGuid, String phase, String status, String error) {
         try {
             IncomingCorrespondenceMigration migration = migrationRepository

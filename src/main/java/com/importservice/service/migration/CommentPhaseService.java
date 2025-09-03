@@ -104,7 +104,7 @@ public class CommentPhaseService {
     /**
      * Executes comment for specific comments
      */
-    @Transactional(timeout = 180)
+    @Transactional(timeout = 300)
     public ImportResponseDto executeCommentForSpecific(List<String> commentGuids) {
         logger.info("Starting comment for {} specific comments", commentGuids.size());
         

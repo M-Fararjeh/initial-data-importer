@@ -109,7 +109,7 @@ public class ClosingPhaseService {
     /**
      * Executes closing for specific correspondences
      */
-    @Transactional(timeout = 180)
+    @Transactional(timeout = 300)
     public ImportResponseDto executeClosingForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting closing for {} specific correspondences", correspondenceGuids.size());
         

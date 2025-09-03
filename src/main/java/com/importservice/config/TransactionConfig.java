@@ -17,8 +17,8 @@ public class TransactionConfig {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(entityManagerFactory);
         
-        // Set reasonable transaction timeout (5 minutes for migration operations)
-        transactionManager.setDefaultTimeout(300);
+        // Set extended transaction timeout (10 minutes for migration operations)
+        transactionManager.setDefaultTimeout(600);
         
         // Enable rollback on commit failure
         transactionManager.setRollbackOnCommitFailure(true);

@@ -248,7 +248,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Imports a specific entity type with status tracking in new transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 120)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 300)
     public boolean importEntityWithTrackingInNewTransaction(String correspondenceGuid, String entityType, Long importStatusId) {
         try {
             logger.info("Importing {} for correspondence: {} (Status ID: {})", entityType, correspondenceGuid, importStatusId);
@@ -428,7 +428,7 @@ public class CorrespondenceRelatedImportService {
     /**
      * Retries failed imports for correspondences that haven't exceeded max retries
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 600)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 900)
     public ImportResponseDto retryFailedImports() {
         logger.info("Starting retry of failed correspondence imports");
         
