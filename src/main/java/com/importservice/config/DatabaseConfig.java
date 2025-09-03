@@ -35,10 +35,10 @@ public class DatabaseConfig {
         config.setPassword(password);
         config.setDriverClassName(driverClassName);
         
-        // Pool settings optimized to prevent connection leaks
-        config.setMaximumPoolSize(8);
+        // Optimized pool settings to prevent connection leaks
+        config.setMaximumPoolSize(6);  // Reduced from 8 to 6
         config.setMinimumIdle(2);
-        config.setConnectionTimeout(20000); // 20 seconds
+        config.setConnectionTimeout(15000); // 15 seconds
         config.setIdleTimeout(300000); // 5 minutes
         config.setMaxLifetime(600000); // 10 minutes
         config.setLeakDetectionThreshold(30000); // 30 seconds - detect leaks faster
@@ -50,16 +50,16 @@ public class DatabaseConfig {
         // Auto-commit and transaction settings
         config.setAutoCommit(false); // Let Spring manage transactions
         
-        // Pool name for monitoring
-        config.setPoolName("DataImportOptimizedHikariCP");
+        // Pool name for monitoring - use unique name to avoid conflicts
+        config.setPoolName("DataImportHikariCP-" + System.currentTimeMillis());
         
-        // Register MBeans for monitoring
-        config.setRegisterMbeans(true);
+        // Disable MBean registration to avoid conflicts
+        config.setRegisterMbeans(false);
         
         // Connection initialization
         config.setInitializationFailTimeout(10000);
         
-        // Additional MySQL-specific settings
+        // Additional MySQL-specific settings for better performance
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
