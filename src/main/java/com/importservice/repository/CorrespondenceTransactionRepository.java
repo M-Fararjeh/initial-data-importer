@@ -66,16 +66,16 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
-                   "AND (:status IS NULL OR ct.migrate_status = :status) " +
-                   "AND (:search IS NULL OR :search = '' OR " +
-                   "     LOWER(COALESCE(ct.guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(ct.doc_guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(icm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(ct.from_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(ct.to_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(ct.notes, '')) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+                   "AND (:status = 'all' OR ct.migrate_status = :status) " +
+                   "AND (:search = '' OR :search IS NULL OR " +
+                   "     ct.guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     ct.doc_guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(icm.created_document_id, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.subject, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.reference_no, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.from_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.to_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.notes, '') LIKE CONCAT('%', :search, '%')) " +
                    "ORDER BY ct.last_modified_date DESC",
            nativeQuery = true)
     Page<Object[]> findAssignmentMigrationsWithSearchAndPagination(
@@ -90,16 +90,16 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
-                   "AND (:status IS NULL OR ct.migrate_status = :status) " +
-                   "AND (:search IS NULL OR :search = '' OR " +
-                   "     LOWER(COALESCE(ct.guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(ct.doc_guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(icm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(ct.from_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(ct.to_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-                   "     LOWER(COALESCE(ct.notes, '')) LIKE LOWER(CONCAT('%', :search, '%')))",
+                   "AND (:status = 'all' OR ct.migrate_status = :status) " +
+                   "AND (:search = '' OR :search IS NULL OR " +
+                   "     ct.guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     ct.doc_guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(icm.created_document_id, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.subject, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.reference_no, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.from_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.to_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.notes, '') LIKE CONCAT('%', :search, '%')) ",
            nativeQuery = true)
     Long countAssignmentMigrationsWithSearch(
         @Param("status") String status,
@@ -119,6 +119,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      */
     @Query(value = "SELECT ct.* FROM correspondence_transactions ct " +
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
                    "AND (ct.migrate_status = 'PENDING' OR (ct.migrate_status = 'FAILED' AND ct.retry_count < 3)) " +
@@ -130,11 +131,10 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
     /**
      * Optimized query to get assignments by status with minimal data
      */
-    @Query(value = "SELECT ct.* FROM correspondence_transactions ct " +
-                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
-                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 AND ct.migrate_status IN :statuses " +
-                   "ORDER BY ct.last_modified_date DESC",
-           nativeQuery = true)
+    @Query("SELECT ct FROM CorrespondenceTransaction ct " +
+           "JOIN Correspondence c ON ct.docGuid = c.guid " +
+           "WHERE ct.actionId = 12 AND c.correspondenceTypeId = 2 AND ct.migrateStatus IN :statuses " +
+           "ORDER BY ct.lastModifiedDate DESC")
     List<CorrespondenceTransaction> findAssignmentsByMigrateStatusIn(@Param("statuses") List<String> statuses);
     
     /**
