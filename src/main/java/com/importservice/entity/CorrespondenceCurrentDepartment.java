@@ -5,8 +5,8 @@ import javax.persistence.*;
 
 @Entity
 @Table(name = "correspondence_current_departments", indexes = {
-    @Index(name = "idx_corr_curr_dept_doc_guid", columnList = "doc_guid"),
-    @Index(name = "idx_corr_curr_dept_import_status", columnList = "import_status")
+    @javax.persistence.Index(name = "idx_corr_curr_dept_doc_guid", columnList = "doc_guid"),
+    @javax.persistence.Index(name = "idx_corr_curr_dept_import_status", columnList = "import_status")
 })
 public class CorrespondenceCurrentDepartment extends BaseEntity {
     

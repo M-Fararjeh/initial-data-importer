@@ -5,21 +5,21 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "incoming_correspondence_migrations", indexes = {
-    @Index(name = "idx_incoming_corr_guid", columnList = "correspondence_guid"),
-    @Index(name = "idx_incoming_current_phase", columnList = "current_phase"),
-    @Index(name = "idx_incoming_overall_status", columnList = "overall_status"),
-    @Index(name = "idx_incoming_phase_status", columnList = "phase_status"),
-    @Index(name = "idx_incoming_creation_status", columnList = "creation_status"),
-    @Index(name = "idx_incoming_assignment_status", columnList = "assignment_status"),
-    @Index(name = "idx_incoming_business_log_status", columnList = "business_log_status"),
-    @Index(name = "idx_incoming_comment_status", columnList = "comment_status"),
-    @Index(name = "idx_incoming_closing_status", columnList = "closing_status"),
-    @Index(name = "idx_incoming_need_to_close", columnList = "is_need_to_close"),
-    @Index(name = "idx_incoming_retry_count", columnList = "retry_count"),
-    @Index(name = "idx_incoming_last_modified", columnList = "last_modified_date"),
-    @Index(name = "idx_incoming_created_doc_id", columnList = "created_document_id"),
-    @Index(name = "idx_incoming_retryable", columnList = "phase_status, retry_count"),
-    @Index(name = "idx_incoming_closing", columnList = "is_need_to_close, created_document_id, closing_status")
+    @javax.persistence.Index(name = "idx_incoming_corr_guid", columnList = "correspondence_guid"),
+    @javax.persistence.Index(name = "idx_incoming_current_phase", columnList = "current_phase"),
+    @javax.persistence.Index(name = "idx_incoming_overall_status", columnList = "overall_status"),
+    @javax.persistence.Index(name = "idx_incoming_phase_status", columnList = "phase_status"),
+    @javax.persistence.Index(name = "idx_incoming_creation_status", columnList = "creation_status"),
+    @javax.persistence.Index(name = "idx_incoming_assignment_status", columnList = "assignment_status"),
+    @javax.persistence.Index(name = "idx_incoming_business_log_status", columnList = "business_log_status"),
+    @javax.persistence.Index(name = "idx_incoming_comment_status", columnList = "comment_status"),
+    @javax.persistence.Index(name = "idx_incoming_closing_status", columnList = "closing_status"),
+    @javax.persistence.Index(name = "idx_incoming_need_to_close", columnList = "is_need_to_close"),
+    @javax.persistence.Index(name = "idx_incoming_retry_count", columnList = "retry_count"),
+    @javax.persistence.Index(name = "idx_incoming_last_modified", columnList = "last_modified_date"),
+    @javax.persistence.Index(name = "idx_incoming_created_doc_id", columnList = "created_document_id"),
+    @javax.persistence.Index(name = "idx_incoming_retryable", columnList = "phase_status, retry_count"),
+    @javax.persistence.Index(name = "idx_incoming_closing", columnList = "is_need_to_close, created_document_id, closing_status")
 })
 public class IncomingCorrespondenceMigration {
     

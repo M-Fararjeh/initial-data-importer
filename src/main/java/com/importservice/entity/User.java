@@ -6,9 +6,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users", indexes = {
-    @Index(name = "idx_users_email", columnList = "email"),
-    @Index(name = "idx_users_login_name", columnList = "login_name"),
-    @Index(name = "idx_users_user_code", columnList = "user_code")
+    @javax.persistence.Index(name = "idx_users_email", columnList = "email"),
+    @javax.persistence.Index(name = "idx_users_login_name", columnList = "login_name"),
+    @javax.persistence.Index(name = "idx_users_user_code", columnList = "user_code")
 })
 public class User extends BaseEntity {
     

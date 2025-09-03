@@ -9,16 +9,16 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "correspondences", indexes = {
-    @Index(name = "idx_corr_type_deleted_draft", columnList = "correspondence_type_id, is_deleted, is_draft"),
-    @Index(name = "idx_corr_import_status", columnList = "import_status"),
-    @Index(name = "idx_corr_creation_date", columnList = "correspondence_creation_date"),
-    @Index(name = "idx_corr_last_modified", columnList = "correspondence_last_modified_date"),
-    @Index(name = "idx_corr_coming_from", columnList = "coming_from_guid"),
-    @Index(name = "idx_corr_classification", columnList = "classification_guid"),
-    @Index(name = "idx_corr_creation_user", columnList = "creation_user_guid"),
-    @Index(name = "idx_corr_creation_dept", columnList = "creation_department_guid"),
-    @Index(name = "idx_corr_reference_no", columnList = "reference_no"),
-    @Index(name = "idx_corr_external_ref", columnList = "external_reference_number")
+    @javax.persistence.Index(name = "idx_corr_type_deleted_draft", columnList = "correspondence_type_id, is_deleted, is_draft"),
+    @javax.persistence.Index(name = "idx_corr_import_status", columnList = "import_status"),
+    @javax.persistence.Index(name = "idx_corr_creation_date", columnList = "correspondence_creation_date"),
+    @javax.persistence.Index(name = "idx_corr_last_modified", columnList = "correspondence_last_modified_date"),
+    @javax.persistence.Index(name = "idx_corr_coming_from", columnList = "coming_from_guid"),
+    @javax.persistence.Index(name = "idx_corr_classification", columnList = "classification_guid"),
+    @javax.persistence.Index(name = "idx_corr_creation_user", columnList = "creation_user_guid"),
+    @javax.persistence.Index(name = "idx_corr_creation_dept", columnList = "creation_department_guid"),
+    @javax.persistence.Index(name = "idx_corr_reference_no", columnList = "reference_no"),
+    @javax.persistence.Index(name = "idx_corr_external_ref", columnList = "external_reference_number")
 })
 public class Correspondence extends BaseEntity {
     

@@ -5,9 +5,9 @@ import javax.persistence.*;
 
 @Entity
 @Table(name = "contacts", indexes = {
-    @Index(name = "idx_contacts_parent_guid", columnList = "parent_guid"),
-    @Index(name = "idx_contacts_is_blocked", columnList = "is_blocked"),
-    @Index(name = "idx_contacts_global_id", columnList = "global_id")
+    @javax.persistence.Index(name = "idx_contacts_parent_guid", columnList = "parent_guid"),
+    @javax.persistence.Index(name = "idx_contacts_is_blocked", columnList = "is_blocked"),
+    @javax.persistence.Index(name = "idx_contacts_global_id", columnList = "global_id")
 })
 public class Contact extends BaseEntity {
     

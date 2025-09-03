@@ -6,13 +6,13 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "correspondence_comments", indexes = {
-    @Index(name = "idx_corr_comment_doc_guid", columnList = "doc_guid"),
-    @Index(name = "idx_corr_comment_migrate_status", columnList = "migrate_status"),
-    @Index(name = "idx_corr_comment_type", columnList = "comment_type"),
-    @Index(name = "idx_corr_comment_creation_date", columnList = "comment_creation_date"),
-    @Index(name = "idx_corr_comment_retry_count", columnList = "retry_count"),
-    @Index(name = "idx_corr_comment_processing", columnList = "migrate_status, retry_count"),
-    @Index(name = "idx_corr_comment_creation_user", columnList = "creation_user_guid")
+    @javax.persistence.Index(name = "idx_corr_comment_doc_guid", columnList = "doc_guid"),
+    @javax.persistence.Index(name = "idx_corr_comment_migrate_status", columnList = "migrate_status"),
+    @javax.persistence.Index(name = "idx_corr_comment_type", columnList = "comment_type"),
+    @javax.persistence.Index(name = "idx_corr_comment_creation_date", columnList = "comment_creation_date"),
+    @javax.persistence.Index(name = "idx_corr_comment_retry_count", columnList = "retry_count"),
+    @javax.persistence.Index(name = "idx_corr_comment_processing", columnList = "migrate_status, retry_count"),
+    @javax.persistence.Index(name = "idx_corr_comment_creation_user", columnList = "creation_user_guid")
 })
 public class CorrespondenceComment extends BaseEntity {
     

@@ -5,7 +5,7 @@ import javax.persistence.*;
 
 @Entity
 @Table(name = "roles", indexes = {
-    @Index(name = "idx_roles_main_parent_guid", columnList = "main_parent_guid")
+    @javax.persistence.Index(name = "idx_roles_main_parent_guid", columnList = "main_parent_guid")
 })
 public class Role extends BaseEntity {
     

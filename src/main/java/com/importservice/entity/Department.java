@@ -5,10 +5,10 @@ import javax.persistence.*;
 
 @Entity
 @Table(name = "departments", indexes = {
-    @Index(name = "idx_dept_parent_guid", columnList = "parent_guid"),
-    @Index(name = "idx_dept_main_parent_guid", columnList = "main_parent_guid"),
-    @Index(name = "idx_dept_is_hidden", columnList = "is_hidden"),
-    @Index(name = "idx_dept_global_id", columnList = "global_id")
+    @javax.persistence.Index(name = "idx_dept_parent_guid", columnList = "parent_guid"),
+    @javax.persistence.Index(name = "idx_dept_main_parent_guid", columnList = "main_parent_guid"),
+    @javax.persistence.Index(name = "idx_dept_is_hidden", columnList = "is_hidden"),
+    @javax.persistence.Index(name = "idx_dept_global_id", columnList = "global_id")
 })
 public class Department extends BaseEntity {
     

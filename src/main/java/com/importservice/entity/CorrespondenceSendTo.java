@@ -5,8 +5,8 @@ import javax.persistence.*;
 
 @Entity
 @Table(name = "correspondence_send_tos", indexes = {
-    @Index(name = "idx_corr_send_to_doc_guid", columnList = "doc_guid"),
-    @Index(name = "idx_corr_send_to_import_status", columnList = "import_status")
+    @javax.persistence.Index(name = "idx_corr_send_to_doc_guid", columnList = "doc_guid"),
+    @javax.persistence.Index(name = "idx_corr_send_to_import_status", columnList = "import_status")
 })
 public class CorrespondenceSendTo extends BaseEntity {
     
