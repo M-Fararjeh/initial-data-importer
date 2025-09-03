@@ -324,7 +324,7 @@ public class CreationPhaseService {
             
             // Add delay for destination system processing
             try {
-                Thread.sleep(2000); // Reduced to 2 seconds
+                Thread.sleep(5000); // Reduced to 5 seconds
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
             }

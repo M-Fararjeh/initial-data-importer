@@ -10,25 +10,68 @@ services:
       MYSQL_DATABASE: data_import_db
       MYSQL_USER: import_user
       MYSQL_PASSWORD: import_password123
-      # لو تحتاج mysql_native_password مؤقتًا (مُهمل في 8.0):
-      # MYSQL_ROOT_HOST: "%"   # اختياري
+      MYSQL_ROOT_HOST: "%"
     ports:
       - "3306:3306"
     volumes:
       - ./../data:/var/lib/mysql
-      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/zz-my.cnf:ro
-      #- ./data/mysql-logs:/var/log/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
     command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --init-connect=SET\ NAMES\ utf8mb4
+      --max_allowed_packet=200M
+      
+      # InnoDB
       --innodb-buffer-pool-size=1G
       --innodb-redo-log-capacity=512M
       --innodb-flush-log-at-trx-commit=2
       --innodb-file-per-table=1
+      --innodb_adaptive_hash_index=ON
+      --innodb_adaptive_flushing=ON
+      --innodb_flush_neighbors=0        
+      --innodb_autoinc_lock_mode=2
+      --innodb_doublewrite=ON
+      --innodb_flush_method=O_DIRECT
+      --innodb_read_io_threads=4
+      --innodb_write_io_threads=4
+      --innodb_io_capacity=500
+      --innodb_io_capacity_max=1000
+      
+      # Connections / timeouts
       --max-connections=200
+      --max_connect_errors=1000
+      --connect-timeout=60
+      --wait-timeout=28800
+      --interactive-timeout=28800
+      --innodb_lock_wait_timeout=60       # كان 10
+      --lock-wait-timeout=60              # كان 10
+      --transaction-isolation=READ-COMMITTED
+      --net_read_timeout=300
+      --net_write_timeout=300
+      
+      # Tables / cache
       --table-open-cache=4000
+      --table-definition-cache=1400
+      
+      # Temp tables
       --tmp-table-size=64M
       --max-heap-table-size=64M
-      --max-allowed-packet=200M
+      
+      # Buffers
+      --sort-buffer-size=8M
+      --read-buffer-size=2M
+      --read-rnd-buffer-size=8M
+      --myisam-sort-buffer-size=64M
+      
+      # Binlog
+      --log-bin=mysql-bin
+      --binlog-format=ROW
+      --binlog_expire_logs_seconds=604800 # 7 أيام
+      --max-binlog-size=100M
+      
+      --local-infile=0
+      --skip-name-resolve=ON
     entrypoint: ["/bin/sh","-c","mkdir -p /var/log/mysql && chown -R mysql:mysql /var/log/mysql && exec docker-entrypoint.sh mysqld"]
     networks:
       - data-import-network
@@ -41,10 +84,6 @@ services:
 
 volumes:
   mysql_data:
-    driver: local
-  mysql_config:
-    driver: local
-  app_logs:
     driver: local
 
 networks:
