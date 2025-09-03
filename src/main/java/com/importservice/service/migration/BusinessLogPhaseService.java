@@ -103,7 +103,7 @@ public class BusinessLogPhaseService {
     /**
      * Executes business log for specific transactions
      */
-    @Transactional(readOnly = false, timeout = 600)
+    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto executeBusinessLogForSpecific(List<String> transactionGuids) {
         logger.info("Starting business log for {} specific transactions", transactionGuids.size());
         
@@ -114,6 +114,14 @@ public class BusinessLogPhaseService {
         for (String transactionGuid : transactionGuids) {
             try {
                 boolean success = processBusinessLogForTransaction(transactionGuid);
+                
+                // Add small delay between transactions to reduce lock contention
+                try {
+                    Thread.sleep(100); // 100ms delay
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
                 
                 if (success) {
                     successfulImports++;

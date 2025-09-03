@@ -108,7 +108,7 @@ public class AssignmentPhaseService {
     /**
      * Executes assignment for specific transactions
      */
-    @Transactional(readOnly = false, timeout = 600)
+    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto executeAssignmentForSpecific(List<String> transactionGuids) {
         logger.info("Starting assignment for {} specific transactions", transactionGuids.size());
         
@@ -119,6 +119,14 @@ public class AssignmentPhaseService {
         for (String transactionGuid : transactionGuids) {
             try {
                 boolean success = processAssignmentForTransaction(transactionGuid);
+                
+                // Add small delay between transactions to reduce lock contention
+                try {
+                    Thread.sleep(100); // 100ms delay
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
                 
                 if (success) {
                     successfulImports++;

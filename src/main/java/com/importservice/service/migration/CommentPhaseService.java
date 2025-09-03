@@ -104,7 +104,7 @@ public class CommentPhaseService {
     /**
      * Executes comment for specific comments
      */
-    @Transactional(readOnly = false, timeout = 600)
+    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto executeCommentForSpecific(List<String> commentGuids) {
         logger.info("Starting comment for {} specific comments", commentGuids.size());
         
@@ -115,6 +115,14 @@ public class CommentPhaseService {
         for (String commentGuid : commentGuids) {
             try {
                 boolean success = processCommentForGuid(commentGuid);
+                
+                // Add small delay between comments to reduce lock contention
+                try {
+                    Thread.sleep(100); // 100ms delay
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
                 
                 if (success) {
                     successfulImports++;

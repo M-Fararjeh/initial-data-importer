@@ -36,12 +36,12 @@ public class DatabaseConfig {
         config.setDriverClassName(driverClassName);
         
         // Optimized pool settings for better performance
-        config.setMaximumPoolSize(15);  // Increased for better concurrency
+        config.setMaximumPoolSize(8);  // Reduced to prevent lock contention
         config.setMinimumIdle(5);
         config.setConnectionTimeout(30000); // 30 seconds
         config.setIdleTimeout(600000); // 10 minutes
-        config.setMaxLifetime(1800000); // 30 minutes
-        config.setLeakDetectionThreshold(180000); // 3 minutes
+        config.setMaxLifetime(900000); // 15 minutes
+        config.setLeakDetectionThreshold(60000); // 1 minute
         
         // Connection validation
         config.setValidationTimeout(5000);
@@ -75,10 +75,12 @@ public class DatabaseConfig {
         config.addDataSourceProperty("enableQueryTimeouts", "false");
         config.addDataSourceProperty("queryTimeoutKillsConnection", "false");
         
-        // Lock timeout and deadlock handling
-        config.addDataSourceProperty("lockTimeout", "30000");
-        config.addDataSourceProperty("innodb_lock_wait_timeout", "30");
+        // Aggressive lock timeout and deadlock handling
+        config.addDataSourceProperty("lockTimeout", "10000");
+        config.addDataSourceProperty("innodb_lock_wait_timeout", "10");
         config.addDataSourceProperty("innodb_rollback_on_timeout", "ON");
+        config.addDataSourceProperty("innodb_deadlock_detect", "ON");
+        config.addDataSourceProperty("innodb_print_all_deadlocks", "ON");
         
         return new HikariDataSource(config);
     }

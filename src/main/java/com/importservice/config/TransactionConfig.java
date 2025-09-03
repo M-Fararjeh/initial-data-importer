@@ -17,20 +17,23 @@ public class TransactionConfig {
         JpaTransactionManager transactionManager = new JpaTransactionManager();
         transactionManager.setEntityManagerFactory(entityManagerFactory);
         
-        // Set reasonable transaction timeout (5 minutes for migration operations)
-        transactionManager.setDefaultTimeout(300);
+        // Set shorter transaction timeout to prevent long-running locks
+        transactionManager.setDefaultTimeout(60);
         
         // Enable rollback on commit failure
         transactionManager.setRollbackOnCommitFailure(true);
         
-        // Disable nested transactions to avoid complexity
-        transactionManager.setNestedTransactionAllowed(false);
+        // Enable nested transactions for better isolation
+        transactionManager.setNestedTransactionAllowed(true);
         
         // Ensure proper connection release
         transactionManager.setValidateExistingTransaction(true);
         
-        // Disable global rollback on participation failure for better performance
-        transactionManager.setGlobalRollbackOnParticipationFailure(false);
+        // Enable global rollback for consistency
+        transactionManager.setGlobalRollbackOnParticipationFailure(true);
+        
+        // Fail fast on transaction issues
+        transactionManager.setFailEarlyOnGlobalRollbackOnly(true);
         
         return transactionManager;
     }

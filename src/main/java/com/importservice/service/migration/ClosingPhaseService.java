@@ -109,7 +109,7 @@ public class ClosingPhaseService {
     /**
      * Executes closing for specific correspondences
      */
-    @Transactional(readOnly = false, timeout = 600)
+    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto executeClosingForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting closing for {} specific correspondences", correspondenceGuids.size());
         
@@ -120,6 +120,15 @@ public class ClosingPhaseService {
         for (String correspondenceGuid : correspondenceGuids) {
             try {
                 boolean success = processClosingForCorrespondence(correspondenceGuid);
+                
+                // Add small delay between correspondences to reduce lock contention
+                try {
+                    Thread.sleep(100); // 100ms delay
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                
                 if (success) {
                     successfulImports++;
                     phaseService.updatePhaseStatus(correspondenceGuid, "CLOSING", "COMPLETED", null);
