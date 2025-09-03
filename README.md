@@ -139,10 +139,10 @@ The migration system processes incoming correspondences through 6 sequential pha
 **Purpose**: Select and prepare incoming correspondences for migration
 
 **Process**:
-- Queries database for incoming correspondences (`CorrespondenceTypeId = 2`)
-- Filters out deleted, draft, and cancelled correspondences
-- Creates migration tracking records in `incoming_correspondence_migrations` table
-- Determines if correspondence needs to be closed
+- **Resilient Step-by-Step Processing**: The creation process is designed to be fault-tolerant and resumable
+- **Step Tracking**: Each correspondence tracks its current creation step in the database
+- **Automatic Recovery**: If a step fails, the process can resume from the last successful step
+- **Individual Step Validation**: Each step is validated independently before proceeding
 
 **API**: `POST /api/incoming-migration/prepare-data`
 
@@ -150,16 +150,23 @@ The migration system processes incoming correspondences through 6 sequential pha
 **Purpose**: Create correspondences in destination system with attachments
 
 **Sub-steps**:
-1. **Get Details**: Retrieve and validate correspondence data
-2. **Get Attachments**: Find all attachments for the correspondence
-3. **Upload Main Attachment**: Upload primary PDF attachment
-4. **Create Correspondence**: Create the correspondence record
-5. **Upload Other Attachments**: Process remaining attachments
-6. **Create Physical Attachment**: Handle manual attachments
-7. **Set Ready to Register**: Prepare for registration
-8. **Register with Reference**: Register with required parameters
-9. **Start Work**: Initiate workflow
-10. **Set Owner**: Assign ownership
+1. **Get Details**: Retrieve and validate correspondence data from database
+2. **Get Attachments**: Find all attachments and identify primary attachment
+3. **Upload Main Attachment**: Create batch and upload primary PDF attachment (if exists)
+4. **Create Correspondence**: Create the correspondence record in destination system
+5. **Upload Other Attachments**: Process and upload remaining non-primary attachments
+6. **Create Physical Attachment**: Handle manual attachments (if specified)
+7. **Set Ready to Register**: Prepare correspondence for registration workflow
+8. **Register with Reference**: Register correspondence with required parameters and context
+9. **Start Work**: Initiate correspondence workflow in destination system
+10. **Set Owner**: Assign ownership to the correspondence creator
+
+**Fault Tolerance Features**:
+- **Step Persistence**: Current step is saved to database after each successful operation
+- **Resume Capability**: Failed correspondences can resume from their last successful step
+- **Error Isolation**: Failure in one step doesn't affect other correspondences
+- **Retry Logic**: Failed steps can be retried without reprocessing successful steps
+- **Progress Tracking**: Real-time visibility into which step each correspondence is currently processing
 
 **API**: `POST /api/incoming-migration/creation`
 
@@ -358,6 +365,22 @@ destination.api.logging.include-response=true
 **Problem**: Angular UI shows zero statistics
 **Solution**: Ensure Spring Boot service is running on port 8080 and check CORS configuration
 
+#### 2. Creation Process Stuck on Specific Step
+**Problem**: Correspondence creation appears stuck on a particular step
+**Solution**: 
+- Check the `creation_step` field in `incoming_correspondence_migrations` table
+- Review logs for the specific step that's failing
+- Use the retry mechanism to resume from the failed step
+- Verify destination system connectivity for the failing step
+
+#### 3. Partial Creation Failures
+**Problem**: Some correspondences complete creation while others fail at various steps
+**Solution**:
+- Review the `creation_error` field for specific error messages
+- Check if the failure is step-specific (e.g., file upload, API call)
+- Use the Angular UI to retry failed creations from their last successful step
+- Monitor the creation step distribution in the UI statistics
+
 #### 2. Authentication Failures
 **Problem**: 401 Unauthorized errors
 **Solution**: 
@@ -459,18 +482,23 @@ GROUP BY migrate_status;
 - Batch processing for large datasets
 - Optimized queries with native SQL for pagination
 - Proper indexing on frequently queried columns
+- Step-based processing to minimize transaction scope
+- Fault-tolerant creation process with automatic recovery
 
 ### File Processing
 - Streaming for large file uploads
 - Base64 encoding/decoding optimization
 - File size validation and limits
 - Memory-efficient attachment processing
+- Resilient file upload with automatic retry on failure
 
 ### API Performance
 - Request/response logging toggle
 - Connection timeout configuration
 - Retry mechanisms with exponential backoff
 - Bulk processing capabilities
+- Step-wise processing to reduce API call failures
+- Automatic recovery from partial failures
 
 ## 🔄 Data Flow
 
@@ -491,6 +519,11 @@ Relationships    →  Dependency Mgmt   →  Linked Records
 3. Add repository methods for data access and pagination
 4. Update `IncomingCorrespondenceMigrationService` to delegate to new service
 5. Add corresponding Angular component for UI monitoring
+6. **Implement Step-Based Processing**: Follow the creation phase pattern for fault tolerance
+   - Track current step in database
+   - Allow resumption from last successful step
+   - Validate each step independently
+   - Provide clear error messages for each step
 
 ### Code Organization Principles
 - **Single Responsibility**: Each service handles one specific concern
@@ -498,12 +531,18 @@ Relationships    →  Dependency Mgmt   →  Linked Records
 - **Transaction Management**: Proper transaction boundaries for data consistency
 - **Error Handling**: Comprehensive exception handling with meaningful messages
 - **Logging**: Structured logging with appropriate levels
+- **Fault Tolerance**: Design services to handle partial failures gracefully
+- **Step Tracking**: Implement step-based processing for complex operations
+- **Recovery Mechanisms**: Enable automatic recovery from failures
 
 ### Testing Strategy
 - Unit tests for individual service methods
 - Integration tests for API endpoints
 - Database tests for repository operations
 - End-to-end tests for complete migration workflows
+- **Step-by-Step Testing**: Test each creation step independently
+- **Failure Recovery Testing**: Verify that failed steps can be resumed correctly
+- **Partial Failure Testing**: Ensure system handles mixed success/failure scenarios
 
 ## 🛠️ Maintenance
 
@@ -513,12 +552,18 @@ Relationships    →  Dependency Mgmt   →  Linked Records
 - Update JWT tokens before expiration
 - Backup migration tracking data
 - Monitor system performance metrics
+- **Review Creation Step Distribution**: Monitor which steps are most prone to failure
+- **Clean Up Stuck Migrations**: Identify and resolve correspondences stuck on specific steps
+- **Validate Step Progression**: Ensure correspondences are progressing through steps correctly
 
 ### Scaling Considerations
 - Increase MySQL connection pool size for high load
 - Implement horizontal scaling for processing services
 - Consider message queues for asynchronous processing
 - Monitor memory usage during large file operations
+- **Step-Based Parallelization**: Process different creation steps in parallel where possible
+- **Batch Step Processing**: Group similar steps for more efficient processing
+- **Step-Specific Optimization**: Optimize individual steps based on their performance characteristics
 
 ## 📚 Additional Resources
 
