@@ -141,9 +141,9 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      * Get assignment statistics efficiently
      */
     @Query(value = "SELECT " +
-                   "SUM(CASE WHEN migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
-                   "SUM(CASE WHEN migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
-                   "SUM(CASE WHEN migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_transactions ct " +
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
@@ -242,7 +242,9 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
     /**
      * Count business logs by migrate status for statistics
      */
-    @Query(value = "SELECT COUNT(*) FROM correspondence_transactions WHERE action_id != 12 AND migrate_status = :status", 
+    @Query(value = "SELECT COUNT(*) FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "WHERE ct.action_id != 12 AND c.correspondence_type_id = 2 AND ct.migrate_status = :status", 
            nativeQuery = true)
     Long countBusinessLogsByMigrateStatus(@Param("status") String status);
     
@@ -262,12 +264,13 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      * Get business log statistics efficiently
      */
     @Query(value = "SELECT " +
-                   "SUM(CASE WHEN migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
-                   "SUM(CASE WHEN migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
-                   "SUM(CASE WHEN migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
-                   "FROM correspondence_transactions " +
-                   "WHERE action_id != 12",
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "WHERE ct.action_id != 12 AND c.correspondence_type_id = 2",
            nativeQuery = true)
     Object[] getBusinessLogStatistics();
     
