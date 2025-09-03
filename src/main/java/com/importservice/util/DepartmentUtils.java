@@ -25,6 +25,7 @@ import com.importservice.entity.User;
 import com.importservice.entity.UserPosition;
 import com.importservice.entity.Position;
 import com.importservice.entity.Department;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class DepartmentUtils {
