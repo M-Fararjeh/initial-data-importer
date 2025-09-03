@@ -154,8 +154,7 @@ public class OutgoingAssignmentPhaseService {
      */
     private List<CorrespondenceTransaction> getOutgoingAssignmentsNeedingProcessing() {
         // Get assignments for outgoing correspondences (correspondence_type_id = 1)
-        // This would require a join with correspondences table or a custom query
-        return transactionRepository.findAssignmentsNeedingProcessing(); // Reuse existing method for now
+        return transactionRepository.findOutgoingAssignmentsNeedingProcessing();
     }
     
     /**
@@ -240,15 +239,15 @@ public class OutgoingAssignmentPhaseService {
         try {
             Pageable pageable = PageRequest.of(page, size);
             
-            // Reuse existing assignment query methods but filter for outgoing correspondences
+            // Use outgoing-specific assignment query methods that filter for correspondence_type_id = 1
             Page<Object[]> assignmentPage;
             if ((status != null && !"all".equals(status)) || (search != null && !search.trim().isEmpty())) {
                 String statusParam = "all".equals(status) ? null : status;
                 String searchParam = (search == null || search.trim().isEmpty()) ? null : search.trim();
-                assignmentPage = transactionRepository.findAssignmentMigrationsWithSearchAndPagination(
+                assignmentPage = transactionRepository.findOutgoingAssignmentMigrationsWithSearchAndPagination(
                     statusParam, searchParam, pageable);
             } else {
-                assignmentPage = transactionRepository.findAssignmentMigrationsWithPagination(pageable);
+                assignmentPage = transactionRepository.findOutgoingAssignmentMigrationsWithPagination(pageable);
             }
             
             List<Map<String, Object>> assignments = new ArrayList<>();

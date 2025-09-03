@@ -262,4 +262,132 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "WHERE action_id != 12",
            nativeQuery = true)
     Object[] getBusinessLogStatistics();
+    
+    /**
+     * Optimized query for OUTGOING assignment migrations with pagination
+     * Uses native query for better performance with large datasets
+     * Filters for outgoing correspondences (correspondence_type_id = 1)
+     */
+    @Query(value = "SELECT " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.to_user_name as toUserName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.decision_guid as decisionGuid, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
+                   "c.subject as correspondenceSubject, " +
+                   "c.reference_no as correspondenceReferenceNo, " +
+                   "ocm.created_document_id as createdDocumentId " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN outgoing_correspondence_migrations ocm ON ct.doc_guid = ocm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
+    Page<Object[]> findOutgoingAssignmentMigrationsWithPagination(Pageable pageable);
+    
+    /**
+     * Optimized query for OUTGOING assignment migrations with search and pagination
+     * Filters for outgoing correspondences (correspondence_type_id = 1)
+     */
+    @Query(value = "SELECT " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.to_user_name as toUserName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.decision_guid as decisionGuid, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
+                   "c.subject as correspondenceSubject, " +
+                   "c.reference_no as correspondenceReferenceNo, " +
+                   "ocm.created_document_id as createdDocumentId " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN outgoing_correspondence_migrations ocm ON ct.doc_guid = ocm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
+                   "AND (:status IS NULL OR ct.migrate_status = :status) " +
+                   "AND (:search IS NULL OR :search = '' OR " +
+                   "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(ct.doc_guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ocm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.from_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.to_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.notes, '')) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
+    Page<Object[]> findOutgoingAssignmentMigrationsWithSearchAndPagination(
+        @Param("status") String status,
+        @Param("search") String search,
+        Pageable pageable);
+    
+    /**
+     * Count OUTGOING assignments with search filters for statistics
+     * Filters for outgoing correspondences (correspondence_type_id = 1)
+     */
+    @Query(value = "SELECT COUNT(*) FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN outgoing_correspondence_migrations ocm ON ct.doc_guid = ocm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
+                   "AND (:status IS NULL OR ct.migrate_status = :status) " +
+                   "AND (:search IS NULL OR :search = '' OR " +
+                   "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(ct.doc_guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ocm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.from_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.to_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.notes, '')) LIKE LOWER(CONCAT('%', :search, '%')))",
+           nativeQuery = true)
+    Long countOutgoingAssignmentMigrationsWithSearch(
+        @Param("status") String status,
+        @Param("search") String search);
+    
+    /**
+     * Get OUTGOING assignments that need processing (PENDING or FAILED with retry count < 3)
+     * Filters for outgoing correspondences (correspondence_type_id = 1)
+     */
+    @Query(value = "SELECT ct.* FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN outgoing_correspondence_migrations ocm ON ct.doc_guid = ocm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
+                   "AND (ct.migrate_status = 'PENDING' OR (ct.migrate_status = 'FAILED' AND ct.retry_count < 3)) " +
+                   "AND ocm.created_document_id IS NOT NULL " +
+                   "ORDER BY ct.retry_count ASC, ct.last_modified_date ASC",
+           nativeQuery = true)
+    List<CorrespondenceTransaction> findOutgoingAssignmentsNeedingProcessing();
+    
+    /**
+     * Count OUTGOING assignments by migrate status for statistics
+     * Filters for outgoing correspondences (correspondence_type_id = 1)
+     */
+    @Query(value = "SELECT COUNT(*) FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 AND ct.migrate_status = :status", 
+           nativeQuery = true)
+    Long countOutgoingAssignmentsByMigrateStatus(@Param("status") String status);
+    
+    /**
+     * Get OUTGOING assignment statistics efficiently
+     * Filters for outgoing correspondences (correspondence_type_id = 1)
+     */
+    @Query(value = "SELECT " +
+                   "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
+                   "COUNT(*) as total " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1",
+           nativeQuery = true)
+    Object[] getOutgoingAssignmentStatistics();
 }
