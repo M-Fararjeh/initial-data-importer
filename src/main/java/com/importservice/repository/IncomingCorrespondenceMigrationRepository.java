@@ -101,4 +101,28 @@ public interface IncomingCorrespondenceMigrationRepository extends JpaRepository
         @Param("needToClose") Boolean needToClose,
         @Param("search") String search,
         Pageable pageable);
+    
+    /**
+     * Optimized update for creation step to reduce lock contention
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE IncomingCorrespondenceMigration m SET m.creationStep = :step, m.lastModifiedDate = :lastModified WHERE m.id = :id")
+    void updateCreationStep(@Param("id") Long id, @Param("step") String step, @Param("lastModified") LocalDateTime lastModified);
+    
+    /**
+     * Optimized update for phase status to reduce lock contention
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE IncomingCorrespondenceMigration m SET m.phaseStatus = :status, m.lastModifiedDate = :lastModified WHERE m.correspondenceGuid = :guid")
+    void updatePhaseStatus(@Param("guid") String correspondenceGuid, @Param("status") String status, @Param("lastModified") LocalDateTime lastModified);
+    
+    /**
+     * Optimized update for creation status to reduce lock contention
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE IncomingCorrespondenceMigration m SET m.creationStatus = :status, m.createdDocumentId = :docId, m.lastModifiedDate = :lastModified WHERE m.correspondenceGuid = :guid")
+    void updateCreationStatus(@Param("guid") String correspondenceGuid, @Param("status") String status, @Param("docId") String documentId, @Param("lastModified") LocalDateTime lastModified);
 }

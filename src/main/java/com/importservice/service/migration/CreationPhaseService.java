@@ -110,7 +110,8 @@ public class CreationPhaseService {
     /**
      * Executes creation for specific correspondences
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NEVER)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.NEVER, 
+                   isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting creation for {} specific correspondences", correspondenceGuids.size());
         
@@ -118,24 +119,43 @@ public class CreationPhaseService {
         int successfulImports = 0;
         int failedImports = 0;
         
-        for (String correspondenceGuid : correspondenceGuids) {
-            try {
-                logger.info("Processing correspondence: {} ({}/{})", 
-                           correspondenceGuid, successfulImports + failedImports + 1, correspondenceGuids.size());
-                boolean success = processCorrespondenceCreationInNewTransaction(correspondenceGuid);
-                if (success) {
-                    successfulImports++;
-                    logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
-                } else {
+        // Process correspondences in smaller batches to reduce lock contention
+        int batchSize = 5; // Process 5 at a time
+        for (int i = 0; i < correspondenceGuids.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, correspondenceGuids.size());
+            List<String> batch = correspondenceGuids.subList(i, endIndex);
+            
+            logger.info("Processing batch {}-{} of {} correspondences", i + 1, endIndex, correspondenceGuids.size());
+            
+            for (String correspondenceGuid : batch) {
+                try {
+                    logger.info("Processing correspondence: {} ({}/{})", 
+                               correspondenceGuid, successfulImports + failedImports + 1, correspondenceGuids.size());
+                    boolean success = processCorrespondenceCreationInNewTransaction(correspondenceGuid);
+                    if (success) {
+                        successfulImports++;
+                        logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
+                    } else {
+                        failedImports++;
+                        logger.warn("Failed to complete creation for correspondence: {}", correspondenceGuid);
+                    }
+                    
+                } catch (Exception e) {
                     failedImports++;
-                    logger.warn("Failed to complete creation for correspondence: {}", correspondenceGuid);
+                    String errorMsg = "Error processing correspondence " + correspondenceGuid + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
                 }
-                
-            } catch (Exception e) {
-                failedImports++;
-                String errorMsg = "Error processing correspondence " + correspondenceGuid + ": " + e.getMessage();
-                errors.add(errorMsg);
-                logger.error(errorMsg, e);
+            }
+            
+            // Add small delay between batches to reduce database pressure
+            if (endIndex < correspondenceGuids.size()) {
+                try {
+                    Thread.sleep(1000); // 1 second delay between batches
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
             }
         }
         
