@@ -4,7 +4,13 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "correspondence_import_status")
+@Table(name = "correspondence_import_status", indexes = {
+    @Index(name = "idx_corr_import_guid", columnList = "correspondence_guid"),
+    @Index(name = "idx_corr_import_overall_status", columnList = "overall_status"),
+    @Index(name = "idx_corr_import_retry", columnList = "retry_count, max_retries"),
+    @Index(name = "idx_corr_import_last_error", columnList = "last_error_at"),
+    @Index(name = "idx_corr_import_retryable", columnList = "overall_status, retry_count, max_retries")
+})
 public class CorrespondenceImportStatus {
     
     @Id

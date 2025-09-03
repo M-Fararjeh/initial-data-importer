@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "classifications")
+@Table(name = "classifications", indexes = {
+    @Index(name = "idx_classifications_is_hidden", columnList = "is_hidden")
+})
 public class Classification extends BaseEntity {
     
     @Id

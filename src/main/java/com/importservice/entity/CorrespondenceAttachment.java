@@ -5,7 +5,13 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "correspondence_attachments")
+@Table(name = "correspondence_attachments", indexes = {
+    @Index(name = "idx_corr_attach_doc_guid", columnList = "doc_guid"),
+    @Index(name = "idx_corr_attach_import_status", columnList = "import_status"),
+    @Index(name = "idx_corr_attach_file_type", columnList = "file_type"),
+    @Index(name = "idx_corr_attach_is_primary", columnList = "is_primary"),
+    @Index(name = "idx_corr_attach_creation_date", columnList = "file_creation_date")
+})
 public class CorrespondenceAttachment extends BaseEntity {
     
     @Id

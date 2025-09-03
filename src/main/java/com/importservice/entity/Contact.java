@@ -4,7 +4,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "contacts")
+@Table(name = "contacts", indexes = {
+    @Index(name = "idx_contacts_parent_guid", columnList = "parent_guid"),
+    @Index(name = "idx_contacts_is_blocked", columnList = "is_blocked"),
+    @Index(name = "idx_contacts_global_id", columnList = "global_id")
+})
 public class Contact extends BaseEntity {
     
     @Id

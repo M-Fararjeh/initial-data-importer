@@ -4,7 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "correspondence_links")
+@Table(name = "correspondence_links", indexes = {
+    @Index(name = "idx_corr_link_doc_guid", columnList = "doc_guid"),
+    @Index(name = "idx_corr_link_import_status", columnList = "import_status")
+})
 public class CorrespondenceLink extends BaseEntity {
     
     @Id

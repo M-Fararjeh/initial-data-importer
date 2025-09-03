@@ -5,7 +5,16 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "correspondence_transactions")
+@Table(name = "correspondence_transactions", indexes = {
+    @Index(name = "idx_corr_trans_doc_guid", columnList = "doc_guid"),
+    @Index(name = "idx_corr_trans_action_id", columnList = "action_id"),
+    @Index(name = "idx_corr_trans_migrate_status", columnList = "migrate_status"),
+    @Index(name = "idx_corr_trans_action_date", columnList = "action_date"),
+    @Index(name = "idx_corr_trans_retry_count", columnList = "retry_count"),
+    @Index(name = "idx_corr_trans_assignment", columnList = "action_id, migrate_status, retry_count"),
+    @Index(name = "idx_corr_trans_from_user", columnList = "from_user_name"),
+    @Index(name = "idx_corr_trans_to_user", columnList = "to_user_name")
+})
 public class CorrespondenceTransaction extends BaseEntity {
     
     @Id

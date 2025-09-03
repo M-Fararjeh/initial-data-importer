@@ -1,9 +1,15 @@
 package com.importservice.entity;
 
 import javax.persistence.*;
+import org.hibernate.annotations.Index;
 import java.time.LocalDateTime;
 
 @MappedSuperclass
+@Table(indexes = {
+    @Index(name = "idx_base_creation_date", columnList = "creation_date"),
+    @Index(name = "idx_base_last_modified", columnList = "last_modified_date"),
+    @Index(name = "idx_base_migrate_status", columnList = "migrate_status")
+})
 public abstract class BaseEntity {
     
     @Column(name = "creation_date", nullable = false, updatable = false)
