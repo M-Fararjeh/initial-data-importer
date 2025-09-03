@@ -1,0 +1,72 @@
+/* Outgoing assignment details specific styles */
+.table-row-selected {
+  background-color: #fff7ed;
+}
+
+/* Status indicators */
+.status-pending {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Hover effects */
+tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Selection checkbox styling */
+input[type="checkbox"]:checked {
+  background-color: #ea580c;
+  border-color: #ea580c;
+}
+
+/* Button hover effects */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  .table-responsive th,
+  .table-responsive td {
+    padding: 0.5rem;
+  }
+}
+
+/* Outgoing assignment status styling */
+.assignment-success {
+  background-color: #f0fdf4;
+  border-left: 4px solid #22c55e;
+}
+
+.assignment-failed {
+  background-color: #fef2f2;
+  border-left: 4px solid #ef4444;
+}
+
+.assignment-pending {
+  background-color: #fff7ed;
+  border-left: 4px solid #ea580c;
+}
+
+/* Outgoing specific orange theme */
+.outgoing-theme {
+  border-left: 4px solid #ea580c;
+}
+
+.outgoing-theme:hover {
+  border-left-color: #c2410c;
+}

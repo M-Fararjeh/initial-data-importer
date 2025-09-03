@@ -1,0 +1,114 @@
+/* Outgoing creation details specific styles */
+.table-row-selected {
+  background-color: #fff7ed;
+}
+
+.progress-bar {
+  transition: width 0.3s ease-in-out;
+}
+
+/* Status indicators */
+.status-pending {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+/* Hover effects */
+tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Selection checkbox styling */
+input[type="checkbox"]:checked {
+  background-color: #ea580c;
+  border-color: #ea580c;
+}
+
+/* Button hover effects */
+button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  .table-responsive th,
+  .table-responsive td {
+    padding: 0.5rem;
+  }
+}
+
+/* Error row styling */
+.error-details {
+  background-color: #fef2f2;
+  border-left: 4px solid #ef4444;
+}
+
+/* Step progress styling */
+.step-indicator {
+  position: relative;
+}
+
+.step-indicator::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid #ea580c;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  transform: translateY(-50%);
+}
+
+.assignment-pending {
+  background-color: #fff7ed;
+  border-left: 4px solid #ea580c;
+}
+
+/* Statistics card styling */
+.stats-card {
+  transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Step statistics styling */
+.step-stat-card {
+  transition: all 0.2s ease;
+}
+
+.step-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Progress bar in step statistics */
+.step-progress-bar {
+  transition: width 0.5s ease-in-out;
+}
+
+/* Outgoing specific orange theme */
+.outgoing-theme {
+  border-left: 4px solid #ea580c;
+}
+
+.outgoing-theme:hover {
+  border-left-color: #c2410c;
+}

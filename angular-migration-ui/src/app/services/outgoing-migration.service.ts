@@ -362,6 +362,290 @@ export class OutgoingMigrationService {
       );
   }
   
+  // Assignment phase methods
+  getOutgoingAssignmentMigrations(page: number = 0, size: number = 20, status: string = 'all', search: string = ''): Observable<any> {
+    console.log('Calling getOutgoingAssignmentMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'search:', search);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    params.set('status', status);
+    if (search && search.trim()) {
+      params.set('search', search.trim());
+    }
+    
+    return this.http.get<any>(`${this.baseUrl}/assignment/details?${params.toString()}`)
+      .pipe(
+        tap((assignments) => console.log('Outgoing assignment migrations response:', assignments)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting outgoing assignment migrations:', error);
+          return of({
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: page,
+            pageSize: size,
+            hasNext: false,
+            hasPrevious: false,
+            error: error.message
+          });
+        })
+      );
+  }
+  
+  executeOutgoingAssignmentForSpecific(transactionGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeOutgoingAssignmentForSpecific API with GUIDs:', transactionGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/assignment/execute-specific`, {
+      transactionGuids: transactionGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteOutgoingAssignmentForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeOutgoingAssignmentForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute outgoing assignment for specific transactions: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
+  // Approval phase methods
+  getOutgoingApprovalMigrations(page: number = 0, size: number = 20, status: string = 'all', step: string = 'all', search: string = ''): Observable<any> {
+    console.log('Calling getOutgoingApprovalMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'step:', step, 'search:', search);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    params.set('status', status);
+    params.set('step', step);
+    if (search && search.trim()) {
+      params.set('search', search.trim());
+    }
+    
+    return this.http.get<any>(`${this.baseUrl}/approval/details?${params.toString()}`)
+      .pipe(
+        tap((approvals) => console.log('Outgoing approval migrations response:', approvals)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting outgoing approval migrations:', error);
+          return of({
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: page,
+            pageSize: size,
+            hasNext: false,
+            hasPrevious: false,
+            error: error.message
+          });
+        })
+      );
+  }
+  
+  executeOutgoingApprovalForSpecific(correspondenceGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeOutgoingApprovalForSpecific API with GUIDs:', correspondenceGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/approval/execute-specific`, {
+      correspondenceGuids: correspondenceGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteOutgoingApprovalForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeOutgoingApprovalForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute outgoing approval for specific correspondences: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
+  // Business log phase methods
+  getOutgoingBusinessLogMigrations(page: number = 0, size: number = 20, status: string = 'all', search: string = ''): Observable<any> {
+    console.log('Calling getOutgoingBusinessLogMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'search:', search);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    params.set('status', status);
+    if (search && search.trim()) {
+      params.set('search', search.trim());
+    }
+    
+    return this.http.get<any>(`${this.baseUrl}/business-log/details?${params.toString()}`)
+      .pipe(
+        tap((businessLogs) => console.log('Outgoing business log migrations response:', businessLogs)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting outgoing business log migrations:', error);
+          return of({
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: page,
+            pageSize: size,
+            hasNext: false,
+            hasPrevious: false,
+            error: error.message
+          });
+        })
+      );
+  }
+  
+  executeOutgoingBusinessLogForSpecific(transactionGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeOutgoingBusinessLogForSpecific API with GUIDs:', transactionGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/business-log/execute-specific`, {
+      transactionGuids: transactionGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteOutgoingBusinessLogForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeOutgoingBusinessLogForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute outgoing business log for specific transactions: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
+  // Comment phase methods
+  getOutgoingCommentMigrations(page: number = 0, size: number = 20, status: string = 'all', commentType: string = 'all', search: string = ''): Observable<any> {
+    console.log('Calling getOutgoingCommentMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'commentType:', commentType, 'search:', search);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    params.set('status', status);
+    params.set('commentType', commentType);
+    if (search && search.trim()) {
+      params.set('search', search.trim());
+    }
+    
+    return this.http.get<any>(`${this.baseUrl}/comment/details?${params.toString()}`)
+      .pipe(
+        tap((comments) => console.log('Outgoing comment migrations response:', comments)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting outgoing comment migrations:', error);
+          return of({
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: page,
+            pageSize: size,
+            hasNext: false,
+            hasPrevious: false,
+            error: error.message
+          });
+        })
+      );
+  }
+  
+  executeOutgoingCommentForSpecific(commentGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeOutgoingCommentForSpecific API with GUIDs:', commentGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/comment/execute-specific`, {
+      commentGuids: commentGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteOutgoingCommentForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeOutgoingCommentForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute outgoing comment for specific records: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
+  // Closing phase methods
+  getOutgoingClosingMigrations(page: number = 0, size: number = 20, status: string = 'all', needToClose: string = 'all', search: string = ''): Observable<any> {
+    console.log('Calling getOutgoingClosingMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'needToClose:', needToClose, 'search:', search);
+    
+    // Build query parameters
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('size', size.toString());
+    params.set('status', status);
+    params.set('needToClose', needToClose);
+    if (search && search.trim()) {
+      params.set('search', search.trim());
+    }
+    
+    return this.http.get<any>(`${this.baseUrl}/closing/details?${params.toString()}`)
+      .pipe(
+        tap((closings) => console.log('Outgoing closing migrations response:', closings)),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error getting outgoing closing migrations:', error);
+          return of({
+            content: [],
+            totalElements: 0,
+            totalPages: 0,
+            currentPage: page,
+            pageSize: size,
+            hasNext: false,
+            hasPrevious: false,
+            needToCloseCount: 0,
+            error: error.message
+          });
+        })
+      );
+  }
+  
+  executeOutgoingClosingForSpecific(correspondenceGuids: string[]): Observable<ImportResponse> {
+    console.log('Calling executeOutgoingClosingForSpecific API with GUIDs:', correspondenceGuids);
+    return this.http.post<ImportResponse>(`${this.baseUrl}/closing/execute-specific`, {
+      correspondenceGuids: correspondenceGuids
+    })
+      .pipe(
+        tap((response) => {
+          console.log('ExecuteOutgoingClosingForSpecific response:', response);
+          this.refreshStatistics();
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error in executeOutgoingClosingForSpecific:', error);
+          return of({
+            status: 'ERROR',
+            message: 'Failed to execute outgoing closing for specific correspondences: ' + (error.message || 'Unknown error'),
+            totalRecords: 0,
+            successfulImports: 0,
+            failedImports: 0,
+            errors: [error.message || 'Unknown error']
+          });
+        })
+      );
+  }
+  
   trackByGuid(index: number, item: OutgoingCreationMigration): string {
     return item.correspondenceGuid;
   }

@@ -17,6 +17,9 @@ import { CommentDetailsComponent } from './components/comment-details/comment-de
 import { ClosingDetailsComponent } from './components/closing-details/closing-details.component';
 import { CorrespondenceRelatedStatusComponent } from './components/correspondence-related-status/correspondence-related-status.component';
 import { OutgoingMigrationDashboardComponent } from './components/outgoing-migration-dashboard/outgoing-migration-dashboard.component';
+import { OutgoingCreationDetailsComponent } from './components/outgoing-creation-details/outgoing-creation-details.component';
+import { OutgoingAssignmentDetailsComponent } from './components/outgoing-assignment-details/outgoing-assignment-details.component';
+import { OutgoingApprovalDetailsComponent } from './components/outgoing-approval-details/outgoing-approval-details.component';
 import { MigrationService } from './services/migration.service';
 import { DataImportService } from './services/data-import.service';
 import { OutgoingMigrationService } from './services/outgoing-migration.service';
@@ -33,6 +36,9 @@ const routes: Routes = [
   { path: 'comment-details', component: CommentDetailsComponent },
   { path: 'closing-details', component: ClosingDetailsComponent },
   { path: 'outgoing-migration-dashboard', component: OutgoingMigrationDashboardComponent },
+  { path: 'outgoing-creation-details', component: OutgoingCreationDetailsComponent },
+  { path: 'outgoing-assignment-details', component: OutgoingAssignmentDetailsComponent },
+  { path: 'outgoing-approval-details', component: OutgoingApprovalDetailsComponent },
   { path: '**', redirectTo: '' }
 ];
 
@@ -50,7 +56,10 @@ const routes: Routes = [
     CommentDetailsComponent,
     ClosingDetailsComponent,
     CorrespondenceRelatedStatusComponent,
-    OutgoingMigrationDashboardComponent
+    OutgoingMigrationDashboardComponent,
+    OutgoingCreationDetailsComponent,
+    OutgoingAssignmentDetailsComponent,
+    OutgoingApprovalDetailsComponent
   ],
   imports: [
     BrowserModule,
