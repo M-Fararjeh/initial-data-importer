@@ -28,8 +28,43 @@ public class MigrationPhaseService {
     /**
      * Updates migration phase status
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 30)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, 
+                   timeout = 30, 
+                   isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void updatePhaseStatus(String correspondenceGuid, String phase, String status, String error) {
+        int maxRetries = 3;
+        int retryCount = 0;
+        
+        while (retryCount < maxRetries) {
+            try {
+                updatePhaseStatusInternal(correspondenceGuid, phase, status, error);
+                return; // Success, exit retry loop
+            } catch (org.springframework.dao.PessimisticLockingFailureException e) {
+                retryCount++;
+                logger.warn("[NEW_TRANSACTION] Lock timeout on attempt {} for correspondence: {} - {}", 
+                           retryCount, correspondenceGuid, e.getMessage());
+                
+                if (retryCount >= maxRetries) {
+                    logger.error("[NEW_TRANSACTION] Failed to update phase status after {} attempts for correspondence: {}", 
+                               maxRetries, correspondenceGuid);
+                    throw new RuntimeException("Failed to update phase status after " + maxRetries + " attempts: " + e.getMessage(), e);
+                }
+                
+                // Exponential backoff
+                try {
+                    Thread.sleep(1000 * retryCount);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted during retry backoff", ie);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Internal method for updating phase status
+     */
+    private void updatePhaseStatusInternal(String correspondenceGuid, String phase, String status, String error) {
         try {
             logger.info("[NEW_TRANSACTION] Updating phase status for correspondence: {} - Phase: {}, Status: {}", 
                        correspondenceGuid, phase, status);
@@ -43,15 +78,48 @@ public class MigrationPhaseService {
                 return;
             }
             
+            // Create a new instance to avoid stale data issues
+            IncomingCorrespondenceMigration freshMigration = new IncomingCorrespondenceMigration();
+            freshMigration.setId(migration.getId());
+            freshMigration.setCorrespondenceGuid(migration.getCorrespondenceGuid());
+            freshMigration.setCurrentPhase(migration.getCurrentPhase());
+            freshMigration.setNextPhase(migration.getNextPhase());
+            freshMigration.setPhaseStatus(migration.getPhaseStatus());
+            freshMigration.setIsNeedToClose(migration.getIsNeedToClose());
+            freshMigration.setCreatedDocumentId(migration.getCreatedDocumentId());
+            freshMigration.setBatchId(migration.getBatchId());
+            freshMigration.setRetryCount(migration.getRetryCount());
+            freshMigration.setMaxRetries(migration.getMaxRetries());
+            freshMigration.setStartedAt(migration.getStartedAt());
+            freshMigration.setCompletedAt(migration.getCompletedAt());
+            freshMigration.setLastErrorAt(migration.getLastErrorAt());
+            freshMigration.setCreationDate(migration.getCreationDate());
+            
+            // Copy all phase statuses
+            freshMigration.setPrepareDataStatus(migration.getPrepareDataStatus());
+            freshMigration.setPrepareDataError(migration.getPrepareDataError());
+            freshMigration.setCreationStatus(migration.getCreationStatus());
+            freshMigration.setCreationError(migration.getCreationError());
+            freshMigration.setCreationStep(migration.getCreationStep());
+            freshMigration.setAssignmentStatus(migration.getAssignmentStatus());
+            freshMigration.setAssignmentError(migration.getAssignmentError());
+            freshMigration.setBusinessLogStatus(migration.getBusinessLogStatus());
+            freshMigration.setBusinessLogError(migration.getBusinessLogError());
+            freshMigration.setCommentStatus(migration.getCommentStatus());
+            freshMigration.setCommentError(migration.getCommentError());
+            freshMigration.setClosingStatus(migration.getClosingStatus());
+            freshMigration.setClosingError(migration.getClosingError());
+            freshMigration.setOverallStatus(migration.getOverallStatus());
+            
             if ("ERROR".equals(status)) {
-                migration.markPhaseError(phase, error);
-                migration.incrementRetryCount();
+                freshMigration.markPhaseError(phase, error);
+                freshMigration.incrementRetryCount();
             } else if ("COMPLETED".equals(status)) {
-                migration.markPhaseCompleted(phase);
-                migration.setRetryCount(0); // Reset retry count on success
+                freshMigration.markPhaseCompleted(phase);
+                freshMigration.setRetryCount(0); // Reset retry count on success
             }
             
-            migrationRepository.save(migration);
+            migrationRepository.save(freshMigration);
             migrationRepository.flush(); // Ensure immediate persistence
             logger.info("[NEW_TRANSACTION] Successfully updated and committed phase {} status to {} for correspondence: {}", 
                        phase, status, correspondenceGuid);

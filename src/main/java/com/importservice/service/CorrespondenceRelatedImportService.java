@@ -335,10 +335,46 @@ public class CorrespondenceRelatedImportService {
     /**
      * Creates or gets import status in a completely separate transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, 
+                   timeout = 30,
+                   isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public CorrespondenceImportStatus createOrGetImportStatusInNewTransaction(String correspondenceGuid) {
         logger.info("[NEW_TRANSACTION] Creating or getting import status for correspondence: {}", correspondenceGuid);
         
+        int maxRetries = 3;
+        int retryCount = 0;
+        
+        while (retryCount < maxRetries) {
+            try {
+                return createOrGetImportStatusInternal(correspondenceGuid);
+            } catch (org.springframework.dao.PessimisticLockingFailureException e) {
+                retryCount++;
+                logger.warn("[NEW_TRANSACTION] Lock timeout on attempt {} for correspondence: {} - {}", 
+                           retryCount, correspondenceGuid, e.getMessage());
+                
+                if (retryCount >= maxRetries) {
+                    logger.error("[NEW_TRANSACTION] Failed to create/get import status after {} attempts for correspondence: {}", 
+                               maxRetries, correspondenceGuid);
+                    throw new RuntimeException("Failed to create/get import status after " + maxRetries + " attempts: " + e.getMessage(), e);
+                }
+                
+                // Exponential backoff
+                try {
+                    Thread.sleep(1000 * retryCount);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted during retry backoff", ie);
+                }
+            }
+        }
+        
+        throw new RuntimeException("Unexpected error in retry loop");
+    }
+    
+    /**
+     * Internal method for creating or getting import status
+     */
+    private CorrespondenceImportStatus createOrGetImportStatusInternal(String correspondenceGuid) {
         try {
             // First check if it exists
             Optional<CorrespondenceImportStatus> existingStatus = 
@@ -363,16 +399,6 @@ public class CorrespondenceRelatedImportService {
             logger.info("[NEW_TRANSACTION] Successfully created and committed import status record with ID: {} for correspondence: {}", 
                        savedStatus.getId(), correspondenceGuid);
             
-            // Verify the record was actually saved by querying it back
-            Optional<CorrespondenceImportStatus> verifyStatus = 
-                importStatusRepository.findByCorrespondenceGuid(correspondenceGuid);
-            if (verifyStatus.isPresent()) {
-                logger.info("[NEW_TRANSACTION] VERIFIED: Record exists in database with ID: {}", verifyStatus.get().getId());
-            } else {
-                logger.error("[NEW_TRANSACTION] ERROR: Record not found after save and flush!");
-                throw new RuntimeException("Record not persisted after save and flush");
-            }
-            
             return savedStatus;
             
         } catch (Exception e) {
@@ -384,8 +410,43 @@ public class CorrespondenceRelatedImportService {
     /**
      * Updates import status in a separate transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, 
+                   timeout = 30,
+                   isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public void updateImportStatusInNewTransaction(CorrespondenceImportStatus importStatus) {
+        int maxRetries = 3;
+        int retryCount = 0;
+        
+        while (retryCount < maxRetries) {
+            try {
+                updateImportStatusInternal(importStatus);
+                return; // Success, exit retry loop
+            } catch (org.springframework.dao.PessimisticLockingFailureException e) {
+                retryCount++;
+                logger.warn("[NEW_TRANSACTION] Lock timeout on attempt {} for correspondence: {} - {}", 
+                           retryCount, importStatus.getCorrespondenceGuid(), e.getMessage());
+                
+                if (retryCount >= maxRetries) {
+                    logger.error("[NEW_TRANSACTION] Failed to update import status after {} attempts for correspondence: {}", 
+                               maxRetries, importStatus.getCorrespondenceGuid());
+                    throw new RuntimeException("Failed to update import status after " + maxRetries + " attempts: " + e.getMessage(), e);
+                }
+                
+                // Exponential backoff
+                try {
+                    Thread.sleep(1000 * retryCount);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted during retry backoff", ie);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Internal method for updating import status
+     */
+    private void updateImportStatusInternal(CorrespondenceImportStatus importStatus) {
         try {
             logger.info("[NEW_TRANSACTION] Updating import status ID: {} for correspondence: {}", 
                        importStatus.getId(), importStatus.getCorrespondenceGuid());
@@ -394,15 +455,6 @@ public class CorrespondenceRelatedImportService {
             logger.info("[NEW_TRANSACTION] Successfully updated and committed import status for correspondence: {}", 
                        importStatus.getCorrespondenceGuid());
             
-            // Verify the update was persisted
-            Optional<CorrespondenceImportStatus> verifyStatus = 
-                importStatusRepository.findById(importStatus.getId());
-            if (verifyStatus.isPresent()) {
-                logger.info("[NEW_TRANSACTION] VERIFIED: Updated record exists with status: {}", 
-                           verifyStatus.get().getOverallStatus());
-            } else {
-                logger.error("[NEW_TRANSACTION] ERROR: Record not found after update!");
-            }
         } catch (Exception e) {
             logger.error("[NEW_TRANSACTION] Error updating import status for correspondence: {}", 
                         importStatus.getCorrespondenceGuid(), e);

@@ -48,7 +48,7 @@ public class DatabaseConfig {
         config.setConnectionTestQuery("SELECT 1");
         
         // Auto-commit and transaction settings
-        config.setAutoCommit(true); // Enable auto-commit for immediate visibility
+        config.setAutoCommit(false); // Disable auto-commit for proper transaction management
         
         // Pool name for monitoring - use unique name to avoid conflicts
         config.setPoolName("DataImportHikariCP-" + System.currentTimeMillis());
@@ -74,6 +74,11 @@ public class DatabaseConfig {
         config.addDataSourceProperty("readOnlyPropagatesToServer", "true");
         config.addDataSourceProperty("enableQueryTimeouts", "false");
         config.addDataSourceProperty("queryTimeoutKillsConnection", "false");
+        
+        // Lock timeout and deadlock handling
+        config.addDataSourceProperty("lockTimeout", "30000");
+        config.addDataSourceProperty("innodb_lock_wait_timeout", "30");
+        config.addDataSourceProperty("innodb_rollback_on_timeout", "ON");
         
         return new HikariDataSource(config);
     }

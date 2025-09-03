@@ -150,8 +150,44 @@ public class CreationPhaseService {
     /**
      * Processes correspondence creation for a single correspondence in a completely new transaction
      */
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, timeout = 600)
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW, 
+                   timeout = 600,
+                   isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public boolean processCorrespondenceCreationInNewTransaction(String correspondenceGuid) {
+        int maxRetries = 3;
+        int retryCount = 0;
+        
+        while (retryCount < maxRetries) {
+            try {
+                return processCorrespondenceCreationInternal(correspondenceGuid);
+            } catch (org.springframework.dao.PessimisticLockingFailureException e) {
+                retryCount++;
+                logger.warn("[NEW_TRANSACTION] Lock timeout on attempt {} for correspondence: {} - {}", 
+                           retryCount, correspondenceGuid, e.getMessage());
+                
+                if (retryCount >= maxRetries) {
+                    logger.error("[NEW_TRANSACTION] Failed to process creation after {} attempts for correspondence: {}", 
+                               maxRetries, correspondenceGuid);
+                    return false;
+                }
+                
+                // Exponential backoff
+                try {
+                    Thread.sleep(2000 * retryCount);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Internal method for processing correspondence creation
+     */
+    private boolean processCorrespondenceCreationInternal(String correspondenceGuid) {
         try {
             logger.info("[NEW_TRANSACTION] Starting creation process for correspondence: {}", correspondenceGuid);
             
@@ -214,13 +250,11 @@ public class CreationPhaseService {
      */
     private void updateCreationStepWithImmediateCommit(IncomingCorrespondenceMigration migration, String step) {
         try {
-            migration.setCreationStep(step);
-            migration.setLastModifiedDate(LocalDateTime.now());
-            migrationRepository.save(migration);
-            migrationRepository.flush();
-            logger.info("Updated creation step to {} for correspondence: {}", step, migration.getCorrespondenceGuid());
+            // Use a minimal update to reduce lock contention
+            migrationRepository.updateCreationStep(migration.getId(), step, LocalDateTime.now());
+            logger.debug("Updated creation step to {} for correspondence: {}", step, migration.getCorrespondenceGuid());
         } catch (Exception e) {
-            logger.error("Error updating creation step to {}: {}", step, e.getMessage());
+            logger.warn("Error updating creation step to {}: {}", step, e.getMessage());
             // Don't throw exception - continue with process
         }
     }
