@@ -40,7 +40,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "FROM correspondence_transactions ct " +
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
-                   "WHERE ct.action_id = 12 " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
                    "ORDER BY ct.last_modified_date DESC",
            nativeQuery = true)
     Page<Object[]> findAssignmentMigrationsWithPagination(Pageable pageable);
@@ -65,7 +65,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "FROM correspondence_transactions ct " +
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
-                   "WHERE ct.action_id = 12 " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
                    "AND (:status IS NULL OR ct.migrate_status = :status) " +
                    "AND (:search IS NULL OR :search = '' OR " +
                    "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -89,7 +89,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
     @Query(value = "SELECT COUNT(*) FROM correspondence_transactions ct " +
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
-                   "WHERE ct.action_id = 12 " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
                    "AND (:status IS NULL OR ct.migrate_status = :status) " +
                    "AND (:search IS NULL OR :search = '' OR " +
                    "     LOWER(ct.guid) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -108,7 +108,9 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
     /**
      * Count assignments by migrate status for statistics
      */
-    @Query(value = "SELECT COUNT(*) FROM correspondence_transactions WHERE action_id = 12 AND migrate_status = :status", 
+    @Query(value = "SELECT COUNT(*) FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 AND ct.migrate_status = :status", 
            nativeQuery = true)
     Long countAssignmentsByMigrateStatus(@Param("status") String status);
     
@@ -116,8 +118,9 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      * Get assignments that need processing (PENDING or FAILED with retry count < 3)
      */
     @Query(value = "SELECT ct.* FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
-                   "WHERE ct.action_id = 12 " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
                    "AND (ct.migrate_status = 'PENDING' OR (ct.migrate_status = 'FAILED' AND ct.retry_count < 3)) " +
                    "AND icm.created_document_id IS NOT NULL " +
                    "ORDER BY ct.retry_count ASC, ct.last_modified_date ASC",
@@ -127,7 +130,11 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
     /**
      * Optimized query to get assignments by status with minimal data
      */
-    @Query("SELECT ct FROM CorrespondenceTransaction ct WHERE ct.actionId = 12 AND ct.migrateStatus IN :statuses ORDER BY ct.lastModifiedDate DESC")
+    @Query(value = "SELECT ct.* FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 AND ct.migrate_status IN :statuses " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
     List<CorrespondenceTransaction> findAssignmentsByMigrateStatusIn(@Param("statuses") List<String> statuses);
     
     /**
@@ -138,8 +145,9 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "SUM(CASE WHEN migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
-                   "FROM correspondence_transactions " +
-                   "WHERE action_id = 12",
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2",
            nativeQuery = true)
     Object[] getAssignmentStatistics();
     
