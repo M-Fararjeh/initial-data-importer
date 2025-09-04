@@ -541,11 +541,11 @@ public class OutgoingDestinationSystemService {
             Map<String, Object> assignment = new HashMap<>();
             assignment.put("title", "assignment-" + transactionGuid);
             if (StringUtils.isNotEmpty(toUserName)){
-                assignment.put("assign:assignee", Arrays.asList(toUserName));
+                assignment.put("assign:assignee", Arrays.asList(departmentCode != null ? departmentCode : "COF"));
             }else{
                 assignment.put("assign:assignee", Arrays.asList());
             }
-            assignment.put("assign:department", Arrays.asList(departmentCode != null ? departmentCode : "CEO"));
+            assignment.put("assign:department", Arrays.asList(departmentCode != null ? departmentCode : "COF"));
             assignment.put("assign:dueDate", actionDate != null ? 
                          actionDate.toString() + "Z" : 
                          LocalDateTime.now().toString() + "Z");
