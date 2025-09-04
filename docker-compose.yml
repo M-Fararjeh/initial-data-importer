@@ -10,6 +10,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/data_import_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=import_user
       - SPRING_DATASOURCE_PASSWORD=import_password123
+      - JAVA_OPTS=-Xmx1g -Xms512m -XX:+UseG1GC
     depends_on:
       mysql:
         condition: service_healthy
@@ -21,6 +22,14 @@ services:
       retries: 5
       interval: 30s
       start_period: 60s
+    volumes:
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 1.5G
+        reservations:
+          memory: 512M
 
   frontend:
     build: 

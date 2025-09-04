@@ -485,7 +485,19 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/data_import_db
       - SPRING_DATASOURCE_USERNAME=import_user
       - SPRING_DATASOURCE_PASSWORD=import_password123
+      - JAVA_OPTS=-Xmx2g -Xms1g -XX:+UseG1GC
+      - LOGGING_LEVEL_ROOT=INFO
 ```
+
+### Backend Configuration Options
+
+The backend Dockerfile now supports several configuration options:
+
+- **Memory Settings**: Configure JVM heap size via `JAVA_OPTS`
+- **Logging Levels**: Set logging verbosity for different environments
+- **Security**: Runs as non-root user for better security
+- **Health Checks**: Built-in health monitoring
+- **Multi-stage Build**: Optimized image size with separate build and runtime stages
 
 ## 🔍 Monitoring and Troubleshooting
 

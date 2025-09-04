@@ -12,6 +12,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-dev:3306/data_import_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=import_user
       - SPRING_DATASOURCE_PASSWORD=import_password123
+      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC
+      - LOGGING_LEVEL_ROOT=DEBUG
     depends_on:
       mysql-dev:
         condition: service_healthy
@@ -19,6 +21,12 @@ services:
       - data-import-dev-network
     volumes:
       - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
 
   frontend-dev:
     build: 

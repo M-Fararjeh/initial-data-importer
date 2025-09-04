@@ -17,6 +17,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD}
       - KEYCLOAK_AUTH_PASSWORD=${KEYCLOAK_PASSWORD}
       - DESTINATION_API_TOKEN=${DESTINATION_TOKEN}
+      - JAVA_OPTS=-Xmx2g -Xms1g -XX:+UseG1GC -XX:+UseStringDeduplication
     depends_on:
       mysql:
         condition: service_healthy
@@ -28,6 +29,14 @@ services:
       retries: 5
       interval: 30s
       start_period: 60s
+    volumes:
+      - ./logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 2.5G
+        reservations:
+          memory: 1G
 
   frontend:
     build: 
