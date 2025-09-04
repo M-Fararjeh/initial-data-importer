@@ -164,11 +164,11 @@ export class InternalClosingDetailsComponent implements OnInit, OnDestroy {
     const needToCloseSelected = this.selectedClosings.filter(c => c.isNeedToClose);
     
     if (needToCloseSelected.length === 0) {
-      alert('None of the selected correspondences need to be closed.');
+      alert('None of the selected correspondences need to be closed (isNeedToClose must be true).');
       return;
     }
     
-    if (!confirm(`Execute internal closing for ${needToCloseSelected.length} selected correspondences that need to be closed?`)) {
+    if (!confirm(`Execute internal closing for ${needToCloseSelected.length} selected correspondences that need to be closed (isNeedToClose = true)?`)) {
       return;
     }
     
@@ -200,11 +200,11 @@ export class InternalClosingDetailsComponent implements OnInit, OnDestroy {
   
   executeClosingForSingle(closing: InternalClosingDetail): void {
     if (!closing.isNeedToClose) {
-      alert('This internal correspondence does not need to be closed.');
+      alert('This internal correspondence does not need to be closed (isNeedToClose = false).');
       return;
     }
     
-    if (!confirm(`Execute internal closing for correspondence: ${closing.correspondenceGuid}?`)) {
+    if (!confirm(`Execute internal closing for correspondence: ${closing.correspondenceGuid}? (isNeedToClose = true)`)) {
       return;
     }
     

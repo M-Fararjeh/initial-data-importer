@@ -59,11 +59,20 @@ public class InternalClosingPhaseService {
         int failedImports = 0;
         
         try {
+            // Only get internal correspondences that need to be closed (isNeedToClose = true)
             List<InternalCorrespondenceMigration> migrations = 
                 migrationRepository.findByIsNeedToCloseAndCreatedDocumentIdIsNotNull(true);
             
+            logger.info("Found {} internal correspondences that need to be closed", migrations.size());
+            
             for (InternalCorrespondenceMigration migration : migrations) {
                 try {
+                    // Double-check that this correspondence actually needs to be closed
+                    if (!migration.getIsNeedToClose()) {
+                        logger.debug("Skipping correspondence {} - does not need to be closed", migration.getCorrespondenceGuid());
+                        continue;
+                    }
+                    
                     boolean success = processInternalClosing(migration);
                     if (success) {
                         successfulImports++;
@@ -91,7 +100,7 @@ public class InternalClosingPhaseService {
             }
             
             String status = phaseService.determineFinalStatus(successfulImports, failedImports);
-            String message = String.format("Internal Phase 6 completed. Closed: %d, Failed: %d", 
+            String message = String.format("Internal Phase 6 completed. Closed: %d, Failed: %d (Only processing correspondences with isNeedToClose = true)", 
                                          successfulImports, failedImports);
             
             return phaseService.createResponse(status, message, migrations.size(), 
@@ -166,17 +175,22 @@ public class InternalClosingPhaseService {
             
             InternalCorrespondenceMigration migration = migrationOpt.get();
             
+            // Strict check: only process if isNeedToClose is explicitly true (1)
             if (!migration.getIsNeedToClose()) {
-                logger.info("Internal correspondence {} does not need to be closed, skipping", correspondenceGuid);
+                logger.info("Internal correspondence {} does not need to be closed (isNeedToClose = false), skipping", correspondenceGuid);
                 return true; // Count as success since no action needed
             }
+            
+            logger.info("Processing internal correspondence {} for closing (isNeedToClose = true)", correspondenceGuid);
             
             boolean success = processInternalClosing(migration);
             if (success) {
                 migration.setClosingStatus("COMPLETED");
+                logger.info("Successfully closed internal correspondence: {}", correspondenceGuid);
             } else {
                 migration.setClosingStatus("FAILED");
                 migration.setRetryCount(migration.getRetryCount() + 1);
+                logger.warn("Failed to close internal correspondence: {}", correspondenceGuid);
             }
             migrationRepository.save(migration);
             
@@ -197,12 +211,21 @@ public class InternalClosingPhaseService {
                 return false;
             }
             
+            // Verify again that this correspondence needs to be closed
+            if (!migration.getIsNeedToClose()) {
+                logger.warn("Internal correspondence {} marked for closing but isNeedToClose = false", migration.getCorrespondenceGuid());
+                return false;
+            }
+            
             // Get the correspondence to extract the creation user
             Optional<Correspondence> correspondenceOpt = correspondenceRepository.findById(migration.getCorrespondenceGuid());
             String asUser = "itba-emp1"; // Default fallback
             if (correspondenceOpt.isPresent() && correspondenceOpt.get().getCreationUserName() != null) {
                 asUser = correspondenceOpt.get().getCreationUserName();
             }
+            
+            logger.info("Closing internal correspondence {} in destination system with user: {}", 
+                       migration.getCorrespondenceGuid(), asUser);
             
             // Close internal correspondence in destination system
             return destinationService.closeInternalCorrespondence(
