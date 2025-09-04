@@ -67,13 +67,15 @@ public class ExternalAgencyImportService {
             
             for (ExternalAgencyDto agency : agencies) {
                 try {
-                    boolean success = importSingleAgency(agency);
-                    if (success) {
-                        successfulImports++;
-                        logger.debug("Successfully imported agency: {}", agency.getLabelEn());
-                    } else {
-                        failedImports++;
-                        errors.add("Failed to import agency: " + agency.getLabelEn());
+                    if ("Municipality".equals(agency.getCategory())){
+                        boolean success = importSingleAgency(agency);
+                        if (success) {
+                            successfulImports++;
+                            logger.debug("Successfully imported agency: {}", agency.getLabelEn());
+                        } else {
+                            failedImports++;
+                            errors.add("Failed to import agency: " + agency.getLabelEn());
+                        }
                     }
                 } catch (Exception e) {
                     failedImports++;

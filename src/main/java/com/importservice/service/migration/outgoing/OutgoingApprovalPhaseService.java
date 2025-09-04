@@ -7,6 +7,7 @@ import com.importservice.repository.CorrespondenceRepository;
 import com.importservice.repository.OutgoingCorrespondenceMigrationRepository;
 import com.importservice.service.OutgoingDestinationSystemService;
 import com.importservice.service.migration.MigrationPhaseService;
+import com.importservice.util.CorrespondenceSubjectGenerator;
 import com.importservice.util.CorrespondenceUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,9 @@ public class OutgoingApprovalPhaseService {
     
     @Autowired
     private com.importservice.repository.CorrespondenceSendToRepository correspondenceSendToRepository;
+
+    @Autowired
+    private CorrespondenceSubjectGenerator subjectGenerator;
     
     /**
      * Phase 4: Approval
@@ -288,6 +292,12 @@ public class OutgoingApprovalPhaseService {
         context.put("corr:hDocumentDate", hDocumentDate);
         //context.put("out_corr:signee", "SECTOR");
         context.put("corr:action", CorrespondenceUtils.mapAction(correspondence.getLastDecisionGuid()));
+        String finalSubject = correspondence.getSubject();
+        if (subjectGenerator.isRandomSubjectEnabled()) {
+            String category = CorrespondenceUtils.mapCategory(correspondence.getClassificationGuid());
+            finalSubject = subjectGenerator.generateSubjectWithCategory(category);
+            logger.info("Generated random subject for outgoing correspondence {}: {}", correspondence.getGuid(), finalSubject);
+        }
         context.put("corr:subject", correspondence.getSubject() != null ? correspondence.getSubject() : "");
         context.put("corr:remarks", correspondence.getNotes() != null ? CorrespondenceUtils.cleanHtmlTags(correspondence.getNotes()) : "");
         context.put("corr:referenceNumber", correspondence.getReferenceNo() != null ? correspondence.getReferenceNo() : "");
