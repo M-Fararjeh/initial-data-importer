@@ -153,4 +153,97 @@ public interface InternalCorrespondenceMigrationRepository extends JpaRepository
         @Param("needToClose") Boolean needToClose,
         @Param("search") String search,
         Pageable pageable);
+    
+    /**
+     * Optimized query for internal assignment migrations with pagination
+     * Gets actual assignment transactions for internal correspondences where creation is completed
+     */
+    @Query(value = "SELECT " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.to_user_name as toUserName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.decision_guid as decisionGuid, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
+                   "c.subject as correspondenceSubject, " +
+                   "c.reference_no as correspondenceReferenceNo, " +
+                   "icm.created_document_id as createdDocumentId, " +
+                   "c.creation_user_name as creationUserName " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN internal_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 3 " +
+                   "AND icm.creation_status = 'COMPLETED' AND icm.assignment_status = 'PENDING' " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
+    Page<Object[]> findInternalAssignmentMigrationsWithPagination(Pageable pageable);
+    
+    /**
+     * Optimized query for internal assignment migrations with search and pagination
+     */
+    @Query(value = "SELECT " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.to_user_name as toUserName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.decision_guid as decisionGuid, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
+                   "c.subject as correspondenceSubject, " +
+                   "c.reference_no as correspondenceReferenceNo, " +
+                   "icm.created_document_id as createdDocumentId, " +
+                   "c.creation_user_name as creationUserName " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN internal_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 3 " +
+                   "AND icm.creation_status = 'COMPLETED' AND icm.assignment_status = 'PENDING' " +
+                   "AND (:status = 'all' OR ct.migrate_status = :status) " +
+                   "AND (:search = '' OR :search IS NULL OR " +
+                   "     ct.guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     ct.doc_guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(icm.created_document_id, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.subject, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.reference_no, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.from_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.to_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.notes, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.creation_user_name, '') LIKE CONCAT('%', :search, '%')) " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
+    Page<Object[]> findInternalAssignmentMigrationsWithSearchAndPagination(
+        @Param("status") String status,
+        @Param("search") String search,
+        Pageable pageable);
+    
+    /**
+     * Count internal assignment migrations with search filters
+     */
+    @Query(value = "SELECT COUNT(*) FROM internal_correspondence_migrations icm " +
+                   "LEFT JOIN correspondences c ON icm.correspondence_guid = c.guid " +
+                   "LEFT JOIN correspondence_transactions ct ON icm.correspondence_guid = ct.doc_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 3 " +
+                   "AND icm.creation_status = 'COMPLETED' AND icm.assignment_status = 'PENDING' " +
+                   "AND (:status = 'all' OR ct.migrate_status = :status) " +
+                   "AND (:search = '' OR :search IS NULL OR " +
+                   "     ct.guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     icm.correspondence_guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(icm.created_document_id, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.subject, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.reference_no, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.from_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.to_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.notes, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.creation_user_name, '') LIKE CONCAT('%', :search, '%'))",
+           nativeQuery = true)
+    Long countInternalAssignmentMigrationsWithSearch(
+        @Param("status") String status,
+        @Param("search") String search);
 }
