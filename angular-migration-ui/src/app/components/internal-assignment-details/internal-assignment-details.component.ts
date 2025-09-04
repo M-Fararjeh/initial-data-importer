@@ -253,7 +253,7 @@ export class InternalAssignmentDetailsComponent implements OnInit, OnDestroy {
     }
   }
   
-  formatDate(dateString: string): string {
+  formatDate(dateString: string | undefined): string {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleString();
   }
