@@ -195,6 +195,11 @@ public class OutgoingAssignmentPhaseService {
             }
             transactionRepository.save(transaction);
             
+            // Check if all transactions for this correspondence are migrated
+            if (success) {
+                checkAndUpdateAssignmentStatusForCorrespondence(transaction.getDocGuid());
+            }
+            
             return success;
         } catch (Exception e) {
             logger.error("Error processing outgoing assignment for: {}", transactionGuid, e);
@@ -313,6 +318,60 @@ public class OutgoingAssignmentPhaseService {
             errorResult.put("hasPrevious", false);
             errorResult.put("error", e.getMessage());
             return errorResult;
+        }
+    }
+    
+    /**
+     * Checks if all assignment transactions for a correspondence are migrated
+     * and updates the assignment status in outgoing migration table
+     */
+    private void checkAndUpdateAssignmentStatusForCorrespondence(String correspondenceGuid) {
+        try {
+            logger.debug("Checking assignment completion status for outgoing correspondence: {}", correspondenceGuid);
+            
+            // Get all assignment transactions for this correspondence (action_id = 12)
+            List<CorrespondenceTransaction> assignmentTransactions = transactionRepository
+                .findByDocGuidAndActionId(correspondenceGuid, 12);
+            
+            if (assignmentTransactions.isEmpty()) {
+                logger.debug("No assignment transactions found for correspondence: {}", correspondenceGuid);
+                return;
+            }
+            
+            // Check if all assignment transactions are successfully migrated
+            boolean allTransactionsMigrated = assignmentTransactions.stream()
+                .allMatch(transaction -> "SUCCESS".equals(transaction.getMigrateStatus()));
+            
+            if (allTransactionsMigrated) {
+                logger.info("All assignment transactions migrated for correspondence: {}, updating assignment status", correspondenceGuid);
+                
+                // Update the assignment status in outgoing migration table
+                Optional<OutgoingCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                
+                if (migrationOpt.isPresent()) {
+                    OutgoingCorrespondenceMigration migration = migrationOpt.get();
+                    migration.setAssignmentStatus("COMPLETED");
+                    migration.setCurrentPhase("APPROVAL");
+                    migration.setNextPhase("BUSINESS_LOG");
+                    migration.setPhaseStatus("PENDING");
+                    migrationRepository.save(migration);
+                    
+                    logger.info("Updated assignment status to COMPLETED for outgoing correspondence: {}", correspondenceGuid);
+                } else {
+                    logger.warn("Outgoing migration record not found for correspondence: {}", correspondenceGuid);
+                }
+            } else {
+                logger.debug("Not all assignment transactions are migrated yet for correspondence: {}", correspondenceGuid);
+                
+                // Log the status of each transaction for debugging
+                for (CorrespondenceTransaction transaction : assignmentTransactions) {
+                    logger.debug("Transaction {} status: {}", transaction.getGuid(), transaction.getMigrateStatus());
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error checking assignment completion status for correspondence: {}", correspondenceGuid, e);
         }
     }
 }

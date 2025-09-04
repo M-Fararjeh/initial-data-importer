@@ -13,6 +13,9 @@ import java.util.List;
 public interface CorrespondenceTransactionRepository extends JpaRepository<CorrespondenceTransaction, String> {
     List<CorrespondenceTransaction> findByDocGuid(String docGuid);
     
+    @Query("SELECT ct FROM CorrespondenceTransaction ct WHERE ct.docGuid = :docGuid AND ct.actionId = :actionId")
+    List<CorrespondenceTransaction> findByDocGuidAndActionId(@Param("docGuid") String docGuid, @Param("actionId") Integer actionId);
+    
     @Query("SELECT ct FROM CorrespondenceTransaction ct WHERE ct.actionId = :actionId")
     List<CorrespondenceTransaction> findByActionId(@Param("actionId") Integer actionId);
     
