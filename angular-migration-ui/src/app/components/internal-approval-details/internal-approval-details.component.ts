@@ -1,12 +1,23 @@
 import { Component, OnInit } from '@angular/core';
 import { InternalMigrationService, InternalApprovalDetail, PaginatedResponse, ImportResponse } from '../../services/internal-migration.service';
 
+interface ImportResponse {
+  status: string;
+  message: string;
+  totalRecords: number;
+  successfulImports: number;
+  failedImports: number;
+  errors: string[];
+}
+
 @Component({
   selector: 'app-internal-approval-details',
   templateUrl: './internal-approval-details.component.html',
   styleUrls: ['./internal-approval-details.component.css']
 })
 export class InternalApprovalDetailsComponent implements OnInit {
+  Math = Math; // Expose Math to template
+
   approvalDetails: InternalApprovalDetail[] = [];
   isLoading = false;
   error: string | null = null;

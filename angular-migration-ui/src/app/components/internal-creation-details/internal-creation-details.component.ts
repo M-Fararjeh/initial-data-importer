@@ -1,12 +1,23 @@
 import { Component, OnInit } from '@angular/core';
 import { InternalMigrationService, InternalCreationDetail, ImportResponse } from '../../services/internal-migration.service';
 
+interface ImportResponse {
+  status: string;
+  message: string;
+  totalRecords: number;
+  successfulImports: number;
+  failedImports: number;
+  errors: string[];
+}
+
 @Component({
   selector: 'app-internal-creation-details',
   templateUrl: './internal-creation-details.component.html',
   styleUrls: ['./internal-creation-details.component.css']
 })
 export class InternalCreationDetailsComponent implements OnInit {
+  Math = Math; // Expose Math to template
+
   creationDetails: InternalCreationDetail[] = [];
   statistics: any = {};
   isLoading = false;

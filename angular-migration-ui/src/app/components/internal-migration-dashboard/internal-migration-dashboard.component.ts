@@ -1,6 +1,16 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { InternalMigrationService, InternalMigrationStatistics, ImportResponse } from '../../services/internal-migration.service';
+import { Observable } from 'rxjs';
 import { interval, Subscription } from 'rxjs';
+
+interface ImportResponse {
+  status: string;
+  message: string;
+  totalRecords: number;
+  successfulImports: number;
+  failedImports: number;
+  errors: string[];
+}
 
 @Component({
   selector: 'app-internal-migration-dashboard',
@@ -208,7 +218,7 @@ export class InternalMigrationDashboardComponent implements OnInit, OnDestroy {
   }
 
   private startAutoRefresh(): void {
-    this.refreshSubscription = interval(this.REFRESH_INTERVAL).subscribe(() => {
+      error: (error: any) => {
       if (!this.isLoading) {
         this.loadStatistics();
       }
