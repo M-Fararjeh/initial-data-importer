@@ -97,6 +97,7 @@ export interface InternalClosingDetail {
   correspondenceReferenceNo?: string;
   correspondenceLastModifiedDate?: string;
   creationUserName?: string;
+  selected?: boolean;
 }
 
 export interface PaginatedResponse<T> {

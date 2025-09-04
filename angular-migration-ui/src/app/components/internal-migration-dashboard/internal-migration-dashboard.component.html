@@ -121,8 +121,16 @@
             View Business Log Details
           </a>
           
+          <a 
+            *ngIf="phase.id === 'closing'"
+            routerLink="/internal-closing-details"
+            class="btn btn-outline-secondary">
+            <i class="fas fa-list"></i>
+            View Closing Details
+          </a>
+          
           <button 
-            *ngIf="phase.id !== 'creation' && phase.id !== 'assignment' && phase.id !== 'approval' && phase.id !== 'business-log' && phase.count > 0"
+            *ngIf="phase.id !== 'creation' && phase.id !== 'assignment' && phase.id !== 'approval' && phase.id !== 'business-log' && phase.id !== 'closing' && phase.count > 0"
             class="btn btn-outline-secondary"
             disabled>
             <i class="fas fa-list"></i>
