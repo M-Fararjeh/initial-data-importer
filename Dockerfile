@@ -8,7 +8,6 @@ WORKDIR /app
 COPY pom.xml .
 
 # Download dependencies (this layer will be cached if pom.xml doesn't change)
-)
 RUN mvn dependency:go-offline -B
 
 # Copy source code
@@ -20,8 +19,12 @@ RUN mvn clean package -DskipTests
 # Production stage - use smaller JRE image
 FROM openjdk:8-jre-alpine
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install curl for health checks and other utilities
+RUN apk add --no-cache curl tzdata
+
+# Set timezone
+ENV TZ=UTC
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S appgroup && \
@@ -52,7 +55,10 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
 
 # Environment variables with defaults
 ENV SPRING_PROFILES_ACTIVE=docker
-ENV JAVA_OPTS="-Xmx1g -Xms512m -XX:+UseG1GC -XX:+UseStringDeduplication"
+ENV JAVA_OPTS="-Xmx1g -Xms512m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:MaxGCPauseMillis=200"
+
+# Add JVM debugging options for production troubleshooting
+ENV JAVA_DEBUG_OPTS="-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/ -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -Xloggc:/app/logs/gc.log"
 
 # Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS $JAVA_DEBUG_OPTS -jar app.jar"]
