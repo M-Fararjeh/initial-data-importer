@@ -37,7 +37,7 @@ services:
     ports:
       - "4200:80"
     environment:
-      - API_BASE_URL=http://app-dev:8080/data-import
+      - API_BASE_URL=http://app-dev:8080
     depends_on:
       - app-dev
     networks:

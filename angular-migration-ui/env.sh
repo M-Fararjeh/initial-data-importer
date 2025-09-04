@@ -2,7 +2,7 @@
 
 # Replace environment variables in env.js
 # Use default value if API_BASE_URL is not set
-API_BASE_URL=${API_BASE_URL:-"http://localhost:8080/data-import"}
+API_BASE_URL=${API_BASE_URL:-"http://localhost:8080"}
 
 echo "Substituting environment variables..."
 echo "API_BASE_URL: $API_BASE_URL"

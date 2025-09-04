@@ -18,10 +18,10 @@ export interface ImportResponse {
 })
 export class DataImportService {
   
-  private baseUrl = `${environment.apiBaseUrl}/api/data-import`;
-  private importBaseUrl = `${environment.apiBaseUrl}/api/import`;
-  private userImportBaseUrl = `${environment.apiBaseUrl}/api/user-import`;
-  private correspondenceImportBaseUrl = `${environment.apiBaseUrl}/api/correspondence-import`;
+  private baseUrl = `${environment.apiBaseUrl}/data-import/api/data-import`;
+  private importBaseUrl = `${environment.apiBaseUrl}/data-import/api/import`;
+  private userImportBaseUrl = `${environment.apiBaseUrl}/data-import/api/user-import`;
+  private correspondenceImportBaseUrl = `${environment.apiBaseUrl}/data-import/api/correspondence-import`;
   
   constructor(private http: HttpClient) {
     console.log('DataImportService initialized');
