@@ -27,13 +27,14 @@ import { InternalMigrationDashboardComponent } from './components/internal-migra
 import { InternalCreationDetailsComponent } from './components/internal-creation-details/internal-creation-details.component';
 import { InternalApprovalDetailsComponent } from './components/internal-approval-details/internal-approval-details.component';
 import { InternalAssignmentDetailsComponent } from './components/internal-assignment-details/internal-assignment-details.component';
+import { InternalBusinessLogDetailsComponent } from './components/internal-business-log-details/internal-business-log-details.component';
 import { MigrationService } from './services/migration.service';
 import { DataImportService } from './services/data-import.service';
 import { OutgoingMigrationService } from './services/outgoing-migration.service';
+import { InternalMigrationService } from './services/internal-migration.service';
 
 const routes: Routes = [
   { path: '', component: SourceDataImportComponent },
-  { path: 'correspondence-related-status', component: CorrespondenceRelatedStatusComponent },
   { path: 'correspondence-related-status', component: CorrespondenceRelatedStatusComponent },
   { path: 'destination-setup', component: DestinationSetupComponent },
   { path: 'migration-dashboard', component: MigrationDashboardComponent },
@@ -52,6 +53,7 @@ const routes: Routes = [
   { path: 'internal-creation-details', component: InternalCreationDetailsComponent },
   { path: 'internal-approval-details', component: InternalApprovalDetailsComponent },
   { path: 'internal-assignment-details', component: InternalAssignmentDetailsComponent },
+  { path: 'internal-business-log-details', component: InternalBusinessLogDetailsComponent },
   { path: '**', redirectTo: '' }
 ];
 
@@ -91,7 +93,8 @@ const routes: Routes = [
   providers: [
     MigrationService,
     DataImportService,
-    OutgoingMigrationService
+    OutgoingMigrationService,
+    InternalMigrationService
   ],
   bootstrap: [AppComponent]
 })
