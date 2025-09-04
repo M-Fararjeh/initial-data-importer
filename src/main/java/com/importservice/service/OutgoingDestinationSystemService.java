@@ -10,6 +10,7 @@ import com.importservice.util.CorrespondenceUtils;
 import com.importservice.util.CorrespondenceSubjectGenerator;
 import com.importservice.util.DepartmentUtils;
 import com.importservice.util.HijriDateUtils;
+import org.springframework.beans.factory.annotation.Value;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -56,6 +57,9 @@ public class OutgoingDestinationSystemService {
     
     @Value("${destination.api.logging.enabled:false}")
     private boolean loggingEnabled;
+    
+    @Value("${admin.user.username:cts_admin}")
+    private String adminUsername;
     
     @Autowired
     private RestTemplate restTemplate;
@@ -256,7 +260,7 @@ public class OutgoingDestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_OutgoingCorrespondence_Create");
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             request.setDocCreator(asUser);
             request.setGuid(guid);
             request.setDocDate(correspondence.getCorrespondenceCreationDate() != null ? 
@@ -398,7 +402,7 @@ public class OutgoingDestinationSystemService {
                              LocalDateTime.now().toString() + "Z");
             request.setDocID(correspondenceDocumentId);
             request.setGuid(attachment.getGuid());
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             request.setDocCreator(attachment.getCreationUserName() != null ? attachment.getCreationUserName() : "itba-emp1");
 
             // Build attachment context
@@ -471,7 +475,7 @@ public class OutgoingDestinationSystemService {
             // Set params
             request.setOperationName("AC_UA_PhysicalAttachment_Add");
             request.setDocID(correspondenceGuid);
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             request.setDocCreator(asUser);
             
             // Set context
@@ -593,7 +597,7 @@ public class OutgoingDestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_OutgoingCorrespondence_SendWithoutApproval");
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             request.setDocID(documentId);
             request.setDocCreator(asUser);
             request.setTenantID("ITBA");
@@ -638,7 +642,7 @@ public class OutgoingDestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_OutgoingCorrespondence_Register_WithReference");
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             request.setDocID(documentId);
             request.setDocCreator(asUser);
             request.setTenantID("ITBA");
@@ -686,7 +690,7 @@ public class OutgoingDestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_OutgoingCorrespondence_Send");
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             request.setDocID(documentId);
             request.setDocCreator(asUser);
             request.setTenantID("ITBA");

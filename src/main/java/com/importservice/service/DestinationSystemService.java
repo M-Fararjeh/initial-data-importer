@@ -22,6 +22,7 @@ import com.importservice.util.CorrespondenceSubjectGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.importservice.util.HijriDateUtils;
 import com.importservice.service.KeycloakTokenService;
+import org.springframework.beans.factory.annotation.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +68,9 @@ public class DestinationSystemService {
     
     @Value("${destination.api.logging.enabled:false}")
     private boolean loggingEnabled;
+    
+    @Value("${admin.user.username:cts_admin}")
+    private String adminUsername;
     
     @Autowired
     private RestTemplate restTemplate;
@@ -298,7 +302,7 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_IncomingCorrespondence_Create_Application");
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             //request.setAsUser(asUser);
             request.setDocCreator(asUser);
             request.setGuid(guid);
@@ -408,10 +412,10 @@ public class DestinationSystemService {
             request.setDocDate(attachment.getFileCreationDate() != null ? 
                              attachment.getFileCreationDate().toString() + "Z" : 
                              LocalDateTime.now().toString() + "Z");
-            //request.setAsUser(attachment.getCreationUserName() != null ? attachment.getCreationUserName() : "itba-emp1");
+            //request.setAsUser(attachment.getCreationUserName() != null ? attachment.getCreationUserName() : adminUsername);
             request.setDocID(correspondenceDocumentId); // Use the correspondence document ID from destination system
             request.setGuid(attachment.getGuid()); // Use attachment GUID
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             request.setDocCreator(attachment.getCreationUserName() != null ? attachment.getCreationUserName() : "itba-emp1");
 
             // Build attachment context
@@ -530,7 +534,7 @@ public class DestinationSystemService {
             // Set params
             request.setOperationName("AC_UA_Correspondence_ReadyToRegister");
             request.setDocID(correspondenceGuid);
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             //request.setAsUser(asUser);
             request.setDocCreator(asUser);
             request.getContext().put("tenantId", "ITBA");
@@ -577,7 +581,7 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_IncomingCorrespondence_Register_WithReference");
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             //request.setAsUser(asUser);
             request.setDocCreator(asUser);
             request.setDocID(correspondenceGuid);
@@ -632,7 +636,7 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_IncomingCorrespondence_Send");
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             //request.setAsUser(asUser);
             request.setDocCreator(asUser);
             request.setDocID(correspondenceGuid);
@@ -679,7 +683,7 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_Correspondence_SetOwner");
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             //request.setAsUser(asUser);
             request.setDocCreator(asUser);
             request.setDocID(correspondenceGuid);
@@ -728,7 +732,7 @@ public class DestinationSystemService {
             
             // Set params
             request.setOperationName("AC_UA_Assignment_Create");
-            request.setAsUser("cts_admin");
+            request.setAsUser(adminUsername);
             request.setDocID(documentId);
             request.setDocDate(actionDate != null ?
                              HijriDateUtils.addYears(actionDate,5).toString() + "Z" :
