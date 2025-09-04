@@ -65,7 +65,7 @@ const routes: Routes = [
     OutgoingMigrationDashboardComponent,
     OutgoingCreationDetailsComponent,
     OutgoingAssignmentDetailsComponent,
-    OutgoingApprovalDetailsComponent
+    OutgoingApprovalDetailsComponent,
     OutgoingApprovalDetailsComponent,
     OutgoingBusinessLogDetailsComponent,
     OutgoingCommentDetailsComponent,
