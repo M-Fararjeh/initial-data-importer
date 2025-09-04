@@ -44,10 +44,6 @@ src/main/java/com/importservice/dto/UserImportController.java
 src/main/java/com/importservice/dto/UserImportController.java
 src/main/java/com/importservice/dto/UserImportController.java
 
-angular-migration-ui/*
-angular-migration-ui/src/app/components/destination-setup/*
-angular-migration-ui/src/app/components/source-data-import/*
-angular-migration-ui/src/app/services/data-import.service.ts
 
 
 docker-compose.dev.yml
