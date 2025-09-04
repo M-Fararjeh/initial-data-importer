@@ -5,6 +5,7 @@ import com.importservice.entity.OutgoingCorrespondenceMigration;
 import com.importservice.service.migration.outgoing.OutgoingApprovalPhaseService;
 import com.importservice.service.migration.outgoing.OutgoingAssignmentPhaseService;
 import com.importservice.service.migration.outgoing.OutgoingBusinessLogPhaseService;
+import com.importservice.service.migration.outgoing.OutgoingBusinessLogPhaseService;
 import com.importservice.service.migration.outgoing.OutgoingClosingPhaseService;
 import com.importservice.service.migration.outgoing.OutgoingCreationPhaseService;
 import com.importservice.service.migration.outgoing.OutgoingPrepareDataService;
@@ -41,6 +42,9 @@ public class OutgoingCorrespondenceMigrationService {
     
     @Autowired
     private OutgoingApprovalPhaseService approvalPhaseService;
+    
+    @Autowired
+    private OutgoingBusinessLogPhaseService businessLogPhaseService;
     
     @Autowired
     private OutgoingClosingPhaseService closingPhaseService;
