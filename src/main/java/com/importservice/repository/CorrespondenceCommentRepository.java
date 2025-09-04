@@ -136,13 +136,13 @@ public interface CorrespondenceCommentRepository extends JpaRepository<Correspon
      * Get comment statistics efficiently
     * Filters for INCOMING correspondences (correspondence_type_id = 2)
      */
-    @Query(value = "SELECT " +
-                   "SUM(CASE WHEN migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
-                   "SUM(CASE WHEN migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
+                   "SUM(CASE WHEN cc.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
+                   "SUM(CASE WHEN cc.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
+                   "SUM(CASE WHEN cc.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "SUM(CASE WHEN migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_comments cc " +
-                   "LEFT JOIN correspondences c ON cc.doc_guid = c.guid " +
+                   "INNER JOIN correspondences c ON cc.doc_guid = c.guid " +
                    "WHERE c.correspondence_type_id = 2",
            nativeQuery = true)
     Object[] getCommentStatistics();
@@ -280,12 +280,12 @@ public interface CorrespondenceCommentRepository extends JpaRepository<Correspon
      * Filters for OUTGOING correspondences (correspondence_type_id = 1)
      */
     @Query(value = "SELECT " +
-                   "SUM(CASE WHEN migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
-                   "SUM(CASE WHEN migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
-                   "SUM(CASE WHEN migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
+                   "SUM(CASE WHEN cc.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
+                   "SUM(CASE WHEN cc.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
+                   "SUM(CASE WHEN cc.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_comments cc " +
-                   "LEFT JOIN correspondences c ON cc.doc_guid = c.guid " +
+                   "INNER JOIN correspondences c ON cc.doc_guid = c.guid " +
                    "WHERE c.correspondence_type_id = 1",
            nativeQuery = true)
     Object[] getOutgoingCommentStatistics();

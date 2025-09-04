@@ -149,7 +149,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_transactions ct " +
-                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "INNER JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2",
            nativeQuery = true)
     Object[] getAssignmentStatistics();
@@ -272,13 +272,13 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      * Get business log statistics efficiently
     * Filters for INCOMING correspondences (correspondence_type_id = 2)
      */
-    @Query(value = "SELECT " +
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_transactions ct " +
-                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "INNER JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "WHERE ct.action_id != 12 AND c.correspondence_type_id = 2",
            nativeQuery = true)
     Object[] getBusinessLogStatistics();
@@ -400,13 +400,13 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      * Get OUTGOING assignment statistics efficiently
      * Filters for outgoing correspondences (correspondence_type_id = 1)
      */
-    @Query(value = "SELECT " +
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_transactions ct " +
-                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "INNER JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1",
            nativeQuery = true)
     Object[] getOutgoingAssignmentStatistics();
@@ -529,13 +529,13 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      * Get OUTGOING business log statistics efficiently
      * Filters for OUTGOING correspondences (correspondence_type_id = 1)
      */
-    @Query(value = "SELECT " +
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_transactions ct " +
-                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "INNER JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "WHERE ct.action_id != 12 AND c.correspondence_type_id = 1",
            nativeQuery = true)
     Object[] getOutgoingBusinessLogStatistics();

@@ -38,13 +38,24 @@ public class MigrationStatisticsService {
         try {
             Map<String, Object> statistics = new HashMap<>();
             
-            // Phase-specific counts
-            Long prepareDataCount = migrationRepository.countByCurrentPhase("PREPARE_DATA");
-            Long creationCount = migrationRepository.countByCurrentPhase("CREATION");
-            Long assignmentCount = migrationRepository.countByCurrentPhase("ASSIGNMENT");
-            Long businessLogCount = migrationRepository.countByCurrentPhase("BUSINESS_LOG");
-            Long commentCount = migrationRepository.countByCurrentPhase("COMMENT");
-            Long closingCount = migrationRepository.countByCurrentPhase("CLOSING");
+            // Phase-specific counts - use safe defaults
+            Long prepareDataCount = 0L;
+            Long creationCount = 0L;
+            Long assignmentCount = 0L;
+            Long businessLogCount = 0L;
+            Long commentCount = 0L;
+            Long closingCount = 0L;
+            
+            try {
+                prepareDataCount = migrationRepository.countByCurrentPhase("PREPARE_DATA");
+                creationCount = migrationRepository.countByCurrentPhase("CREATION");
+                assignmentCount = migrationRepository.countByCurrentPhase("ASSIGNMENT");
+                businessLogCount = migrationRepository.countByCurrentPhase("BUSINESS_LOG");
+                commentCount = migrationRepository.countByCurrentPhase("COMMENT");
+                closingCount = migrationRepository.countByCurrentPhase("CLOSING");
+            } catch (Exception e) {
+                logger.warn("Error getting phase counts, using defaults: {}", e.getMessage());
+            }
             
             statistics.put("prepareData", prepareDataCount != null ? prepareDataCount : 0L);
             statistics.put("creation", creationCount != null ? creationCount : 0L);
@@ -53,52 +64,80 @@ public class MigrationStatisticsService {
             statistics.put("comment", commentCount != null ? commentCount : 0L);
             statistics.put("closing", closingCount != null ? closingCount : 0L);
             
-            // Overall status counts
-            Long completedCount = migrationRepository.countByOverallStatus("COMPLETED");
-            Long failedCount = migrationRepository.countByOverallStatus("FAILED");
-            Long inProgressCount = migrationRepository.countByOverallStatus("IN_PROGRESS");
+            // Overall status counts - use safe defaults
+            Long completedCount = 0L;
+            Long failedCount = 0L;
+            Long inProgressCount = 0L;
+            
+            try {
+                completedCount = migrationRepository.countByOverallStatus("COMPLETED");
+                failedCount = migrationRepository.countByOverallStatus("FAILED");
+                inProgressCount = migrationRepository.countByOverallStatus("IN_PROGRESS");
+            } catch (Exception e) {
+                logger.warn("Error getting overall status counts, using defaults: {}", e.getMessage());
+            }
             
             statistics.put("completed", completedCount != null ? completedCount : 0L);
             statistics.put("failed", failedCount != null ? failedCount : 0L);
             statistics.put("inProgress", inProgressCount != null ? inProgressCount : 0L);
             
-            // Assignment statistics
-            Object[] assignmentStats = transactionRepository.getAssignmentStatistics();
-            if (assignmentStats != null && assignmentStats.length >= 4) {
-                Map<String, Object> assignmentStatistics = new HashMap<>();
-                assignmentStatistics.put("pending", assignmentStats[0] != null ? ((Number) assignmentStats[0]).longValue() : 0L);
-                assignmentStatistics.put("success", assignmentStats[1] != null ? ((Number) assignmentStats[1]).longValue() : 0L);
-                assignmentStatistics.put("failed", assignmentStats[2] != null ? ((Number) assignmentStats[2]).longValue() : 0L);
-                assignmentStatistics.put("total", assignmentStats[3] != null ? ((Number) assignmentStats[3]).longValue() : 0L);
-                statistics.put("assignmentDetails", assignmentStatistics);
+            // Assignment statistics - handle potential ambiguity
+            try {
+                Object[] assignmentStats = transactionRepository.getAssignmentStatistics();
+                if (assignmentStats != null && assignmentStats.length >= 4) {
+                    Map<String, Object> assignmentStatistics = new HashMap<>();
+                    assignmentStatistics.put("pending", assignmentStats[0] != null ? ((Number) assignmentStats[0]).longValue() : 0L);
+                    assignmentStatistics.put("success", assignmentStats[1] != null ? ((Number) assignmentStats[1]).longValue() : 0L);
+                    assignmentStatistics.put("failed", assignmentStats[2] != null ? ((Number) assignmentStats[2]).longValue() : 0L);
+                    assignmentStatistics.put("total", assignmentStats[3] != null ? ((Number) assignmentStats[3]).longValue() : 0L);
+                    statistics.put("assignmentDetails", assignmentStatistics);
+                }
+            } catch (Exception e) {
+                logger.warn("Error getting assignment statistics: {}", e.getMessage());
             }
             
-            // Business log statistics
-            Object[] businessLogStats = transactionRepository.getBusinessLogStatistics();
-            if (businessLogStats != null && businessLogStats.length >= 4) {
-                Map<String, Object> businessLogStatistics = new HashMap<>();
-                businessLogStatistics.put("pending", businessLogStats[0] != null ? ((Number) businessLogStats[0]).longValue() : 0L);
-                businessLogStatistics.put("success", businessLogStats[1] != null ? ((Number) businessLogStats[1]).longValue() : 0L);
-                businessLogStatistics.put("failed", businessLogStats[2] != null ? ((Number) businessLogStats[2]).longValue() : 0L);
-                businessLogStatistics.put("total", businessLogStats[3] != null ? ((Number) businessLogStats[3]).longValue() : 0L);
-                statistics.put("businessLogDetails", businessLogStatistics);
+            // Business log statistics - handle potential ambiguity
+            try {
+                Object[] businessLogStats = transactionRepository.getBusinessLogStatistics();
+                if (businessLogStats != null && businessLogStats.length >= 4) {
+                    Map<String, Object> businessLogStatistics = new HashMap<>();
+                    businessLogStatistics.put("pending", businessLogStats[0] != null ? ((Number) businessLogStats[0]).longValue() : 0L);
+                    businessLogStatistics.put("success", businessLogStats[1] != null ? ((Number) businessLogStats[1]).longValue() : 0L);
+                    businessLogStatistics.put("failed", businessLogStats[2] != null ? ((Number) businessLogStats[2]).longValue() : 0L);
+                    businessLogStatistics.put("total", businessLogStats[3] != null ? ((Number) businessLogStats[3]).longValue() : 0L);
+                    statistics.put("businessLogDetails", businessLogStatistics);
+                }
+            } catch (Exception e) {
+                logger.warn("Error getting business log statistics: {}", e.getMessage());
             }
             
-            // Comment statistics
-            Object[] commentStats = commentRepository.getCommentStatistics();
-            if (commentStats != null && commentStats.length >= 4) {
-                Map<String, Object> commentStatistics = new HashMap<>();
-                commentStatistics.put("pending", commentStats[0] != null ? ((Number) commentStats[0]).longValue() : 0L);
-                commentStatistics.put("success", commentStats[1] != null ? ((Number) commentStats[1]).longValue() : 0L);
-                commentStatistics.put("failed", commentStats[2] != null ? ((Number) commentStats[2]).longValue() : 0L);
-                commentStatistics.put("total", commentStats[3] != null ? ((Number) commentStats[3]).longValue() : 0L);
-                statistics.put("commentDetails", commentStatistics);
+            // Comment statistics - handle potential ambiguity
+            try {
+                Object[] commentStats = commentRepository.getCommentStatistics();
+                if (commentStats != null && commentStats.length >= 4) {
+                    Map<String, Object> commentStatistics = new HashMap<>();
+                    commentStatistics.put("pending", commentStats[0] != null ? ((Number) commentStats[0]).longValue() : 0L);
+                    commentStatistics.put("success", commentStats[1] != null ? ((Number) commentStats[1]).longValue() : 0L);
+                    commentStatistics.put("failed", commentStats[2] != null ? ((Number) commentStats[2]).longValue() : 0L);
+                    commentStatistics.put("total", commentStats[3] != null ? ((Number) commentStats[3]).longValue() : 0L);
+                    statistics.put("commentDetails", commentStatistics);
+                }
+            } catch (Exception e) {
+                logger.warn("Error getting comment statistics: {}", e.getMessage());
             }
             
-            // Closing statistics
-            Long needToCloseCount = migrationRepository.countByIsNeedToClose(true);
-            Long closingCompletedCount = migrationRepository.countByClosingStatus("COMPLETED");
-            Long closingFailedCount = migrationRepository.countByClosingStatus("FAILED");
+            // Closing statistics - use safe defaults
+            Long needToCloseCount = 0L;
+            Long closingCompletedCount = 0L;
+            Long closingFailedCount = 0L;
+            
+            try {
+                needToCloseCount = migrationRepository.countByIsNeedToClose(true);
+                closingCompletedCount = migrationRepository.countByClosingStatus("COMPLETED");
+                closingFailedCount = migrationRepository.countByClosingStatus("FAILED");
+            } catch (Exception e) {
+                logger.warn("Error getting closing statistics, using defaults: {}", e.getMessage());
+            }
             
             statistics.put("needToCloseCount", needToCloseCount != null ? needToCloseCount : 0L);
             statistics.put("closingCompleted", closingCompletedCount != null ? closingCompletedCount : 0L);
