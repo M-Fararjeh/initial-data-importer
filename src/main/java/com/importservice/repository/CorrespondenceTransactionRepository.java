@@ -69,7 +69,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
-                   "AND (:status = 'all' OR ct.migrate_status = :status) " +
+                   "AND (:status IS NULL OR :status = 'all' OR ct.migrate_status = :status) " +
                    "AND (:search = '' OR :search IS NULL OR " +
                    "     ct.guid LIKE CONCAT('%', :search, '%') OR " +
                    "     ct.doc_guid LIKE CONCAT('%', :search, '%') OR " +
@@ -93,7 +93,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN incoming_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 2 " +
-                   "AND (:status = 'all' OR ct.migrate_status = :status) " +
+                   "AND (:status IS NULL OR :status = 'all' OR ct.migrate_status = :status) " +
                    "AND (:search = '' OR :search IS NULL OR " +
                    "     ct.guid LIKE CONCAT('%', :search, '%') OR " +
                    "     ct.doc_guid LIKE CONCAT('%', :search, '%') OR " +
@@ -332,7 +332,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN outgoing_correspondence_migrations ocm ON ct.doc_guid = ocm.correspondence_guid " +
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
-                   "AND (:status IS NULL OR ct.migrate_status = :status) " +
+                   "AND (:status IS NULL OR :status = 'all' OR ct.migrate_status = :status) " +
                    "AND (:search IS NULL OR :search = '' OR " +
                    "     LOWER(COALESCE(ct.guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(ct.doc_guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
@@ -357,7 +357,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
                    "LEFT JOIN outgoing_correspondence_migrations ocm ON ct.doc_guid = ocm.correspondence_guid " +
                    "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
-                   "AND (:status IS NULL OR ct.migrate_status = :status) " +
+                   "AND (:status IS NULL OR :status = 'all' OR ct.migrate_status = :status) " +
                    "AND (:search IS NULL OR :search = '' OR " +
                    "     LOWER(COALESCE(ct.guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
                    "     LOWER(COALESCE(ct.doc_guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
