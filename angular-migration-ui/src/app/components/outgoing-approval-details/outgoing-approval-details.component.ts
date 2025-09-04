@@ -61,15 +61,24 @@ export class OutgoingApprovalDetailsComponent implements OnInit, OnDestroy {
     console.log('Loading outgoing approval phase migrations...');
     this.isLoading = true;
     
-    // Mock data for now - implement actual API call when backend is ready
-    setTimeout(() => {
-      this.approvals = [];
-      this.filteredApprovals = this.approvals;
-      this.totalElements = 0;
-      this.totalPages = 1;
-      this.clearSelection();
-      this.isLoading = false;
-    }, 1000);
+    this.migrationService.getOutgoingApprovalMigrations(this.currentPage - 1, this.pageSize, this.statusFilter, this.stepFilter, this.searchTerm)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          console.log('Outgoing approval migrations loaded:', response);
+          this.approvals = response.content || [];
+          this.totalElements = response.totalElements || 0;
+          this.totalPages = response.totalPages || 1;
+          
+          this.filteredApprovals = this.approvals;
+          this.clearSelection();
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading outgoing approval migrations:', error);
+          this.isLoading = false;
+        }
+      });
   }
   
   applyFilters(): void {

@@ -142,18 +142,17 @@ public class OutgoingApprovalPhaseService {
     private boolean processApprovalForCorrespondence(String correspondenceGuid) {
         try {
             Optional<OutgoingCorrespondenceMigration> migrationOpt = 
-                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
-            
-            if (!migrationOpt.isPresent()) {
-                logger.error("Outgoing migration record not found: {}", correspondenceGuid);
+            Page<Object[]> approvalPage;
+            if ((status != null && !"all".equals(status)) || 
+                (step != null && !"all".equals(step)) || 
                 return false;
             }
             
-            OutgoingCorrespondenceMigration migration = migrationOpt.get();
+                String stepParam = "all".equals(step) ? null : step;
             boolean success = processApproval(migration);
             
-            if (success) {
-                updateApprovalSuccess(migration);
+                approvalPage = migrationRepository.findOutgoingApprovalMigrationsWithSearchAndPagination(
+                    statusParam, stepParam, searchParam, pageable);
             } else {
                 updateApprovalError(migration, "Approval process failed");
             }
@@ -203,37 +202,34 @@ public class OutgoingApprovalPhaseService {
                 
                 updateApprovalStep(migration, "REGISTER_WITH_REFERENCE");
                 migrationRepository.save(migration); // Save progress
-            }
+                approvalPage = migrationRepository.findOutgoingApprovalMigrationsWithPagination(pageable);
             
             // Step 2: Register with reference
-            if ("REGISTER_WITH_REFERENCE".equals(migration.getApprovalStep())) {
-                logger.info("Approval Step 2: Registering with reference: {}", correspondenceGuid);
-                Map<String, Object> outCorrespondenceContext = buildOutgoingCorrespondenceContext(correspondence);
-                boolean registerSuccess = destinationService.registerOutgoingWithReference(documentId, asUser, outCorrespondenceContext);
-                if (!registerSuccess) {
-                    logger.error("Approval Step 2 failed: Failed to register outgoing correspondence with reference: {}", correspondenceGuid);
-                    return false;
-                }
-                
-                updateApprovalStep(migration, "SEND_CORRESPONDENCE");
-                migrationRepository.save(migration); // Save progress
-            }
-            
-            // Step 3: Send correspondence
-            if ("SEND_CORRESPONDENCE".equals(migration.getApprovalStep())) {
-                logger.info("Approval Step 3: Sending correspondence: {}", correspondenceGuid);
-                boolean sendSuccess = destinationService.sendOutgoingCorrespondence(documentId, asUser);
-                if (!sendSuccess) {
+            List<Map<String, Object>> approvals = new ArrayList<>();
+            for (Object[] row : approvalPage.getContent()) {
+                Map<String, Object> approval = new HashMap<>();
+                approval.put("id", row[0] != null ? ((Number) row[0]).longValue() : null);
+                approval.put("correspondenceGuid", row[1]);
+                approval.put("createdDocumentId", row[2]);
+                approval.put("approvalStatus", row[3]);
+                approval.put("approvalStep", row[4]);
+                approval.put("approvalError", row[5]);
+                approval.put("retryCount", row[6] != null ? ((Number) row[6]).intValue() : 0);
+                approval.put("lastModifiedDate", row[7] != null ? ((Timestamp) row[7]).toLocalDateTime() : null);
+                approval.put("correspondenceSubject", row[8]);
+                approval.put("correspondenceReferenceNo", row[9]);
+                approval.put("creationUserName", row[10]);
+                approvals.add(approval);
                     logger.error("Approval Step 3 failed: Failed to send outgoing correspondence: {}", correspondenceGuid);
                     return false;
                 }
-                
-                updateApprovalStep(migration, "COMPLETED");
-                migrationRepository.save(migration); // Save final progress
-                logger.info("Successfully completed approval for outgoing correspondence: {}", correspondenceGuid);
-                return true;
-            }
-            
+            result.put("content", approvals);
+            result.put("totalElements", approvalPage.getTotalElements());
+            result.put("totalPages", approvalPage.getTotalPages());
+            result.put("currentPage", approvalPage.getNumber());
+            result.put("pageSize", approvalPage.getSize());
+            result.put("hasNext", approvalPage.hasNext());
+            result.put("hasPrevious", approvalPage.hasPrevious());
             logger.warn("Approval process reached end without completion for outgoing correspondence: {}", correspondenceGuid);
             return false;
             
