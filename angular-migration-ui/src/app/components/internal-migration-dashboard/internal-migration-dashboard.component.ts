@@ -218,9 +218,16 @@ export class InternalMigrationDashboardComponent implements OnInit, OnDestroy {
   }
 
   private startAutoRefresh(): void {
+    this.refreshSubscription = interval(this.REFRESH_INTERVAL).subscribe({
+      next: () => {
+        if (!this.isLoading) {
+          this.loadStatistics();
+        }
+      },
       error: (error: any) => {
-      if (!this.isLoading) {
-        this.loadStatistics();
+        if (!this.isLoading) {
+          this.loadStatistics();
+        }
       }
     });
   }
