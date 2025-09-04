@@ -48,7 +48,7 @@ export interface OutgoingCreationMigration {
 })
 export class OutgoingMigrationService {
   
-  private baseUrl = `${environment.apiBaseUrl}/data-import/api/outgoing-migration`;
+  private baseUrl = `${environment.apiBaseUrl}/api/outgoing-migration`;
   
   private statisticsSubject = new BehaviorSubject<MigrationStatistics | null>(null);
   public statistics$ = this.statisticsSubject.asObservable();

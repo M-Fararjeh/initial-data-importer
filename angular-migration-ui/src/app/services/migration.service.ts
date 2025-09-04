@@ -48,7 +48,7 @@ export interface CreationMigration {
 })
 export class MigrationService {
   
-  private baseUrl = `${environment.apiBaseUrl}/data-import/api/incoming-migration`;
+  private baseUrl = `${environment.apiBaseUrl}/api/incoming-migration`;
   
   private statisticsSubject = new BehaviorSubject<MigrationStatistics | null>(null);
   public statistics$ = this.statisticsSubject.asObservable();
