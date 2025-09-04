@@ -54,6 +54,12 @@ public class InternalCorrespondenceMigrationService {
     @Autowired
     private MigrationPhaseService phaseService;
     
+    @Autowired
+    private com.importservice.repository.CorrespondenceTransactionRepository transactionRepository;
+    
+    @Autowired
+    private com.importservice.repository.InternalCorrespondenceMigrationRepository migrationRepository;
+    
     // Phase 1: Prepare Data
     public ImportResponseDto prepareData() {
         logger.info("Delegating to InternalPrepareDataService");
@@ -165,23 +171,121 @@ public class InternalCorrespondenceMigrationService {
     @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getInternalMigrationStatistics() {
         try {
-            // This would need to be implemented to get internal-specific statistics
-            // For now, return basic structure
-            Map<String, Object> statistics = new java.util.HashMap<>();
-            statistics.put("prepareData", 0L);
-            statistics.put("creation", 0L);
-            statistics.put("assignment", 0L);
-            statistics.put("approval", 0L);
-            statistics.put("businessLog", 0L);
-            statistics.put("closing", 0L);
-            statistics.put("completed", 0L);
-            statistics.put("failed", 0L);
-            statistics.put("inProgress", 0L);
+            Map<String, Object> statistics = new HashMap<>();
+            
+            // Phase-specific counts - use safe defaults
+            Long prepareDataCount = 0L;
+            Long creationCount = 0L;
+            Long assignmentCount = 0L;
+            Long approvalCount = 0L;
+            Long businessLogCount = 0L;
+            Long closingCount = 0L;
+            
+            try {
+                prepareDataCount = migrationRepository.countByCurrentPhase("PREPARE_DATA");
+                creationCount = migrationRepository.countByCurrentPhase("CREATION");
+                assignmentCount = migrationRepository.countByCurrentPhase("ASSIGNMENT");
+                approvalCount = migrationRepository.countByCurrentPhase("APPROVAL");
+                businessLogCount = migrationRepository.countByCurrentPhase("BUSINESS_LOG");
+                closingCount = migrationRepository.countByCurrentPhase("CLOSING");
+            } catch (Exception e) {
+                logger.warn("Error getting internal phase counts, using defaults: {}", e.getMessage());
+            }
+            
+            statistics.put("prepareData", prepareDataCount != null ? prepareDataCount : 0L);
+            statistics.put("creation", creationCount != null ? creationCount : 0L);
+            statistics.put("assignment", assignmentCount != null ? assignmentCount : 0L);
+            statistics.put("approval", approvalCount != null ? approvalCount : 0L);
+            statistics.put("businessLog", businessLogCount != null ? businessLogCount : 0L);
+            statistics.put("closing", closingCount != null ? closingCount : 0L);
+            
+            // Overall status counts - use safe defaults
+            Long completedCount = 0L;
+            Long failedCount = 0L;
+            Long inProgressCount = 0L;
+            
+            try {
+                completedCount = migrationRepository.countByOverallStatus("COMPLETED");
+                failedCount = migrationRepository.countByOverallStatus("FAILED");
+                inProgressCount = migrationRepository.countByOverallStatus("IN_PROGRESS");
+            } catch (Exception e) {
+                logger.warn("Error getting internal overall status counts, using defaults: {}", e.getMessage());
+            }
+            
+            statistics.put("completed", completedCount != null ? completedCount : 0L);
+            statistics.put("failed", failedCount != null ? failedCount : 0L);
+            statistics.put("inProgress", inProgressCount != null ? inProgressCount : 0L);
+            
+            // Internal assignment statistics - handle potential ambiguity
+            try {
+                Object[] assignmentStats = transactionRepository.getInternalAssignmentStatistics();
+                if (assignmentStats != null && assignmentStats.length >= 4) {
+                    Map<String, Object> assignmentStatistics = new HashMap<>();
+                    assignmentStatistics.put("pending", assignmentStats[0] != null ? ((Number) assignmentStats[0]).longValue() : 0L);
+                    assignmentStatistics.put("success", assignmentStats[1] != null ? ((Number) assignmentStats[1]).longValue() : 0L);
+                    assignmentStatistics.put("failed", assignmentStats[2] != null ? ((Number) assignmentStats[2]).longValue() : 0L);
+                    assignmentStatistics.put("total", assignmentStats[3] != null ? ((Number) assignmentStats[3]).longValue() : 0L);
+                    statistics.put("assignmentDetails", assignmentStatistics);
+                }
+            } catch (Exception e) {
+                logger.warn("Error getting internal assignment statistics: {}", e.getMessage());
+            }
+            
+            // Internal business log statistics - handle potential ambiguity
+            try {
+                Object[] businessLogStats = transactionRepository.getInternalBusinessLogStatistics();
+                if (businessLogStats != null && businessLogStats.length >= 4) {
+                    Map<String, Object> businessLogStatistics = new HashMap<>();
+                    businessLogStatistics.put("pending", businessLogStats[0] != null ? ((Number) businessLogStats[0]).longValue() : 0L);
+                    businessLogStatistics.put("success", businessLogStats[1] != null ? ((Number) businessLogStats[1]).longValue() : 0L);
+                    businessLogStatistics.put("failed", businessLogStats[2] != null ? ((Number) businessLogStats[2]).longValue() : 0L);
+                    businessLogStatistics.put("total", businessLogStats[3] != null ? ((Number) businessLogStats[3]).longValue() : 0L);
+                    statistics.put("businessLogDetails", businessLogStatistics);
+                }
+            } catch (Exception e) {
+                logger.warn("Error getting internal business log statistics: {}", e.getMessage());
+            }
+            
+            // Internal closing statistics - use safe defaults
+            Long needToCloseCount = 0L;
+            Long closingCompletedCount = 0L;
+            Long closingFailedCount = 0L;
+            
+            try {
+                needToCloseCount = migrationRepository.countByIsNeedToClose(true);
+                closingCompletedCount = migrationRepository.countByClosingStatus("COMPLETED");
+                closingFailedCount = migrationRepository.countByClosingStatus("FAILED");
+            } catch (Exception e) {
+                logger.warn("Error getting internal closing statistics, using defaults: {}", e.getMessage());
+            }
+            
+            statistics.put("needToCloseCount", needToCloseCount != null ? needToCloseCount : 0L);
+            statistics.put("closingCompleted", closingCompletedCount != null ? closingCompletedCount : 0L);
+            statistics.put("closingFailed", closingFailedCount != null ? closingFailedCount : 0L);
+            
+            logger.debug("Generated internal migration statistics: {}", statistics);
             
             return statistics;
         } catch (Exception e) {
             logger.error("Error getting internal migration statistics", e);
-            return new java.util.HashMap<>();
+            Map<String, Object> errorStats = new HashMap<>();
+            errorStats.put("error", "Failed to get internal statistics: " + e.getMessage());
+            
+            // Add default values for all expected fields
+            errorStats.put("prepareData", 0L);
+            errorStats.put("creation", 0L);
+            errorStats.put("assignment", 0L);
+            errorStats.put("approval", 0L);
+            errorStats.put("businessLog", 0L);
+            errorStats.put("closing", 0L);
+            errorStats.put("completed", 0L);
+            errorStats.put("failed", 0L);
+            errorStats.put("inProgress", 0L);
+            errorStats.put("needToCloseCount", 0L);
+            errorStats.put("closingCompleted", 0L);
+            errorStats.put("closingFailed", 0L);
+            
+            return errorStats;
         }
     }
     

@@ -706,4 +706,34 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
         @Param("status") String status,
         @Param("search") String search,
         Pageable pageable);
+    
+    /**
+     * Get INTERNAL assignment statistics efficiently
+     * Filters for INTERNAL correspondences (correspondence_type_id = 3)
+     */
+    @Query(value = "SELECT " +
+                   "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
+                   "COUNT(*) as total " +
+                   "FROM correspondence_transactions ct " +
+                   "INNER JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 3",
+           nativeQuery = true)
+    Object[] getInternalAssignmentStatistics();
+    
+    /**
+     * Get INTERNAL business log statistics efficiently
+     * Filters for INTERNAL correspondences (correspondence_type_id = 3)
+     */
+    @Query(value = "SELECT " +
+                   "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
+                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
+                   "COUNT(*) as total " +
+                   "FROM correspondence_transactions ct " +
+                   "INNER JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "WHERE ct.action_id != 12 AND c.correspondence_type_id = 3",
+           nativeQuery = true)
+    Object[] getInternalBusinessLogStatistics();
 }
