@@ -73,6 +73,9 @@ public class OutgoingDestinationSystemService {
     @Autowired
     private KeycloakTokenService keycloakTokenService;
     
+    @Autowired
+    private com.importservice.repository.CorrespondenceSendToRepository correspondenceSendToRepository;
+    
     /**
      * Gets the base URL from the destination API URL
      */
@@ -372,8 +375,11 @@ public class OutgoingDestinationSystemService {
         outCorrespondence.put("corr:from", fromDepartment);
         outCorrespondence.put("corr:to", "");
         outCorrespondence.put("corr:fromAgency", "ITBA");
-        // TODO use to agency GUID
-        outCorrespondence.put("corr:toAgency", AgencyMappingUtils.mapAgencyGuidToCode(correspondence.getComingFromGuid()));
+        
+        // Get toAgency from correspondence_send_tos table
+        String toAgency = getToAgencyFromSendTos(correspondence.getGuid());
+        outCorrespondence.put("corr:toAgency", toAgency);
+        
         outCorrespondence.put("out_corr:multiRecivers", Arrays.asList());
         
         // Add file content if batch exists
@@ -925,5 +931,51 @@ public class OutgoingDestinationSystemService {
         
         headers.set("Connection", "keep-alive");
         return headers;
+    }
+    
+    /**
+     * Gets the toAgency from correspondence_send_tos table
+     * 
+     * @param correspondenceGuid The correspondence GUID to look up
+     * @return Agency code for the destination agency
+     */
+    private String getToAgencyFromSendTos(String correspondenceGuid) {
+        try {
+            logger.debug("Looking up toAgency for correspondence: {}", correspondenceGuid);
+            
+            // Get send_tos records for this correspondence
+            List<com.importservice.entity.CorrespondenceSendTo> sendTos = 
+                correspondenceSendToRepository.findByDocGuid(correspondenceGuid);
+            
+            if (sendTos == null || sendTos.isEmpty()) {
+                logger.debug("No send_tos found for correspondence: {}, using default agency", correspondenceGuid);
+                return "001"; // Default agency code
+            }
+            
+            // Get the first send_to record (you might want to add business logic here for multiple recipients)
+            com.importservice.entity.CorrespondenceSendTo firstSendTo = sendTos.get(0);
+            String sendToGuid = firstSendTo.getSendToGuid();
+            
+            if (sendToGuid == null || sendToGuid.trim().isEmpty()) {
+                logger.debug("Empty sendToGuid for correspondence: {}, using default agency", correspondenceGuid);
+                return "001"; // Default agency code
+            }
+            
+            // Map the send_to_guid to agency code using AgencyMappingUtils
+            String agencyCode = AgencyMappingUtils.mapAgencyGuidToCode(sendToGuid);
+            
+            if (agencyCode == null) {
+                logger.debug("No agency mapping found for sendToGuid: {}, using default agency", sendToGuid);
+                return "001"; // Default agency code
+            }
+            
+            logger.info("Found toAgency '{}' for correspondence '{}' from sendToGuid '{}'", 
+                       agencyCode, correspondenceGuid, sendToGuid);
+            return agencyCode;
+            
+        } catch (Exception e) {
+            logger.error("Error getting toAgency from send_tos for correspondence: {}", correspondenceGuid, e);
+            return "001"; // Default fallback
+        }
     }
 }
