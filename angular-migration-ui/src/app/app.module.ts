@@ -78,7 +78,8 @@ const routes: Routes = [
     InternalMigrationDashboardComponent,
     InternalCreationDetailsComponent,
     InternalApprovalDetailsComponent,
-    InternalAssignmentDetailsComponent
+    InternalAssignmentDetailsComponent,
+    InternalBusinessLogDetailsComponent
   ],
   imports: [
     BrowserModule,

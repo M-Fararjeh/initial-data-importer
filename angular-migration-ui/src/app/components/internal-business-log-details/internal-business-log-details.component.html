@@ -1,0 +1,335 @@
+<div class="space-y-6">
+  <!-- Header Section -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h2 class="text-2xl font-semibold text-gray-900">Internal Phase 5: Business Log Details</h2>
+        <p class="text-sm text-gray-600 mt-1">Monitor and manage internal correspondence business log process</p>
+      </div>
+      <div class="flex space-x-3">
+        <button 
+          (click)="loadBusinessLogMigrations()"
+          class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
+          [disabled]="isLoading">
+          <span class="mr-2">🔄</span>
+          Refresh
+        </button>
+        <button 
+          (click)="executeBusinessLogForSelected()"
+          [disabled]="selectedBusinessLogs.length === 0 || isLoading"
+          class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+          <span class="mr-2">▶️</span>
+          Execute Selected ({{ selectedBusinessLogs.length }})
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="bg-white shadow rounded-lg p-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <!-- Search -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Search 
+          <span class="text-xs text-gray-500">(Transaction UUID, Correspondence UUID, Created Doc UUID, Event Name, User, Notes)</span>
+        </label>
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm"
+          (input)="onSearchChange()"
+          placeholder="Search UUIDs, event name, user..."
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500">
+      </div>
+      
+      <!-- Status Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Migration Status</label>
+        <select 
+          [(ngModel)]="statusFilter"
+          (change)="onStatusFilterChange()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-purple-500 focus:border-purple-500">
+          <option value="all">All Statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="SUCCESS">Success</option>
+          <option value="FAILED">Failed</option>
+        </select>
+      </div>
+      
+      <!-- Clear Filters -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Actions</label>
+        <button 
+          (click)="clearFilters()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200">
+          Clear Filters
+        </button>
+      </div>
+      
+      <!-- Results Count -->
+      <div class="flex items-end">
+        <div class="text-sm text-gray-600">
+          Showing {{ filteredBusinessLogs.length }} of {{ totalElements | number }} records
+          <div class="text-xs text-gray-500 mt-1">
+            Page {{ currentPage }} of {{ totalPages }}
+          </div>
+          <div class="text-xs text-gray-400 mt-1" *ngIf="searchTerm || statusFilter !== 'all'">
+            Filtered results
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="bg-white shadow rounded-lg overflow-hidden">
+    <!-- Table Header with Selection -->
+    <div class="px-6 py-4 border-b border-gray-200 bg-purple-50">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <input 
+            type="checkbox" 
+            [checked]="allSelected"
+            (change)="toggleAllSelection()"
+            class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+          <span class="text-sm font-medium text-gray-900">
+            Select All on Page ({{ filteredBusinessLogs.length }})
+          </span>
+        </div>
+        <div class="text-sm text-gray-600">
+          {{ selectedBusinessLogs.length }} selected
+        </div>
+      </div>
+    </div>
+    
+    <!-- Table Content -->
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-purple-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Selection
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Correspondence
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Transaction UUID
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Created Doc UUID
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Event Details
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Status
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Action Date
+            </th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <ng-container *ngFor="let businessLog of filteredBusinessLogs; trackBy: trackByGuid">
+            <tr class="hover:bg-gray-50 transition-colors duration-150">
+              
+              <!-- Selection Checkbox -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <input 
+                  type="checkbox" 
+                  [checked]="businessLog.selected"
+                  (change)="toggleSelection(businessLog)"
+                  class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded">
+              </td>
+              
+              <!-- Correspondence Info -->
+              <td class="px-6 py-4">
+                <div class="text-sm font-medium text-gray-900">
+                  {{ truncateText(businessLog.correspondenceGuid, 30) }}
+                </div>
+                <div class="text-sm text-gray-500" *ngIf="businessLog.correspondenceSubject">
+                  {{ truncateText(businessLog.correspondenceSubject, 40) }}
+                </div>
+                <div class="text-xs text-gray-400" *ngIf="businessLog.correspondenceReferenceNo">
+                  Ref: {{ businessLog.correspondenceReferenceNo }}
+                </div>
+              </td>
+              
+              <!-- Transaction UUID -->
+              <td class="px-6 py-4">
+                <div class="text-sm font-mono text-gray-900">
+                  {{ truncateText(businessLog.transactionGuid, 25) }}
+                </div>
+                <div class="text-xs text-gray-500">
+                  Action ID: {{ businessLog.actionId }}
+                </div>
+              </td>
+              
+              <!-- Created Document UUID -->
+              <td class="px-6 py-4">
+                <div class="text-sm font-mono text-gray-900" *ngIf="businessLog.createdDocumentId; else noDocId">
+                  {{ truncateText(businessLog.createdDocumentId, 25) }}
+                </div>
+                <ng-template #noDocId>
+                  <div class="text-sm text-gray-400 italic">
+                    Not created yet
+                  </div>
+                </ng-template>
+                <div class="text-xs text-gray-500">
+                  Destination Doc ID
+                </div>
+              </td>
+              
+              <!-- Event Details -->
+              <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">
+                  <div class="flex items-center space-x-2 mb-1">
+                    <span class="event-type-badge" [ngClass]="getEventTypeClass(businessLog.actionEnglishName)">
+                      {{ businessLog.actionEnglishName || 'Unknown Event' }}
+                    </span>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <span class="font-medium">User:</span>
+                    <span>{{ businessLog.fromUserName || '-' }}</span>
+                  </div>
+                  <div class="flex items-center space-x-2 mt-1" *ngIf="businessLog.actionLocalName">
+                    <span class="font-medium">Local:</span>
+                    <span class="text-xs">{{ truncateText(businessLog.actionLocalName, 30) }}</span>
+                  </div>
+                  <div class="flex items-center space-x-2 mt-1">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                      🔄 Internal Business Log
+                    </span>
+                  </div>
+                </div>
+                <div class="text-xs text-gray-500 mt-1" *ngIf="businessLog.notes">
+                  {{ truncateText(businessLog.notes, 60) }}
+                </div>
+              </td>
+              
+              <!-- Status -->
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                      [ngClass]="getStatusClass(businessLog.migrateStatus)">
+                  <span class="mr-1">{{ getStatusIcon(businessLog.migrateStatus) }}</span>
+                  {{ businessLog.migrateStatus }}
+                </span>
+                <div class="text-xs text-gray-500 mt-1" *ngIf="businessLog.retryCount > 0">
+                  Retries: {{ businessLog.retryCount }}
+                </div>
+              </td>
+              
+              <!-- Action Date -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ formatDate(businessLog.actionDate) }}
+              </td>
+              
+              <!-- Actions -->
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div class="flex space-x-2">
+                  <button 
+                    (click)="executeBusinessLogForSingle(businessLog)"
+                    [disabled]="isLoading"
+                    class="text-purple-600 hover:text-purple-900 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Execute
+                  </button>
+                  <button 
+                    *ngIf="businessLog.migrateStatus === 'FAILED'"
+                    (click)="retryFailedBusinessLog(businessLog)"
+                    [disabled]="isLoading"
+                    class="text-red-600 hover:text-red-900 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Retry
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Empty State -->
+    <div *ngIf="totalElements === 0 && !isLoading" 
+         class="text-center py-12">
+      <div class="text-gray-500">
+        <span class="text-4xl mb-4 block">📊</span>
+        <h3 class="text-lg font-medium mb-2">No internal business log records found</h3>
+        <p class="text-sm">Try adjusting your filters or execute Internal Phase 4: Approval first.</p>
+      </div>
+    </div>
+    
+    <!-- Performance Info -->
+    <div *ngIf="totalElements > 0" class="px-6 py-3 bg-purple-50 border-t border-gray-200">
+      <div class="flex items-center justify-between text-sm text-gray-600">
+        <span>Total Records: {{ totalElements | number }}</span>
+        <span>Loaded: {{ businessLogs.length }} records</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="totalPages > 1" class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg shadow">
+    <div class="flex-1 flex justify-between sm:hidden">
+      <button 
+        (click)="goToPage(currentPage - 1)"
+        [disabled]="currentPage === 1"
+        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+        Previous
+      </button>
+      <button 
+        (click)="goToPage(currentPage + 1)"
+        [disabled]="currentPage === totalPages"
+        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+        Next
+      </button>
+    </div>
+    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+      <div>
+        <p class="text-sm text-gray-700">
+          Showing page <span class="font-medium">{{ currentPage }}</span> of 
+          <span class="font-medium">{{ totalPages }}</span>
+        </p>
+      </div>
+      <div>
+        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+          <button 
+            (click)="goToPage(currentPage - 1)"
+            [disabled]="currentPage === 1"
+            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            ‹
+          </button>
+          
+          <button 
+            *ngFor="let page of getPaginationPages()"
+            (click)="goToPage(page)"
+            [class]="page === currentPage ? 
+              'relative inline-flex items-center px-4 py-2 border border-purple-500 bg-purple-50 text-sm font-medium text-purple-600' :
+              'relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50'">
+            {{ page }}
+          </button>
+          
+          <button 
+            (click)="goToPage(currentPage + 1)"
+            [disabled]="currentPage === totalPages"
+            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            ›
+          </button>
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div *ngIf="isLoading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+      <div class="flex items-center space-x-3">
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+        <span class="text-gray-900 font-medium">Processing internal business logs...</span>
+      </div>
+    </div>
+  </div>
+</div>

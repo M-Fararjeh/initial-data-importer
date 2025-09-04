@@ -81,6 +81,7 @@ export interface InternalBusinessLogDetail {
   correspondenceSubject?: string;
   correspondenceReferenceNo?: string;
   createdDocumentId?: string;
+  selected?: boolean;
 }
 
 export interface InternalClosingDetail {
