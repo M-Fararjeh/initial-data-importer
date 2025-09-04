@@ -40,7 +40,7 @@ services:
     ports:
       - "4200:80"
     environment:
-      - API_BASE_URL=http://localhost:8080/data-import
+      - API_BASE_URL=http://app:8080/data-import
     depends_on:
       - app
     networks:

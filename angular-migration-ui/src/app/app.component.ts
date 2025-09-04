@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -54,5 +55,7 @@ export class AppComponent implements OnInit {
   
   ngOnInit(): void {
     console.log('AppComponent initialized');
+    console.log('Environment API Base URL:', (window as any)['env']?.['API_BASE_URL']);
+    console.log('Resolved API Base URL:', environment.apiBaseUrl);
   }
 }

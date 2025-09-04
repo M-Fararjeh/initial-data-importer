@@ -31,19 +31,22 @@ The application is built with a modular architecture consisting of:
 ### Using Docker Compose (Recommended)
 
 ```bash
-# Set environment variables (optional - defaults will be used if not set)
-export API_BASE_URL=http://localhost:8080/data-import
-
-# Start MySQL and the application
+# Quick start with defaults
 docker-compose up -d
 
+# Or set custom backend URL
+export API_BASE_URL=http://your-backend-host:8080/data-import
+docker-compose up -d
+
+# Access the application
+# Frontend: http://localhost:4200
+# Backend API: http://localhost:8080/data-import
+# Swagger UI: http://localhost:8080/data-import/swagger-ui.html
+
 # View logs
-docker-compose logs -f app
+docker-compose logs -f
 
 # Stop services
-docker-compose down
-
-# Stop and remove volumes (WARNING: This will delete all data)
 docker-compose down -v
 ```
 
