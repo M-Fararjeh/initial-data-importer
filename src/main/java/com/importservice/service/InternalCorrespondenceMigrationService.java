@@ -383,4 +383,27 @@ public class InternalCorrespondenceMigrationService {
                 return false;
         }
     }
+    
+    /**
+     * Counts internal correspondences that actually have assignment transactions
+     */
+    private Long countInternalCorrespondencesWithAssignments() {
+        try {
+            // Count internal correspondences (type 3) that have assignment transactions (action_id = 12)
+            List<com.importservice.entity.CorrespondenceTransaction> assignments = 
+                transactionRepository.findInternalAssignmentsNeedingProcessing();
+            
+            // Get unique correspondence GUIDs
+            Set<String> uniqueCorrespondenceGuids = assignments.stream()
+                .map(com.importservice.entity.CorrespondenceTransaction::getDocGuid)
+                .collect(java.util.stream.Collectors.toSet());
+            
+            long count = uniqueCorrespondenceGuids.size();
+            logger.debug("Found {} internal correspondences with assignment transactions", count);
+            return count;
+        } catch (Exception e) {
+            logger.error("Error counting internal correspondences with assignments", e);
+            return 0L;
+        }
+    }
 }

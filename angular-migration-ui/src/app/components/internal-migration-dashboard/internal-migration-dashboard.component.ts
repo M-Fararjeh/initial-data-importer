@@ -129,11 +129,15 @@ export class InternalMigrationDashboardComponent implements OnInit, OnDestroy {
           break;
         case 'assignment':
           phase.count = this.statistics.assignment;
+          // Assignment is optional - can execute if creation is done, but may be skipped
           phase.canExecute = this.statistics.creation > 0;
+          // Update description to indicate it's optional
+          phase.description = 'Create readonly assignments for internal correspondences (optional - skipped if no assignments exist)';
           break;
         case 'approval':
           phase.count = this.statistics.approval;
-          phase.canExecute = this.statistics.assignment > 0;
+          // Approval can execute after creation (assignment is optional)
+          phase.canExecute = this.statistics.creation > 0;
           break;
         case 'business-log':
           phase.count = this.statistics.businessLog;
