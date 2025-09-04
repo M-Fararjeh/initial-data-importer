@@ -219,7 +219,7 @@ export class InternalMigrationDashboardComponent implements OnInit, OnDestroy {
         if (!this.isLoading) {
           this.loadStatistics();
         }
-    });
+      }
     });
   }
 
