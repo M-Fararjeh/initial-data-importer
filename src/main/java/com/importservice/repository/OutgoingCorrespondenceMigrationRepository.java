@@ -51,52 +51,68 @@ public interface OutgoingCorrespondenceMigrationRepository extends JpaRepository
     List<OutgoingCorrespondenceMigration> findOutgoingAssignmentsNeedingProcessing();
     
     /**
-     * Optimized query for outgoing assignment migrations with pagination
-     * Gets migrations where creation is completed and approval is pending
+     * Optimized query for outgoing assignment transactions with pagination
+     * Gets actual assignment transactions for outgoing correspondences where creation is completed
      */
     @Query(value = "SELECT " +
-                   "ocm.id as id, " +
-                   "ocm.correspondence_guid as correspondenceGuid, " +
-                   "ocm.created_document_id as createdDocumentId, " +
-                   "ocm.creation_status as creationStatus, " +
-                   "ocm.approval_status as approvalStatus, " +
-                   "ocm.retry_count as retryCount, " +
-                   "ocm.last_modified_date as lastModifiedDate, " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.to_user_name as toUserName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.decision_guid as decisionGuid, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
                    "c.subject as correspondenceSubject, " +
                    "c.reference_no as correspondenceReferenceNo, " +
+                   "ocm.created_document_id as createdDocumentId, " +
                    "c.creation_user_name as creationUserName " +
-                   "FROM outgoing_correspondence_migrations ocm " +
-                   "LEFT JOIN correspondences c ON ocm.correspondence_guid = c.guid " +
-                   "WHERE ocm.creation_status = 'COMPLETED' AND ocm.approval_status = 'PENDING' " +
-                   "ORDER BY ocm.last_modified_date DESC",
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN outgoing_correspondence_migrations ocm ON ct.doc_guid = ocm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
+                   "AND ocm.creation_status = 'COMPLETED' AND ocm.assignment_status = 'PENDING' " +
+                   "ORDER BY ct.last_modified_date DESC",
            nativeQuery = true)
     Page<Object[]> findOutgoingAssignmentMigrationsWithPagination(Pageable pageable);
     
     /**
-     * Optimized query for outgoing assignment migrations with search and pagination
+     * Optimized query for outgoing assignment transactions with search and pagination
      */
     @Query(value = "SELECT " +
-                   "ocm.id as id, " +
-                   "ocm.correspondence_guid as correspondenceGuid, " +
-                   "ocm.created_document_id as createdDocumentId, " +
-                   "ocm.creation_status as creationStatus, " +
-                   "ocm.approval_status as approvalStatus, " +
-                   "ocm.retry_count as retryCount, " +
-                   "ocm.last_modified_date as lastModifiedDate, " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.to_user_name as toUserName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.decision_guid as decisionGuid, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
                    "c.subject as correspondenceSubject, " +
                    "c.reference_no as correspondenceReferenceNo, " +
+                   "ocm.created_document_id as createdDocumentId, " +
                    "c.creation_user_name as creationUserName " +
-                   "FROM outgoing_correspondence_migrations ocm " +
-                   "LEFT JOIN correspondences c ON ocm.correspondence_guid = c.guid " +
-                   "WHERE ocm.creation_status = 'COMPLETED' AND ocm.approval_status = 'PENDING' " +
-                   "AND (:status = 'all' OR ocm.approval_status = :status) " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN outgoing_correspondence_migrations ocm ON ct.doc_guid = ocm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
+                   "AND ocm.creation_status = 'COMPLETED' AND ocm.assignment_status = 'PENDING' " +
+                   "AND (:status = 'all' OR ct.migrate_status = :status) " +
                    "AND (:search = '' OR :search IS NULL OR " +
-                   "     ocm.correspondence_guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     ct.guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     ct.doc_guid LIKE CONCAT('%', :search, '%') OR " +
                    "     IFNULL(ocm.created_document_id, '') LIKE CONCAT('%', :search, '%') OR " +
                    "     IFNULL(c.subject, '') LIKE CONCAT('%', :search, '%') OR " +
                    "     IFNULL(c.reference_no, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.from_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.to_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.notes, '') LIKE CONCAT('%', :search, '%') OR " +
                    "     IFNULL(c.creation_user_name, '') LIKE CONCAT('%', :search, '%')) " +
-                   "ORDER BY ocm.last_modified_date DESC",
+                   "ORDER BY ct.last_modified_date DESC",
            nativeQuery = true)
     Page<Object[]> findOutgoingAssignmentMigrationsWithSearchAndPagination(
         @Param("status") String status,
@@ -104,17 +120,23 @@ public interface OutgoingCorrespondenceMigrationRepository extends JpaRepository
         Pageable pageable);
     
     /**
-     * Count outgoing assignment migrations with search filters
+     * Count outgoing assignment transactions with search filters
      */
     @Query(value = "SELECT COUNT(*) FROM outgoing_correspondence_migrations ocm " +
                    "LEFT JOIN correspondences c ON ocm.correspondence_guid = c.guid " +
-                   "WHERE ocm.creation_status = 'COMPLETED' AND ocm.approval_status = 'PENDING' " +
-                   "AND (:status = 'all' OR ocm.approval_status = :status) " +
+                   "LEFT JOIN correspondence_transactions ct ON ocm.correspondence_guid = ct.doc_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 1 " +
+                   "AND ocm.creation_status = 'COMPLETED' AND ocm.assignment_status = 'PENDING' " +
+                   "AND (:status = 'all' OR ct.migrate_status = :status) " +
                    "AND (:search = '' OR :search IS NULL OR " +
+                   "     ct.guid LIKE CONCAT('%', :search, '%') OR " +
                    "     ocm.correspondence_guid LIKE CONCAT('%', :search, '%') OR " +
                    "     IFNULL(ocm.created_document_id, '') LIKE CONCAT('%', :search, '%') OR " +
                    "     IFNULL(c.subject, '') LIKE CONCAT('%', :search, '%') OR " +
                    "     IFNULL(c.reference_no, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.from_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.to_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.notes, '') LIKE CONCAT('%', :search, '%') OR " +
                    "     IFNULL(c.creation_user_name, '') LIKE CONCAT('%', :search, '%'))",
            nativeQuery = true)
     Long countOutgoingAssignmentMigrationsWithSearch(

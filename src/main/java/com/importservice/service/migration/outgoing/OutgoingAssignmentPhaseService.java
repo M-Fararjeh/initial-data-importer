@@ -200,6 +200,11 @@ public class OutgoingAssignmentPhaseService {
                 checkAndUpdateAssignmentStatusForCorrespondence(transaction.getDocGuid());
             }
             
+            // Check if all transactions for this correspondence are migrated
+            if (success) {
+                checkAndUpdateAssignmentStatusForCorrespondence(transaction.getDocGuid());
+            }
+            
             return success;
         } catch (Exception e) {
             logger.error("Error processing outgoing assignment for: {}", transactionGuid, e);
@@ -251,6 +256,60 @@ public class OutgoingAssignmentPhaseService {
     }
     
     /**
+     * Checks if all assignment transactions for a correspondence are migrated
+     * and updates the assignment status in outgoing migration table
+     */
+    private void checkAndUpdateAssignmentStatusForCorrespondence(String correspondenceGuid) {
+        try {
+            logger.debug("Checking assignment completion status for outgoing correspondence: {}", correspondenceGuid);
+            
+            // Get all assignment transactions for this correspondence (action_id = 12)
+            List<CorrespondenceTransaction> assignmentTransactions = transactionRepository
+                .findByDocGuidAndActionId(correspondenceGuid, 12);
+            
+            if (assignmentTransactions.isEmpty()) {
+                logger.debug("No assignment transactions found for correspondence: {}", correspondenceGuid);
+                return;
+            }
+            
+            // Check if all assignment transactions are successfully migrated
+            boolean allTransactionsMigrated = assignmentTransactions.stream()
+                .allMatch(transaction -> "SUCCESS".equals(transaction.getMigrateStatus()));
+            
+            if (allTransactionsMigrated) {
+                logger.info("All assignment transactions migrated for correspondence: {}, updating assignment status", correspondenceGuid);
+                
+                // Update the assignment status in outgoing migration table
+                Optional<OutgoingCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                
+                if (migrationOpt.isPresent()) {
+                    OutgoingCorrespondenceMigration migration = migrationOpt.get();
+                    migration.setAssignmentStatus("COMPLETED");
+                    migration.setCurrentPhase("APPROVAL");
+                    migration.setNextPhase("BUSINESS_LOG");
+                    migration.setPhaseStatus("PENDING");
+                    migrationRepository.save(migration);
+                    
+                    logger.info("Updated assignment status to COMPLETED for outgoing correspondence: {}", correspondenceGuid);
+                } else {
+                    logger.warn("Outgoing migration record not found for correspondence: {}", correspondenceGuid);
+                }
+            } else {
+                logger.debug("Not all assignment transactions are migrated yet for correspondence: {}", correspondenceGuid);
+                
+                // Log the status of each transaction for debugging
+                for (CorrespondenceTransaction transaction : assignmentTransactions) {
+                    logger.debug("Transaction {} status: {}", transaction.getGuid(), transaction.getMigrateStatus());
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error checking assignment completion status for correspondence: {}", correspondenceGuid, e);
+        }
+    }
+    
+    /**
      * Gets outgoing assignment migrations with pagination and search
      */
     @Transactional(readOnly = true, timeout = 60)
@@ -258,7 +317,7 @@ public class OutgoingAssignmentPhaseService {
         try {
             Pageable pageable = PageRequest.of(page, size);
             
-            // Use outgoing migration-specific queries
+            // Use actual transaction queries for outgoing assignments
             Page<Object[]> assignmentPage;
             if ((status != null && !"all".equals(status)) || (search != null && !search.trim().isEmpty())) {
                 String statusParam = "all".equals(status) ? null : status;
@@ -268,29 +327,28 @@ public class OutgoingAssignmentPhaseService {
             } else {
                 assignmentPage = migrationRepository.findOutgoingAssignmentMigrationsWithPagination(pageable);
             }
+            
             List<Map<String, Object>> assignments = new ArrayList<>();
             for (Object[] row : assignmentPage.getContent()) {
                 Map<String, Object> assignment = new HashMap<>();
-                assignment.put("id", row[0] != null ? ((Number) row[0]).longValue() : null);
+                assignment.put("transactionGuid", row[0]); // ct.guid
                 assignment.put("correspondenceGuid", row[1]);
-                assignment.put("createdDocumentId", row[2]);
-                assignment.put("creationStatus", row[3]);
-                assignment.put("approvalStatus", row[4]);
-                assignment.put("retryCount", row[5] != null ? ((Number) row[5]).intValue() : 0);
-                assignment.put("lastModifiedDate", row[6] != null ? ((java.sql.Timestamp) row[6]).toLocalDateTime() : null);
-                assignment.put("correspondenceSubject", row[7]);
-                assignment.put("correspondenceReferenceNo", row[8]);
-                assignment.put("creationUserName", row[9]);
+                assignment.put("fromUserName", row[2]);
+                assignment.put("toUserName", row[3]);
+                assignment.put("actionDate", row[4] != null ? ((Timestamp) row[4]).toLocalDateTime() : null);
+                assignment.put("decisionGuid", row[5]);
+                assignment.put("notes", row[6]);
+                assignment.put("migrateStatus", row[7]);
+                assignment.put("retryCount", row[8] != null ? ((Number) row[8]).intValue() : 0);
+                assignment.put("lastModifiedDate", row[9] != null ? ((Timestamp) row[9]).toLocalDateTime() : null);
+                assignment.put("correspondenceSubject", row[10]);
+                assignment.put("correspondenceReferenceNo", row[11]);
+                assignment.put("createdDocumentId", row[12]);
+                assignment.put("creationUserName", row[13]);
                 
-                // Add placeholder fields for UI compatibility
-                assignment.put("transactionGuid", "N/A - Migration Based");
-                assignment.put("fromUserName", row[9]); // Use creation user name
-                assignment.put("toUserName", "Pending Assignment");
-                assignment.put("actionDate", row[6]); // Use last modified date
-                assignment.put("decisionGuid", "");
-                assignment.put("notes", "Outgoing assignment pending approval");
-                assignment.put("migrateStatus", row[4]); // Use approval status
-                assignment.put("departmentCode", "");
+                // Map department code from department GUID
+                String departmentCode = DepartmentUtils.getDepartmentCodeByOldGuid((String) row[5]); // decision_guid used as dept mapping
+                assignment.put("departmentCode", departmentCode != null ? departmentCode : "COF");
                 
                 assignments.add(assignment);
             }
