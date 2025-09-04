@@ -89,26 +89,26 @@
             Execute {{ phase.name }}
           </button>
           
+          <a 
+            *ngIf="phase.id === 'creation'"
+            routerLink="/internal-creation-details"
+            class="btn btn-outline-secondary">
+            <i class="fas fa-list"></i>
+            View Creation Details
+          </a>
+          
+          <a 
+            *ngIf="phase.id === 'approval'"
+            routerLink="/internal-approval-details"
+            class="btn btn-outline-secondary">
+            <i class="fas fa-list"></i>
+            View Approval Details
+          </a>
+          
           <button 
+            *ngIf="phase.id !== 'creation' && phase.id !== 'approval' && phase.count > 0"
             class="btn btn-outline-secondary"
-            [routerLink]="['/internal', phase.id, 'details']"
-        
-        <a 
-          *ngIf="phase.id === 'creation'"
-          routerLink="/internal-creation-details"
-          class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-          <span class="mr-2">📋</span>
-          View Creation Details
-        </a>
-        
-        <a 
-          *ngIf="phase.id === 'approval'"
-          routerLink="/internal-approval-details"
-          class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
-          <span class="mr-2">✅</span>
-          View Approval Details
-        </a>
-            *ngIf="phase.count > 0">
+            disabled>
             <i class="fas fa-list"></i>
             View Details
           </button>
