@@ -63,6 +63,7 @@ export interface InternalAssignmentDetail {
   createdDocumentId?: string;
   creationUserName?: string;
   departmentCode?: string;
+  selected?: boolean;
 }
 
 export interface InternalBusinessLogDetail {

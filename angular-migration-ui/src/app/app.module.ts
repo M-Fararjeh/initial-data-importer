@@ -25,6 +25,7 @@ import { OutgoingClosingDetailsComponent } from './components/outgoing-closing-d
 import { InternalMigrationDashboardComponent } from './components/internal-migration-dashboard/internal-migration-dashboard.component';
 import { InternalCreationDetailsComponent } from './components/internal-creation-details/internal-creation-details.component';
 import { InternalApprovalDetailsComponent } from './components/internal-approval-details/internal-approval-details.component';
+import { InternalAssignmentDetailsComponent } from './components/internal-assignment-details/internal-assignment-details.component';
 import { MigrationService } from './services/migration.service';
 import { DataImportService } from './services/data-import.service';
 import { OutgoingMigrationService } from './services/outgoing-migration.service';
@@ -49,6 +50,7 @@ const routes: Routes = [
   { path: 'internal-migration-dashboard', component: InternalMigrationDashboardComponent },
   { path: 'internal-creation-details', component: InternalCreationDetailsComponent },
   { path: 'internal-approval-details', component: InternalApprovalDetailsComponent },
+  { path: 'internal-assignment-details', component: InternalAssignmentDetailsComponent },
   { path: '**', redirectTo: '' }
 ];
 
@@ -75,7 +77,8 @@ const routes: Routes = [
     OutgoingClosingDetailsComponent,
     InternalMigrationDashboardComponent,
     InternalCreationDetailsComponent,
-    InternalApprovalDetailsComponent
+    InternalApprovalDetailsComponent,
+    InternalAssignmentDetailsComponent
   ],
   imports: [
     BrowserModule,

@@ -98,6 +98,14 @@
           </a>
           
           <a 
+            *ngIf="phase.id === 'assignment'"
+            routerLink="/internal-assignment-details"
+            class="btn btn-outline-secondary">
+            <i class="fas fa-list"></i>
+            View Assignment Details
+          </a>
+          
+          <a 
             *ngIf="phase.id === 'approval'"
             routerLink="/internal-approval-details"
             class="btn btn-outline-secondary">
@@ -106,7 +114,7 @@
           </a>
           
           <button 
-            *ngIf="phase.id !== 'creation' && phase.id !== 'approval' && phase.count > 0"
+            *ngIf="phase.id !== 'creation' && phase.id !== 'assignment' && phase.id !== 'approval' && phase.count > 0"
             class="btn btn-outline-secondary"
             disabled>
             <i class="fas fa-list"></i>
