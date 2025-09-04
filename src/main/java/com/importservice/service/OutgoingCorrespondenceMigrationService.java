@@ -47,9 +47,6 @@ public class OutgoingCorrespondenceMigrationService {
     private OutgoingBusinessLogPhaseService businessLogPhaseService;
     
     @Autowired
-    private OutgoingCommentPhaseService commentPhaseService;
-    
-    @Autowired
     private OutgoingClosingPhaseService closingPhaseService;
     
     @Autowired
@@ -142,23 +139,7 @@ public class OutgoingCorrespondenceMigrationService {
         return businessLogPhaseService.getOutgoingBusinessLogMigrations(page, size, status, search);
     }
     
-    // Phase 6: Comment
-    public ImportResponseDto executeCommentPhase() {
-        logger.info("Delegating to OutgoingCommentPhaseService");
-        return commentPhaseService.executeCommentPhase();
-    }
-    
-    public ImportResponseDto executeCommentForSpecific(List<String> commentGuids) {
-        logger.info("Delegating outgoing comment for specific comments to OutgoingCommentPhaseService");
-        return commentPhaseService.executeCommentForSpecific(commentGuids);
-    }
-    
-    public Map<String, Object> getCommentMigrations(int page, int size, String status, String commentType, String search) {
-        logger.info("Delegating to OutgoingCommentPhaseService for comment migrations");
-        return commentPhaseService.getOutgoingCommentMigrations(page, size, status, commentType, search);
-    }
-    
-    // Phase 7: Closing
+    // Phase 6: Closing
     public ImportResponseDto executeClosingPhase() {
         logger.info("Delegating to OutgoingClosingPhaseService");
         return closingPhaseService.executeClosingPhase();
@@ -194,7 +175,6 @@ public class OutgoingCorrespondenceMigrationService {
             statistics.put("assignment", 0L);
             statistics.put("approval", 0L);
             statistics.put("businessLog", 0L);
-            statistics.put("comment", 0L);
             statistics.put("closing", 0L);
             statistics.put("completed", 0L);
             statistics.put("failed", 0L);

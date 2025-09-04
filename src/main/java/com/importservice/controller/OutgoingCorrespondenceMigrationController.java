@@ -333,50 +333,8 @@ public class OutgoingCorrespondenceMigrationController {
         }
     }
     
-    @PostMapping("/comment")
-    @Operation(summary = "Phase 6: Comment", 
-               description = "Processes comments for outgoing correspondences")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeComment() {
-        logger.info("Received request for Outgoing Phase 6: Comment");
-        
-        try {
-            ImportResponseDto response = migrationService.executeCommentPhase();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in outgoing comment phase", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
-    }
-    
-    @PostMapping("/comment/execute-specific")
-    @Operation(summary = "Execute Outgoing Comment for Specific Comments", 
-               description = "Executes outgoing comment phase for specified comment GUIDs")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeCommentForSpecific(@RequestBody Map<String, List<String>> request) {
-        List<String> commentGuids = request.get("commentGuids");
-        logger.info("Received request to execute outgoing comment for {} specific comments", 
-                   commentGuids != null ? commentGuids.size() : 0);
-        
-        try {
-            ImportResponseDto response = migrationService.executeCommentForSpecific(commentGuids);
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in execute outgoing comment for specific", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
-    }
-    
     @PostMapping("/closing")
-    @Operation(summary = "Phase 7: Closing", 
+    @Operation(summary = "Phase 6: Closing", 
                description = "Closes outgoing correspondences that need archiving")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
@@ -385,6 +343,7 @@ public class OutgoingCorrespondenceMigrationController {
     })
     public ResponseEntity<ImportResponseDto> executeClosing() {
         logger.info("Received request for Outgoing Phase 7: Closing");
+        logger.info("Received request for Outgoing Phase 6: Closing");
         
         try {
             ImportResponseDto response = migrationService.executeClosingPhase();
@@ -396,7 +355,7 @@ public class OutgoingCorrespondenceMigrationController {
     }
     
     @PostMapping("/closing/execute-specific")
-    @Operation(summary = "Execute Outgoing Closing for Specific Correspondences", 
+    @Operation(summary = "Execute Outgoing Closing for Specific Correspondences",
                description = "Executes outgoing closing phase for specified correspondence GUIDs")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
@@ -475,7 +434,6 @@ public class OutgoingCorrespondenceMigrationController {
             errorMap.put("assignment", 0L);
             errorMap.put("approval", 0L);
             errorMap.put("businessLog", 0L);
-            errorMap.put("comment", 0L);
             errorMap.put("closing", 0L);
             errorMap.put("completed", 0L);
             errorMap.put("failed", 0L);
@@ -505,40 +463,6 @@ public class OutgoingCorrespondenceMigrationController {
             return ResponseEntity.ok(businessLogs);
         } catch (Exception e) {
             logger.error("Error getting outgoing business log details", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("content", new ArrayList<>());
-            errorResponse.put("totalElements", 0L);
-            errorResponse.put("totalPages", 0);
-            errorResponse.put("currentPage", page);
-            errorResponse.put("pageSize", size);
-            errorResponse.put("hasNext", false);
-            errorResponse.put("hasPrevious", false);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
-    @GetMapping("/comment/details")
-    @Operation(summary = "Get Outgoing Comment Phase Details", 
-               description = "Returns detailed information about outgoing comment phase migrations")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 60)
-    public ResponseEntity<Map<String, Object>> getCommentDetails(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "all") String status,
-            @RequestParam(defaultValue = "all") String commentType,
-            @RequestParam(defaultValue = "") String search) {
-        logger.info("Received request for outgoing comment phase details - page: {}, size: {}, status: {}, commentType: {}, search: '{}'", 
-                   page, size, status, commentType, search);
-        
-        try {
-            Map<String, Object> comments = migrationService.getCommentMigrations(page, size, status, commentType, search);
-            return ResponseEntity.ok(comments);
-        } catch (Exception e) {
-            logger.error("Error getting outgoing comment details", e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("content", new ArrayList<>());
             errorResponse.put("totalElements", 0L);

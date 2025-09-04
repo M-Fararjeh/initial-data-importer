@@ -18,7 +18,6 @@ export interface MigrationStatistics {
   assignment: number;
   approval: number;
   businessLog: number;
-  comment: number;
   closing: number;
   completed: number;
   failed: number;
@@ -62,7 +61,6 @@ export class OutgoingMigrationService {
       assignment: 0,
       approval: 0,
       businessLog: 0,
-      comment: 0,
       closing: 0,
       completed: 0,
       failed: 0,
@@ -181,28 +179,6 @@ export class OutgoingMigrationService {
       );
   }
   
-  executeComment(): Observable<ImportResponse> {
-    console.log('Calling outgoing executeComment API');
-    return this.http.post<ImportResponse>(`${this.baseUrl}/comment`, {})
-      .pipe(
-        tap((response) => {
-          console.log('Outgoing ExecuteComment response:', response);
-          this.refreshStatistics();
-        }),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Error in outgoing executeComment:', error);
-          return of({
-            status: 'ERROR',
-            message: 'Failed to execute outgoing comment: ' + (error.message || 'Unknown error'),
-            totalRecords: 0,
-            successfulImports: 0,
-            failedImports: 0,
-            errors: [error.message || 'Unknown error']
-          });
-        })
-      );
-  }
-  
   executeClosing(): Observable<ImportResponse> {
     console.log('Calling outgoing executeClosing API');
     return this.http.post<ImportResponse>(`${this.baseUrl}/closing`, {})
@@ -308,7 +284,6 @@ export class OutgoingMigrationService {
             assignment: response.assignment || 0,
             approval: response.approval || 0,
             businessLog: response.businessLog || 0,
-            comment: response.comment || 0,
             closing: response.closing || 0,
             completed: response.completed || 0,
             failed: response.failed || 0,
@@ -323,7 +298,6 @@ export class OutgoingMigrationService {
             assignment: 0,
             approval: 0,
             businessLog: 0,
-            comment: 0,
             closing: 0,
             completed: 0,
             failed: 0,
@@ -522,63 +496,6 @@ export class OutgoingMigrationService {
           return of({
             status: 'ERROR',
             message: 'Failed to execute outgoing business log for specific transactions: ' + (error.message || 'Unknown error'),
-            totalRecords: 0,
-            successfulImports: 0,
-            failedImports: 0,
-            errors: [error.message || 'Unknown error']
-          });
-        })
-      );
-  }
-  
-  // Comment phase methods
-  getOutgoingCommentMigrations(page: number = 0, size: number = 20, status: string = 'all', commentType: string = 'all', search: string = ''): Observable<any> {
-    console.log('Calling getOutgoingCommentMigrations API with pagination and search - page:', page, 'size:', size, 'status:', status, 'commentType:', commentType, 'search:', search);
-    
-    // Build query parameters
-    const params = new URLSearchParams();
-    params.set('page', page.toString());
-    params.set('size', size.toString());
-    params.set('status', status);
-    params.set('commentType', commentType);
-    if (search && search.trim()) {
-      params.set('search', search.trim());
-    }
-    
-    return this.http.get<any>(`${this.baseUrl}/comment/details?${params.toString()}`)
-      .pipe(
-        tap((comments) => console.log('Outgoing comment migrations response:', comments)),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Error getting outgoing comment migrations:', error);
-          return of({
-            content: [],
-            totalElements: 0,
-            totalPages: 0,
-            currentPage: page,
-            pageSize: size,
-            hasNext: false,
-            hasPrevious: false,
-            error: error.message
-          });
-        })
-      );
-  }
-  
-  executeOutgoingCommentForSpecific(commentGuids: string[]): Observable<ImportResponse> {
-    console.log('Calling executeOutgoingCommentForSpecific API with GUIDs:', commentGuids);
-    return this.http.post<ImportResponse>(`${this.baseUrl}/comment/execute-specific`, {
-      commentGuids: commentGuids
-    })
-      .pipe(
-        tap((response) => {
-          console.log('ExecuteOutgoingCommentForSpecific response:', response);
-          this.refreshStatistics();
-        }),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Error in executeOutgoingCommentForSpecific:', error);
-          return of({
-            status: 'ERROR',
-            message: 'Failed to execute outgoing comment for specific records: ' + (error.message || 'Unknown error'),
             totalRecords: 0,
             successfulImports: 0,
             failedImports: 0,

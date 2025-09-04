@@ -21,7 +21,6 @@ import { OutgoingCreationDetailsComponent } from './components/outgoing-creation
 import { OutgoingAssignmentDetailsComponent } from './components/outgoing-assignment-details/outgoing-assignment-details.component';
 import { OutgoingApprovalDetailsComponent } from './components/outgoing-approval-details/outgoing-approval-details.component';
 import { OutgoingBusinessLogDetailsComponent } from './components/outgoing-business-log-details/outgoing-business-log-details.component';
-import { OutgoingCommentDetailsComponent } from './components/outgoing-comment-details/outgoing-comment-details.component';
 import { OutgoingClosingDetailsComponent } from './components/outgoing-closing-details/outgoing-closing-details.component';
 import { MigrationService } from './services/migration.service';
 import { DataImportService } from './services/data-import.service';
@@ -43,7 +42,6 @@ const routes: Routes = [
   { path: 'outgoing-assignment-details', component: OutgoingAssignmentDetailsComponent },
   { path: 'outgoing-approval-details', component: OutgoingApprovalDetailsComponent },
   { path: 'outgoing-business-log-details', component: OutgoingBusinessLogDetailsComponent },
-  { path: 'outgoing-comment-details', component: OutgoingCommentDetailsComponent },
   { path: 'outgoing-closing-details', component: OutgoingClosingDetailsComponent },
   { path: '**', redirectTo: '' }
 ];
@@ -68,7 +66,6 @@ const routes: Routes = [
     OutgoingApprovalDetailsComponent,
     OutgoingApprovalDetailsComponent,
     OutgoingBusinessLogDetailsComponent,
-    OutgoingCommentDetailsComponent,
     OutgoingClosingDetailsComponent
   ],
   imports: [

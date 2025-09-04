@@ -64,19 +64,11 @@ export class OutgoingMigrationDashboardComponent implements OnInit, OnDestroy {
       count: 0
     },
     {
-      id: 'comment',
-      name: 'Comment',
-      description: 'Process comments and annotations',
-      status: 'pending',
-      order: 6,
-      count: 0
-    },
-    {
       id: 'closing',
       name: 'Closing',
       description: 'Close outgoing correspondences that need archiving',
       status: 'pending',
-      order: 7,
+      order: 6,
       count: 0
     }
   ];
@@ -119,7 +111,6 @@ export class OutgoingMigrationDashboardComponent implements OnInit, OnDestroy {
       'assignment': 'assignment',
       'approval': 'approval',
       'business-log': 'businessLog',
-      'comment': 'comment',
       'closing': 'closing'
     };
     
@@ -164,9 +155,6 @@ export class OutgoingMigrationDashboardComponent implements OnInit, OnDestroy {
         break;
       case 'business-log':
         operation = this.migrationService.executeBusinessLog();
-        break;
-      case 'comment':
-        operation = this.migrationService.executeComment();
         break;
       case 'closing':
         operation = this.migrationService.executeClosing();
