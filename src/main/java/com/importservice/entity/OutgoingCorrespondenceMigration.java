@@ -435,11 +435,6 @@ public class OutgoingCorrespondenceMigration {
                 break;
             case "BUSINESS_LOG":
                 this.businessLogStatus = "COMPLETED";
-                this.currentPhase = "COMMENT";
-                this.nextPhase = "CLOSING";
-                break;
-            case "COMMENT":
-                this.commentStatus = "COMPLETED";
                 this.currentPhase = "CLOSING";
                 this.nextPhase = null;
                 break;
@@ -478,10 +473,6 @@ public class OutgoingCorrespondenceMigration {
             case "BUSINESS_LOG":
                 this.businessLogStatus = "ERROR";
                 this.businessLogError = error;
-                break;
-            case "COMMENT":
-                this.commentStatus = "ERROR";
-                this.commentError = error;
                 break;
             case "CLOSING":
                 this.closingStatus = "ERROR";
