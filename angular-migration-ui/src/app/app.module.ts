@@ -22,6 +22,9 @@ import { OutgoingAssignmentDetailsComponent } from './components/outgoing-assign
 import { OutgoingApprovalDetailsComponent } from './components/outgoing-approval-details/outgoing-approval-details.component';
 import { OutgoingBusinessLogDetailsComponent } from './components/outgoing-business-log-details/outgoing-business-log-details.component';
 import { OutgoingClosingDetailsComponent } from './components/outgoing-closing-details/outgoing-closing-details.component';
+import { InternalMigrationDashboardComponent } from './components/internal-migration-dashboard/internal-migration-dashboard.component';
+import { InternalCreationDetailsComponent } from './components/internal-creation-details/internal-creation-details.component';
+import { InternalApprovalDetailsComponent } from './components/internal-approval-details/internal-approval-details.component';
 import { MigrationService } from './services/migration.service';
 import { DataImportService } from './services/data-import.service';
 import { OutgoingMigrationService } from './services/outgoing-migration.service';
@@ -66,7 +69,10 @@ const routes: Routes = [
     OutgoingApprovalDetailsComponent,
     OutgoingApprovalDetailsComponent,
     OutgoingBusinessLogDetailsComponent,
-    OutgoingClosingDetailsComponent
+    OutgoingClosingDetailsComponent,
+    InternalMigrationDashboardComponent,
+    InternalCreationDetailsComponent,
+    InternalApprovalDetailsComponent
   ],
   imports: [
     BrowserModule,

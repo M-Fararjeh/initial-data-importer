@@ -1,0 +1,119 @@
+<div class="internal-creation-details">
+  <div class="page-header">
+    <h1>Internal Creation Details</h1>
+    <div class="header-actions">
+      <button 
+        class="btn btn-secondary" 
+        (click)="loadCreationDetails()" 
+        [disabled]="isLoading">
+        <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
+        Refresh
+      </button>
+      <button 
+        class="btn btn-primary" 
+        (click)="executeCreationForSelected()" 
+        [disabled]="isLoading || selectedItems.size === 0">
+        <i class="fas fa-play"></i>
+        Execute Selected ({{ selectedItems.size }})
+      </button>
+      <a class="btn btn-outline-secondary" routerLink="/internal">
+        <i class="fas fa-arrow-left"></i>
+        Back to Dashboard
+      </a>
+    </div>
+  </div>
+
+  <div class="error-message" *ngIf="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    {{ error }}
+  </div>
+
+  <!-- Statistics Summary -->
+  <div class="statistics-summary" *ngIf="statistics">
+    <div class="stat-item">
+      <span class="stat-label">Total:</span>
+      <span class="stat-value">{{ statistics.total || 0 }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Completed:</span>
+      <span class="stat-value completed">{{ statistics.completed || 0 }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Pending:</span>
+      <span class="stat-value pending">{{ statistics.pending || 0 }}</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-label">Error:</span>
+      <span class="stat-value error">{{ statistics.error || 0 }}</span>
+    </div>
+  </div>
+
+  <!-- Creation Details Table -->
+  <div class="table-container">
+    <table class="details-table">
+      <thead>
+        <tr>
+          <th>
+            <input 
+              type="checkbox" 
+              [checked]="isAllSelected()" 
+              (change)="toggleSelectAll()"
+              [disabled]="isLoading">
+          </th>
+          <th>Correspondence GUID</th>
+          <th>Subject</th>
+          <th>Reference No</th>
+          <th>Creation Step</th>
+          <th>Status</th>
+          <th>Document ID</th>
+          <th>Retry Count</th>
+          <th>Last Modified</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let detail of creationDetails" [class.selected]="isSelected(detail.correspondenceGuid)">
+          <td>
+            <input 
+              type="checkbox" 
+              [checked]="isSelected(detail.correspondenceGuid)" 
+              (change)="toggleSelection(detail.correspondenceGuid)"
+              [disabled]="isLoading">
+          </td>
+          <td class="guid-cell">{{ detail.correspondenceGuid }}</td>
+          <td class="subject-cell">{{ detail.correspondenceSubject || 'N/A' }}</td>
+          <td>{{ detail.correspondenceReferenceNo || 'N/A' }}</td>
+          <td>
+            <span class="step-badge" [class]="getStepClass(detail.creationStep)">
+              {{ detail.creationStep }}
+            </span>
+          </td>
+          <td>
+            <span class="status-badge" [class]="getStatusClass(detail.creationStatus)">
+              {{ detail.creationStatus }}
+            </span>
+          </td>
+          <td class="document-id-cell">{{ detail.createdDocumentId || 'N/A' }}</td>
+          <td class="retry-count">{{ detail.retryCount }}</td>
+          <td class="date-cell">{{ detail.lastModifiedDate | date:'short' }}</td>
+          <td class="error-cell">
+            <span *ngIf="detail.creationError" class="error-text" [title]="detail.creationError">
+              {{ detail.creationError.length > 50 ? (detail.creationError | slice:0:50) + '...' : detail.creationError }}
+            </span>
+            <span *ngIf="!detail.creationError">-</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="no-data" *ngIf="!isLoading && creationDetails.length === 0">
+      <i class="fas fa-inbox"></i>
+      <p>No internal creation details found</p>
+    </div>
+
+    <div class="loading" *ngIf="isLoading">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading internal creation details...</p>
+    </div>
+  </div>
+</div>

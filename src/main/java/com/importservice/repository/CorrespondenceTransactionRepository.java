@@ -542,4 +542,168 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "WHERE ct.action_id != 12 AND c.correspondence_type_id = 1",
            nativeQuery = true)
     Object[] getOutgoingBusinessLogStatistics();
+    
+    /**
+     * Get INTERNAL assignments that need processing (PENDING or FAILED with retry count < 3)
+     * Filters for INTERNAL correspondences (correspondence_type_id = 3)
+     */
+    @Query(value = "SELECT ct.* FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN internal_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 3 " +
+                   "AND (ct.migrate_status = 'PENDING' OR (ct.migrate_status = 'FAILED' AND ct.retry_count < 3)) " +
+                   "AND icm.created_document_id IS NOT NULL " +
+                   "ORDER BY ct.retry_count ASC, ct.last_modified_date ASC",
+           nativeQuery = true)
+    List<CorrespondenceTransaction> findInternalAssignmentsNeedingProcessing();
+    
+    /**
+     * Optimized query for INTERNAL assignment migrations with pagination
+     * Filters for internal correspondences (correspondence_type_id = 3)
+     */
+    @Query(value = "SELECT " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.to_user_name as toUserName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.decision_guid as decisionGuid, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
+                   "c.subject as correspondenceSubject, " +
+                   "c.reference_no as correspondenceReferenceNo, " +
+                   "icm.created_document_id as createdDocumentId, " +
+                   "c.creation_user_name as creationUserName " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN internal_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 3 " +
+                   "AND icm.creation_status = 'COMPLETED' AND icm.assignment_status = 'PENDING' " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
+    Page<Object[]> findInternalAssignmentMigrationsWithPagination(Pageable pageable);
+    
+    /**
+     * Optimized query for INTERNAL assignment migrations with search and pagination
+     */
+    @Query(value = "SELECT " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.to_user_name as toUserName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.decision_guid as decisionGuid, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
+                   "c.subject as correspondenceSubject, " +
+                   "c.reference_no as correspondenceReferenceNo, " +
+                   "icm.created_document_id as createdDocumentId, " +
+                   "c.creation_user_name as creationUserName " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN internal_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id = 12 AND c.correspondence_type_id = 3 " +
+                   "AND icm.creation_status = 'COMPLETED' AND icm.assignment_status = 'PENDING' " +
+                   "AND (:status = 'all' OR ct.migrate_status = :status) " +
+                   "AND (:search = '' OR :search IS NULL OR " +
+                   "     ct.guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     ct.doc_guid LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(icm.created_document_id, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.subject, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.reference_no, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.from_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.to_user_name, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(ct.notes, '') LIKE CONCAT('%', :search, '%') OR " +
+                   "     IFNULL(c.creation_user_name, '') LIKE CONCAT('%', :search, '%')) " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
+    Page<Object[]> findInternalAssignmentMigrationsWithSearchAndPagination(
+        @Param("status") String status,
+        @Param("search") String search,
+        Pageable pageable);
+    
+    /**
+     * Get INTERNAL business logs that need processing (PENDING or FAILED with retry count < 3)
+     * Filters for INTERNAL correspondences (correspondence_type_id = 3)
+     */
+    @Query(value = "SELECT ct.* FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN internal_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id != 12 AND c.correspondence_type_id = 3 " +
+                   "AND (ct.migrate_status = 'PENDING' OR (ct.migrate_status = 'FAILED' AND ct.retry_count < 3)) " +
+                   "AND icm.created_document_id IS NOT NULL " +
+                   "ORDER BY ct.retry_count ASC, ct.last_modified_date ASC",
+           nativeQuery = true)
+    List<CorrespondenceTransaction> findInternalBusinessLogsNeedingProcessing();
+    
+    /**
+     * Optimized query for INTERNAL business log migrations with pagination
+     * Gets all transactions except assignments (action_id != 12) for INTERNAL correspondences (correspondence_type_id = 3)
+     */
+    @Query(value = "SELECT " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.action_id as actionId, " +
+                   "ct.action_english_name as actionEnglishName, " +
+                   "ct.action_local_name as actionLocalName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
+                   "c.subject as correspondenceSubject, " +
+                   "c.reference_no as correspondenceReferenceNo, " +
+                   "icm.created_document_id as createdDocumentId " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN internal_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id != 12 AND c.correspondence_type_id = 3 " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
+    Page<Object[]> findInternalBusinessLogMigrationsWithPagination(Pageable pageable);
+    
+    /**
+     * Optimized query for INTERNAL business log migrations with search and pagination
+     * Filters for INTERNAL correspondences (correspondence_type_id = 3)
+     */
+    @Query(value = "SELECT " +
+                   "ct.guid as transactionGuid, " +
+                   "ct.doc_guid as correspondenceGuid, " +
+                   "ct.action_id as actionId, " +
+                   "ct.action_english_name as actionEnglishName, " +
+                   "ct.action_local_name as actionLocalName, " +
+                   "ct.action_date as actionDate, " +
+                   "ct.from_user_name as fromUserName, " +
+                   "ct.notes as notes, " +
+                   "ct.migrate_status as migrateStatus, " +
+                   "ct.retry_count as retryCount, " +
+                   "ct.last_modified_date as lastModifiedDate, " +
+                   "c.subject as correspondenceSubject, " +
+                   "c.reference_no as correspondenceReferenceNo, " +
+                   "icm.created_document_id as createdDocumentId " +
+                   "FROM correspondence_transactions ct " +
+                   "LEFT JOIN correspondences c ON ct.doc_guid = c.guid " +
+                   "LEFT JOIN internal_correspondence_migrations icm ON ct.doc_guid = icm.correspondence_guid " +
+                   "WHERE ct.action_id != 12 AND c.correspondence_type_id = 3 " +
+                   "AND (:status IS NULL OR ct.migrate_status = :status) " +
+                   "AND (:search IS NULL OR :search = '' OR " +
+                   "     LOWER(COALESCE(ct.guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.doc_guid, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(icm.created_document_id, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.subject, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(c.reference_no, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.action_english_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.from_user_name, '')) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+                   "     LOWER(COALESCE(ct.notes, '')) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+                   "ORDER BY ct.last_modified_date DESC",
+           nativeQuery = true)
+    Page<Object[]> findInternalBusinessLogMigrationsWithSearchAndPagination(
+        @Param("status") String status,
+        @Param("search") String search,
+        Pageable pageable);
 }

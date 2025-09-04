@@ -1,0 +1,109 @@
+<div class="internal-migration-dashboard">
+  <div class="dashboard-header">
+    <h1>Internal Correspondence Migration</h1>
+    <div class="header-actions">
+      <button 
+        class="btn btn-secondary" 
+        (click)="loadStatistics()" 
+        [disabled]="isLoading">
+        <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
+        Refresh
+      </button>
+      <button 
+        class="btn btn-warning" 
+        (click)="retryFailed()" 
+        [disabled]="isLoading">
+        <i class="fas fa-redo"></i>
+        Retry Failed
+      </button>
+    </div>
+  </div>
+
+  <div class="error-message" *ngIf="error">
+    <i class="fas fa-exclamation-triangle"></i>
+    {{ error }}
+  </div>
+
+  <!-- Overall Statistics -->
+  <div class="statistics-overview">
+    <div class="stat-card completed">
+      <div class="stat-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ statistics.completed }}</div>
+        <div class="stat-label">Completed</div>
+      </div>
+    </div>
+
+    <div class="stat-card in-progress">
+      <div class="stat-icon">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ statistics.inProgress }}</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+    </div>
+
+    <div class="stat-card failed">
+      <div class="stat-icon">
+        <i class="fas fa-exclamation-circle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-number">{{ statistics.failed }}</div>
+        <div class="stat-label">Failed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Migration Phases -->
+  <div class="phases-container">
+    <h2>Migration Phases</h2>
+    <div class="phases-grid">
+      <div 
+        *ngFor="let phase of phases" 
+        class="phase-card"
+        [class]="getPhaseStatusClass(phase)">
+        
+        <div class="phase-header">
+          <div class="phase-number">{{ phase.order }}</div>
+          <div class="phase-title">{{ phase.name }}</div>
+          <div class="phase-status">
+            <span class="status-badge" [class]="getPhaseStatusClass(phase)">
+              {{ getPhaseStatusText(phase) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="phase-description">
+          {{ phase.description }}
+        </div>
+
+        <div class="phase-actions">
+          <button 
+            class="btn btn-primary"
+            (click)="executePhase(phase.id)"
+            [disabled]="!phase.canExecute || isLoading">
+            <i class="fas fa-play"></i>
+            Execute {{ phase.name }}
+          </button>
+          
+          <button 
+            class="btn btn-outline-secondary"
+            [routerLink]="['/internal', phase.id, 'details']"
+            *ngIf="phase.count > 0">
+            <i class="fas fa-list"></i>
+            View Details
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Last Updated -->
+  <div class="last-updated">
+    <i class="fas fa-clock"></i>
+    Last updated: {{ lastUpdated | date:'medium' }}
+  </div>
+</div>
