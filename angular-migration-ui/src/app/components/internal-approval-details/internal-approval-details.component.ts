@@ -1,15 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { InternalMigrationService, InternalApprovalDetail, PaginatedResponse, ImportResponse } from '../../services/internal-migration.service';
 
-interface ImportResponse {
-  status: string;
-  message: string;
-  totalRecords: number;
-  successfulImports: number;
-  failedImports: number;
-  errors: string[];
-}
-
 @Component({
   selector: 'app-internal-approval-details',
   templateUrl: './internal-approval-details.component.html',

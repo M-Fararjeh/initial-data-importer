@@ -117,6 +117,15 @@ export interface ImportResponse {
   errors: string[];
 }
 
+export interface ImportResponse {
+  status: string;
+  message: string;
+  totalRecords: number;
+  successfulImports: number;
+  failedImports: number;
+  errors: string[];
+}
+
 @Injectable({
   providedIn: 'root'
 })

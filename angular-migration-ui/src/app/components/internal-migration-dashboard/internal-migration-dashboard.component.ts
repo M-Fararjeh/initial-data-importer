@@ -3,15 +3,6 @@ import { InternalMigrationService, InternalMigrationStatistics, ImportResponse }
 import { Observable } from 'rxjs';
 import { interval, Subscription } from 'rxjs';
 
-interface ImportResponse {
-  status: string;
-  message: string;
-  totalRecords: number;
-  successfulImports: number;
-  failedImports: number;
-  errors: string[];
-}
-
 @Component({
   selector: 'app-internal-migration-dashboard',
   templateUrl: './internal-migration-dashboard.component.html',
@@ -228,7 +219,7 @@ export class InternalMigrationDashboardComponent implements OnInit, OnDestroy {
         if (!this.isLoading) {
           this.loadStatistics();
         }
-      }
+    });
     });
   }
 

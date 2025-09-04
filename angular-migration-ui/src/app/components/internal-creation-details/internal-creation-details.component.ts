@@ -1,15 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { InternalMigrationService, InternalCreationDetail, ImportResponse } from '../../services/internal-migration.service';
 
-interface ImportResponse {
-  status: string;
-  message: string;
-  totalRecords: number;
-  successfulImports: number;
-  failedImports: number;
-  errors: string[];
-}
-
 @Component({
   selector: 'app-internal-creation-details',
   templateUrl: './internal-creation-details.component.html',
