@@ -397,6 +397,8 @@ public class InternalCorrespondenceMigration {
                 break;
             case "CREATION":
                 this.creationStatus = "COMPLETED";
+                // Check if assignment is needed - this will be set by the creation service
+                // Default to assignment phase, but creation service can override
                 this.currentPhase = "ASSIGNMENT";
                 this.nextPhase = "APPROVAL";
                 break;

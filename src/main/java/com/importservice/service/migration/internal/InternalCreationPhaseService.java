@@ -159,8 +159,19 @@ public class InternalCreationPhaseService {
             if (result) {
                 migration.setCreationStatus("COMPLETED");
                 migration.setCreationStep("COMPLETED");
-                migration.setCurrentPhase("ASSIGNMENT");
-                migration.setNextPhase("APPROVAL");
+                
+                // Check if there are assignment transactions for this correspondence
+                boolean hasAssignments = checkIfCorrespondenceHasAssignments(correspondenceGuid);
+                if (hasAssignments) {
+                    migration.setCurrentPhase("ASSIGNMENT");
+                    migration.setNextPhase("APPROVAL");
+                } else {
+                    // Skip assignment phase and go directly to approval
+                    migration.setCurrentPhase("APPROVAL");
+                    migration.setNextPhase("BUSINESS_LOG");
+                    migration.setAssignmentStatus("SKIPPED");
+                    logger.info("No assignments found for internal correspondence {}, skipping to approval phase", correspondenceGuid);
+                }
                 migration.setPhaseStatus("PENDING");
             } else {
                 migration.setCreationStatus("ERROR");
@@ -571,6 +582,26 @@ public class InternalCreationPhaseService {
             errorStats.put("stepStatistics", new ArrayList<>());
             errorStats.put("error", e.getMessage());
             return errorStats;
+        }
+    }
+    
+    /**
+     * Checks if a correspondence has assignment transactions
+     */
+    @Autowired
+    private com.importservice.repository.CorrespondenceTransactionRepository transactionRepository;
+    
+    private boolean checkIfCorrespondenceHasAssignments(String correspondenceGuid) {
+        try {
+            List<com.importservice.entity.CorrespondenceTransaction> assignments = 
+                transactionRepository.findByDocGuidAndActionId(correspondenceGuid, 12);
+            
+            boolean hasAssignments = !assignments.isEmpty();
+            logger.info("Correspondence {} has {} assignment transactions", correspondenceGuid, assignments.size());
+            return hasAssignments;
+        } catch (Exception e) {
+            logger.error("Error checking assignments for correspondence: {}", correspondenceGuid, e);
+            return false; // Default to no assignments if error occurs
         }
     }
 }
