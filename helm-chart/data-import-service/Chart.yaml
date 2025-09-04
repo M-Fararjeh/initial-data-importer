@@ -1,0 +1,20 @@
+apiVersion: v2
+name: data-import-service
+description: A Helm chart for Data Import Service with MySQL, Spring Boot backend, and Angular frontend
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - data-import
+  - correspondence
+  - migration
+  - spring-boot
+  - angular
+  - mysql
+home: https://github.com/your-org/data-import-service
+sources:
+  - https://github.com/your-org/data-import-service
+maintainers:
+  - name: Data Import Team
+    email: team@yourorg.com
+dependencies: []

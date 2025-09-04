@@ -1,0 +1,24 @@
+{{- if .Values.backend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "data-import-service.backend.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "data-import-service.backend.labels" . | nindent 4 }}
+data:
+  # Database Configuration
+  SPRING_DATASOURCE_URL: {{ include "data-import-service.mysql.connectionUrl" . | quote }}
+  SPRING_DATASOURCE_USERNAME: {{ .Values.mysql.auth.username | quote }}
+  SPRING_DATASOURCE_DRIVER_CLASS_NAME: "com.mysql.cj.jdbc.Driver"
+  
+  # Application Configuration
+  {{- range $key, $value := .Values.backend.env }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  
+  # Additional environment variables
+  {{- range .Values.extraEnvVars }}
+  {{ .name }}: {{ .value | quote }}
+  {{- end }}
+{{- end }}

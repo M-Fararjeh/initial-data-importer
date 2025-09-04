@@ -1,0 +1,328 @@
+# Default values for data-import-service
+# This is a YAML-formatted file.
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+# Common labels
+commonLabels:
+  app.kubernetes.io/name: data-import-service
+  app.kubernetes.io/instance: data-import-service
+  app.kubernetes.io/version: "1.0.0"
+  app.kubernetes.io/component: data-import
+  app.kubernetes.io/part-of: data-import-service
+
+# MySQL Configuration
+mysql:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: mysql
+    tag: "8.0.43"
+    pullPolicy: IfNotPresent
+  
+  auth:
+    rootPassword: "rootpassword123"
+    database: "data_import_db"
+    username: "import_user"
+    password: "import_password123"
+  
+  primary:
+    persistence:
+      enabled: true
+      storageClass: ""
+      size: 20Gi
+      accessModes:
+        - ReadWriteOnce
+    
+    resources:
+      limits:
+        memory: 2Gi
+        cpu: 1000m
+      requests:
+        memory: 1Gi
+        cpu: 500m
+    
+    configuration: |-
+      [mysqld]
+      character-set-server = utf8mb4
+      collation-server = utf8mb4_unicode_ci
+      init-connect = 'SET NAMES utf8mb4'
+      max_allowed_packet = 200M
+      innodb_buffer_pool_size = 1G
+      innodb_redo_log_capacity = 512M
+      innodb_flush_log_at_trx_commit = 2
+      innodb_file_per_table = 1
+      max_connections = 200
+      max_connect_errors = 1000
+      connect_timeout = 60
+      wait_timeout = 28800
+      interactive_timeout = 28800
+      table_open_cache = 4000
+      table_definition_cache = 1400
+      tmp_table_size = 64M
+      max_heap_table_size = 64M
+      innodb_lock_wait_timeout = 10
+      lock_wait_timeout = 10
+      innodb_rollback_on_timeout = ON
+      innodb_deadlock_detect = ON
+      innodb_print_all_deadlocks = ON
+      innodb_thread_concurrency = 0
+      innodb_read_io_threads = 4
+      innodb_write_io_threads = 4
+      innodb_io_capacity = 500
+      innodb_io_capacity_max = 1000
+      innodb_adaptive_hash_index = ON
+      innodb_adaptive_flushing = ON
+      innodb_flush_neighbors = 1
+      innodb_autoinc_lock_mode = 2
+      innodb_doublewrite = ON
+      innodb_flush_method = O_DIRECT
+      sort_buffer_size = 8M
+      read_buffer_size = 2M
+      read_rnd_buffer_size = 8M
+      myisam_sort_buffer_size = 64M
+      log_bin = mysql-bin
+      binlog_format = ROW
+      expire_logs_days = 7
+      max_binlog_size = 100M
+      local_infile = 0
+  
+  service:
+    type: ClusterIP
+    port: 3306
+  
+  metrics:
+    enabled: false
+
+# Backend (Spring Boot) Configuration
+backend:
+  enabled: true
+  
+  image:
+    registry: ""
+    repository: data-import-service
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 1
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    annotations: {}
+  
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: api.data-import.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  
+  resources:
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+    requests:
+      memory: 1Gi
+      cpu: 500m
+  
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  
+  # Environment variables
+  env:
+    SPRING_PROFILES_ACTIVE: "kubernetes"
+    JAVA_OPTS: "-Xmx1g -Xms512m -XX:+UseG1GC -XX:+UseStringDeduplication"
+    
+    # Keycloak Configuration
+    KEYCLOAK_AUTH_ENABLED: "true"
+    KEYCLOAK_AUTH_SERVER_URL: "http://18.206.121.44/auth"
+    KEYCLOAK_AUTH_REALM: "itba"
+    KEYCLOAK_AUTH_CLIENT_ID: "cspfrontend"
+    KEYCLOAK_AUTH_USERNAME: "cts_admin"
+    
+    # Source API Configuration
+    SOURCE_API_BASE_URL: "https://itba.tarasol.cloud/Tarasol4ExtractorApi/Api/secure"
+    SOURCE_API_KEY: "test"
+    SOURCE_API_TIMEOUT: "600000"
+    
+    # Destination API Configuration
+    DESTINATION_API_BASE_URL: "http://18.206.121.44"
+    DESTINATION_API_URL: "http://18.206.121.44/nuxeo/api/v1/custom-automation/AC_UA_ExternalAgency_Create"
+    
+    # File Upload Configuration
+    FILE_UPLOAD_USE_SAMPLE: "true"
+    FILE_UPLOAD_SAMPLE_FILENAME: "sample_document.pdf"
+    
+    # Correspondence Configuration
+    CORRESPONDENCE_RANDOM_SUBJECT_ENABLED: "true"
+    CORRESPONDENCE_RANDOM_SUBJECT_PREFIX: "AUTO-"
+    
+    # Admin User Configuration
+    ADMIN_USER_USERNAME: "cts_admin"
+    
+    # Logging Configuration
+    LOGGING_LEVEL_ROOT: "INFO"
+    LOGGING_LEVEL_COM_IMPORTSERVICE: "INFO"
+    DESTINATION_API_LOGGING_ENABLED: "false"
+  
+  # Secrets (will be created from values)
+  secrets:
+    MYSQL_PASSWORD: "import_password123"
+    KEYCLOAK_AUTH_PASSWORD: "Admin@itba2023"
+    DESTINATION_API_TOKEN: "fallback_token_if_keycloak_fails"
+  
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /data-import/api/health
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  
+  readinessProbe:
+    httpGet:
+      path: /data-import/api/health
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  
+  # Pod security context
+  podSecurityContext:
+    fsGroup: 1001
+    runAsNonRoot: true
+    runAsUser: 1001
+  
+  # Container security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: false
+    runAsNonRoot: true
+    runAsUser: 1001
+
+# Frontend (Angular) Configuration
+frontend:
+  enabled: true
+  
+  image:
+    registry: ""
+    repository: data-import-frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  
+  replicaCount: 2
+  
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+    annotations: {}
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    hosts:
+      - host: data-import.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  
+  resources:
+    limits:
+      memory: 256Mi
+      cpu: 200m
+    requests:
+      memory: 128Mi
+      cpu: 100m
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  
+  # Environment variables for frontend
+  env:
+    API_BASE_URL: "http://data-import-backend:8080/data-import"
+  
+  # Pod security context
+  podSecurityContext:
+    fsGroup: 101
+    runAsNonRoot: true
+    runAsUser: 101
+  
+  # Container security context
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 101
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []
+
+# Monitoring
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    interval: 30s
+    scrapeTimeout: 10s
+
+# Node selector, tolerations and affinity
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Additional volumes and volume mounts
+extraVolumes: []
+extraVolumeMounts: []
+
+# Additional environment variables
+extraEnvVars: []
+
+# Additional secrets
+extraSecrets: {}

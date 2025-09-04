@@ -1,0 +1,18 @@
+{{- if .Values.frontend.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "data-import-service.frontend.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "data-import-service.frontend.labels" . | nindent 4 }}
+data:
+  API_BASE_URL: {{ .Values.frontend.env.API_BASE_URL | default (include "data-import-service.backend.serviceUrl" .) | quote }}
+  
+  # Additional environment variables
+  {{- range $key, $value := .Values.frontend.env }}
+  {{- if ne $key "API_BASE_URL" }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}

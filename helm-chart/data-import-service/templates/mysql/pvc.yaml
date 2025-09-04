@@ -1,0 +1,26 @@
+{{- if and .Values.mysql.enabled .Values.mysql.primary.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "data-import-service.mysql.fullname" . }}-data
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "data-import-service.mysql.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- range .Values.mysql.primary.persistence.accessModes }}
+    - {{ . | quote }}
+    {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.mysql.primary.persistence.size | quote }}
+  {{- if .Values.mysql.primary.persistence.storageClass }}
+  {{- if (eq "-" .Values.mysql.primary.persistence.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.mysql.primary.persistence.storageClass | quote }}
+  {{- end }}
+  {{- else if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass | quote }}
+  {{- end }}
+{{- end }}

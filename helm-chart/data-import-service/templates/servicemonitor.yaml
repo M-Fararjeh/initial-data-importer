@@ -1,0 +1,18 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "data-import-service.fullname" . }}
+  namespace: {{ .Values.monitoring.serviceMonitor.namespace | default .Release.Namespace }}
+  labels:
+    {{- include "data-import-service.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "data-import-service.backend.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /data-import/actuator/prometheus
+      interval: {{ .Values.monitoring.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.monitoring.serviceMonitor.scrapeTimeout }}
+{{- end }}

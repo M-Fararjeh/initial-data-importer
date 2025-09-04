@@ -1,0 +1,132 @@
+# Production environment values
+# Override default values for production deployment
+
+# MySQL Configuration for Production
+mysql:
+  primary:
+    persistence:
+      size: 100Gi
+      storageClass: "fast-ssd"
+    resources:
+      limits:
+        memory: 4Gi
+        cpu: 2000m
+      requests:
+        memory: 2Gi
+        cpu: 1000m
+
+# Backend Configuration for Production
+backend:
+  replicaCount: 3
+  
+  image:
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+    requests:
+      memory: 1Gi
+      cpu: 500m
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  env:
+    JAVA_OPTS: "-Xmx1500m -Xms1g -XX:+UseG1GC -XX:+UseStringDeduplication -XX:MaxGCPauseMillis=200"
+    LOGGING_LEVEL_ROOT: "WARN"
+    LOGGING_LEVEL_COM_IMPORTSERVICE: "INFO"
+    DESTINATION_API_LOGGING_ENABLED: "false"
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: api.data-import.yourdomain.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: data-import-api-tls
+        hosts:
+          - api.data-import.yourdomain.com
+
+# Frontend Configuration for Production
+frontend:
+  replicaCount: 3
+  
+  image:
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  
+  resources:
+    limits:
+      memory: 256Mi
+      cpu: 200m
+    requests:
+      memory: 128Mi
+      cpu: 100m
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  ingress:
+    enabled: true
+    className: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - host: data-import.yourdomain.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: data-import-frontend-tls
+        hosts:
+          - data-import.yourdomain.com
+
+# Enable production features
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+
+# Network policy for security
+networkPolicy:
+  enabled: true
+
+# Node affinity for production workloads
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values:
+                  - data-import-service
+          topologyKey: kubernetes.io/hostname

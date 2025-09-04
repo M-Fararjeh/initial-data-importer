@@ -1,0 +1,61 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "data-import-service.fullname" . }}-netpol
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "data-import-service.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "data-import-service.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress from frontend to backend
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "data-import-service.frontend.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow ingress from ingress controller
+    - from: []
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+    {{- with .Values.networkPolicy.ingress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  egress:
+    # Allow egress to MySQL
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "data-import-service.mysql.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 3306
+    # Allow egress to external APIs (Keycloak, Source API, Destination API)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+    {{- with .Values.networkPolicy.egress }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}

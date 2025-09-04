@@ -1,0 +1,12 @@
+{{- if .Values.mysql.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "data-import-service.mysql.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "data-import-service.mysql.labels" . | nindent 4 }}
+data:
+  my.cnf: |
+    {{- .Values.mysql.primary.configuration | nindent 4 }}
+{{- end }}

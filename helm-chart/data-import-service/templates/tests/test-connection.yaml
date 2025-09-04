@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "data-import-service.fullname" . }}-test"
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "data-import-service.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  containers:
+    - name: test-backend
+      image: curlimages/curl:7.85.0
+      command: ['sh', '-c']
+      args:
+        - |
+          echo "Testing backend health endpoint..."
+          curl -f http://{{ include "data-import-service.backend.fullname" . }}:{{ .Values.backend.service.port }}/data-import/api/health
+          echo "Backend health check passed!"
+          
+          echo "Testing backend statistics endpoint..."
+          curl -f http://{{ include "data-import-service.backend.fullname" . }}:{{ .Values.backend.service.port }}/data-import/api/incoming-migration/statistics
+          echo "Backend statistics endpoint passed!"
+    
+    - name: test-frontend
+      image: curlimages/curl:7.85.0
+      command: ['sh', '-c']
+      args:
+        - |
+          echo "Testing frontend availability..."
+          curl -f http://{{ include "data-import-service.frontend.fullname" . }}:{{ .Values.frontend.service.port }}/
+          echo "Frontend availability test passed!"
+    
+    - name: test-mysql
+      image: mysql:8.0.43
+      command: ['sh', '-c']
+      args:
+        - |
+          echo "Testing MySQL connection..."
+          mysql -h {{ include "data-import-service.mysql.fullname" . }} \
+                -u {{ .Values.mysql.auth.username }} \
+                -p{{ .Values.mysql.auth.password }} \
+                -e "SELECT 1" {{ .Values.mysql.auth.database }}
+          echo "MySQL connection test passed!"
