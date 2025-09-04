@@ -49,7 +49,7 @@
               <h4 class="font-medium text-gray-900">{{ entity.name }}</h4>
             </div>
             <div class="text-sm text-gray-600" *ngIf="entity.recordCount !== undefined">
-              {{ entity.recordCount | number }} records
+              {{ entity.recordCount }} records
             </div>
           </div>
           
@@ -59,7 +59,7 @@
           <!-- Import Results -->
           <div class="text-xs text-gray-500 mb-3">
             <div class="flex justify-between" *ngIf="entity.recordCount !== undefined">
-              <span class="font-medium">Records in DB: {{ entity.recordCount | number }}</span>
+              <span class="font-medium">Records in DB: {{ entity.recordCount }}</span>
             </div>
             <div class="flex justify-between" *ngIf="entity.lastResult">
               <span>Last Import: {{ entity.lastResult.totalRecords }}</span>
@@ -145,14 +145,14 @@
               <h4 class="font-medium text-gray-900">Correspondences</h4>
             </div>
             <div class="text-sm text-gray-600" *ngIf="correspondenceImport.recordCount !== undefined">
-              {{ correspondenceImport.recordCount | number }} records
+              {{ correspondenceImport.recordCount }} records
             </div>
           </div>
           <p class="text-sm text-gray-600 mb-3">Import main correspondence records from source system</p>
           
           <div class="text-xs text-gray-500 mb-3">
             <div class="flex justify-between" *ngIf="correspondenceImport.recordCount !== undefined">
-              <span class="font-medium">Records in DB: {{ correspondenceImport.recordCount | number }}</span>
+              <span class="font-medium">Records in DB: {{ correspondenceImport.recordCount }}</span>
             </div>
             <div class="flex justify-between" *ngIf="correspondenceImport.lastResult">
               <span>Last Import: {{ correspondenceImport.lastResult.totalRecords }}</span>

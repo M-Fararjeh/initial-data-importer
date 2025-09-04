@@ -1,5 +1,5 @@
 <div class="bg-white border rounded-lg shadow-sm p-6 transition-all duration-300 hover:shadow-md hover:scale-105"
-     [ngClass]="getColorClasses()">
+     [class]="getColorClasses()">
   
   <div class="flex items-center">
     <div class="flex-shrink-0">
@@ -7,11 +7,11 @@
     </div>
     <div class="ml-4 flex-1">
       <div class="flex items-baseline">
-        <p class="text-2xl font-bold" [ngClass]="getTextColorClass()">
-          {{ value | number }}
+        <p class="text-2xl font-bold" [class]="getTextColorClass()">
+          {{ value }}
         </p>
       </div>
-      <p class="text-sm font-medium" [ngClass]="getSubtitleColorClass()">
+      <p class="text-sm font-medium" [class]="getSubtitleColorClass()">
         {{ title }}
       </p>
     </div>
