@@ -333,4 +333,70 @@ public class OutgoingApprovalPhaseService {
             logger.error("Error updating approval error status: {}", e.getMessage());
         }
     }
+    
+    /**
+     * Gets outgoing approval migrations with pagination and search
+     */
+    @Transactional(readOnly = true, timeout = 60)
+    public Map<String, Object> getOutgoingApprovalMigrations(int page, int size, String status, String step, String search) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            
+            Page<Object[]> approvalPage;
+            if ((status != null && !"all".equals(status)) || 
+                (step != null && !"all".equals(step)) || 
+                (search != null && !search.trim().isEmpty())) {
+                
+                String statusParam = "all".equals(status) ? null : status;
+                String stepParam = "all".equals(step) ? null : step;
+                String searchParam = (search == null || search.trim().isEmpty()) ? null : search.trim();
+                
+                approvalPage = migrationRepository.findOutgoingApprovalMigrationsWithSearchAndPagination(
+                    statusParam, stepParam, searchParam, pageable);
+            } else {
+                approvalPage = migrationRepository.findOutgoingApprovalMigrationsWithPagination(pageable);
+            }
+            
+            List<Map<String, Object>> approvals = new ArrayList<>();
+            for (Object[] row : approvalPage.getContent()) {
+                Map<String, Object> approval = new HashMap<>();
+                approval.put("id", row[0] != null ? ((Number) row[0]).longValue() : null);
+                approval.put("correspondenceGuid", row[1]);
+                approval.put("createdDocumentId", row[2]);
+                approval.put("approvalStatus", row[3]);
+                approval.put("approvalStep", row[4]);
+                approval.put("approvalError", row[5]);
+                approval.put("retryCount", row[6] != null ? ((Number) row[6]).intValue() : 0);
+                approval.put("lastModifiedDate", row[7] != null ? ((Timestamp) row[7]).toLocalDateTime() : null);
+                approval.put("correspondenceSubject", row[8]);
+                approval.put("correspondenceReferenceNo", row[9]);
+                approval.put("creationUserName", row[10]);
+                approvals.add(approval);
+            }
+            
+            Map<String, Object> result = new HashMap<>();
+            result.put("content", approvals);
+            result.put("totalElements", approvalPage.getTotalElements());
+            result.put("totalPages", approvalPage.getTotalPages());
+            result.put("currentPage", approvalPage.getNumber());
+            result.put("pageSize", approvalPage.getSize());
+            result.put("hasNext", approvalPage.hasNext());
+            result.put("hasPrevious", approvalPage.hasPrevious());
+            
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error getting outgoing approval migrations", e);
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("content", new ArrayList<>());
+            errorResult.put("totalElements", 0L);
+            errorResult.put("totalPages", 0);
+            errorResult.put("currentPage", page);
+            errorResult.put("pageSize", size);
+            errorResult.put("hasNext", false);
+            errorResult.put("hasPrevious", false);
+            errorResult.put("error", e.getMessage());
+            return errorResult;
+        }
+    }
 }

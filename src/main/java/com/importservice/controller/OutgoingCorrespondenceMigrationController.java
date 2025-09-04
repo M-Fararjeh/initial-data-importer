@@ -160,39 +160,6 @@ public class OutgoingCorrespondenceMigrationController {
         }
     }
     
-    @GetMapping("/assignment/details")
-    @Operation(summary = "Get Outgoing Assignment Phase Details", 
-               description = "Returns detailed information about outgoing assignment phase migrations")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 60)
-    public ResponseEntity<Map<String, Object>> getAssignmentDetails(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size,
-            @RequestParam(defaultValue = "all") String status,
-            @RequestParam(defaultValue = "") String search) {
-        logger.info("Received request for outgoing assignment phase details - page: {}, size: {}, status: {}, search: '{}'", 
-                   page, size, status, search);
-        
-        try {
-            Map<String, Object> assignments = migrationService.getAssignmentMigrations(page, size, status, search);
-            return ResponseEntity.ok(assignments);
-        } catch (Exception e) {
-            logger.error("Error getting outgoing assignment details", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("content", new ArrayList<>());
-            errorResponse.put("totalElements", 0L);
-            errorResponse.put("totalPages", 0);
-            errorResponse.put("currentPage", page);
-            errorResponse.put("pageSize", size);
-            errorResponse.put("hasNext", false);
-            errorResponse.put("hasPrevious", false);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
     @PostMapping("/assignment/execute-specific")
     @Operation(summary = "Execute Outgoing Assignment for Specific Transactions", 
                description = "Executes outgoing assignment phase for specified transaction GUIDs")
@@ -232,6 +199,73 @@ public class OutgoingCorrespondenceMigrationController {
         } catch (Exception e) {
             logger.error("Unexpected error in outgoing approval phase", e);
             return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
+    }
+    
+    @GetMapping("/approval/details")
+    @Operation(summary = "Get Outgoing Approval Phase Details", 
+               description = "Returns detailed information about outgoing approval phase migrations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
+    })
+    @Transactional(readOnly = true, timeout = 60)
+    public ResponseEntity<Map<String, Object>> getApprovalDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(defaultValue = "all") String step,
+            @RequestParam(defaultValue = "") String search) {
+        logger.info("Received request for outgoing approval phase details - page: {}, size: {}, status: {}, step: {}, search: '{}'", 
+                   page, size, status, step, search);
+        
+        try {
+            Map<String, Object> approvals = migrationService.getApprovalMigrations(page, size, status, step, search);
+            return ResponseEntity.ok(approvals);
+        } catch (Exception e) {
+            logger.error("Error getting outgoing approval details", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("content", new ArrayList<>());
+            errorResponse.put("totalElements", 0L);
+            errorResponse.put("totalPages", 0);
+            errorResponse.put("currentPage", page);
+            errorResponse.put("pageSize", size);
+            errorResponse.put("hasNext", false);
+            errorResponse.put("hasPrevious", false);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
+        }
+    }
+    
+    @GetMapping("/assignment/details")
+    @Operation(summary = "Get Outgoing Assignment Phase Details", 
+               description = "Returns detailed information about outgoing assignment phase migrations")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
+    })
+    @Transactional(readOnly = true, timeout = 60)
+    public ResponseEntity<Map<String, Object>> getAssignmentDetails(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(defaultValue = "") String search) {
+        logger.info("Received request for outgoing assignment phase details - page: {}, size: {}, status: {}, search: '{}'", 
+                   page, size, status, search);
+        
+        try {
+            Map<String, Object> assignments = migrationService.getAssignmentMigrations(page, size, status, search);
+            return ResponseEntity.ok(assignments);
+        } catch (Exception e) {
+            logger.error("Error getting outgoing assignment details", e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("content", new ArrayList<>());
+            errorResponse.put("totalElements", 0L);
+            errorResponse.put("totalPages", 0);
+            errorResponse.put("currentPage", page);
+            errorResponse.put("pageSize", size);
+            errorResponse.put("hasNext", false);
+            errorResponse.put("hasPrevious", false);
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(500).body(errorResponse);
         }
     }
     

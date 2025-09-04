@@ -109,6 +109,12 @@ public class OutgoingCorrespondenceMigrationService {
         return assignmentPhaseService.getOutgoingAssignmentMigrations(page, size, status, search);
     }
     
+    // Phase 4: Approval - Add missing method
+    public Map<String, Object> getApprovalMigrations(int page, int size, String status, String step, String search) {
+        logger.info("Delegating to OutgoingApprovalPhaseService for approval migrations");
+        return approvalPhaseService.getOutgoingApprovalMigrations(page, size, status, step, search);
+    }
+    
     // Phase 4: Approval
     public ImportResponseDto executeApprovalPhase() {
         logger.info("Delegating to OutgoingApprovalPhaseService");
