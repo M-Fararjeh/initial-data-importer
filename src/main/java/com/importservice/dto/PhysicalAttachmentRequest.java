@@ -45,7 +45,11 @@ public class PhysicalAttachmentRequest {
     public void setAsUser(String asUser) {
         this.params.put("asUser", asUser);
     }
-    
+
+    public void setDocCreator(String docCreator) {
+        this.params.put("docCreator", docCreator);
+    }
+
     // Helper method for context
     public void setPhysicalAttachments(String physicalAttachments) {
         this.context.put("physicalAttachments", physicalAttachments);

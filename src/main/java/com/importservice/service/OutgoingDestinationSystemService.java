@@ -471,7 +471,8 @@ public class OutgoingDestinationSystemService {
             // Set params
             request.setOperationName("AC_UA_PhysicalAttachment_Add");
             request.setDocID(correspondenceGuid);
-            request.setAsUser(asUser != null ? asUser : "itba-emp1");
+            request.setAsUser("cts_admin");
+            request.setDocCreator(asUser);
             
             // Set context
             request.setPhysicalAttachments(physicalAttachments != null ? physicalAttachments : "");
