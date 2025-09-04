@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, BehaviorSubject, of } from 'rxjs';
 import { tap, catchError, map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface ImportResponse {
   status: string;
@@ -47,13 +48,14 @@ export interface CreationMigration {
 })
 export class MigrationService {
   
-  private baseUrl = 'http://localhost:8080/api/incoming-migration';
+  private baseUrl = `${environment.apiBaseUrl}/api/incoming-migration`;
   
   private statisticsSubject = new BehaviorSubject<MigrationStatistics | null>(null);
   public statistics$ = this.statisticsSubject.asObservable();
   
   constructor(private http: HttpClient) {
     console.log('MigrationService initialized');
+    console.log('Using API Base URL:', environment.apiBaseUrl);
     // Initialize with default statistics
     this.statisticsSubject.next({
       prepareData: 0,

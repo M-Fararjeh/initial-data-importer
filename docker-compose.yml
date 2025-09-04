@@ -1,4 +1,42 @@
 services:
+  app:
+    build: .
+    container_name: data-import-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/data_import_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=import_user
+      - SPRING_DATASOURCE_PASSWORD=import_password123
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - data-import-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/data-import/api/health"]
+      timeout: 30s
+      retries: 5
+      interval: 30s
+      start_period: 60s
+
+  frontend:
+    build: 
+      context: ./angular-migration-ui
+      dockerfile: Dockerfile
+    container_name: data-import-frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    environment:
+      - API_BASE_URL=http://localhost:8080/data-import
+    depends_on:
+      - app
+    networks:
+      - data-import-network
+
   mysql:
     image: mysql:8.0.43
     container_name: data-import-mysql

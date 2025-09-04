@@ -31,6 +31,9 @@ The application is built with a modular architecture consisting of:
 ### Using Docker Compose (Recommended)
 
 ```bash
+# Set environment variables (optional - defaults will be used if not set)
+export API_BASE_URL=http://localhost:8080/data-import
+
 # Start MySQL and the application
 docker-compose up -d
 
@@ -47,6 +50,9 @@ docker-compose down -v
 ### Local Development
 
 ```bash
+# Set environment variables for development
+export API_BASE_URL=http://localhost:8080/data-import
+
 # Start MySQL only
 docker-compose up -d mysql
 
@@ -64,7 +70,7 @@ npm start
 
 - **Spring Boot API**: http://localhost:8080/data-import
 - **Swagger Documentation**: http://localhost:8080/data-import/swagger-ui.html
-- **Angular Migration UI**: http://localhost:4200
+- **Angular Migration UI**: http://localhost:4200 (when running with Docker Compose)
 - **MySQL Database**: localhost:3306
 
 ## 📊 Database Configuration
@@ -428,6 +434,9 @@ npm start
 
 #### Application Properties
 ```properties
+# Environment Configuration
+api.base.url=${API_BASE_URL:http://localhost:8080/data-import}
+
 # Keycloak Configuration
 keycloak.auth.enabled=true
 keycloak.auth.server-url=http://18.206.121.44/auth
@@ -460,6 +469,23 @@ spring.datasource.password=import_password123
 - **Default**: Local development with MySQL
 - **Docker**: Container environment with optimized settings
 - **Production**: Production-ready configuration with enhanced security
+
+### Docker Environment Variables
+
+You can configure the system using environment variables in Docker Compose:
+
+```yaml
+services:
+  frontend:
+    environment:
+      - API_BASE_URL=http://your-backend-host:8080/data-import
+  
+  app:
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/data_import_db
+      - SPRING_DATASOURCE_USERNAME=import_user
+      - SPRING_DATASOURCE_PASSWORD=import_password123
+```
 
 ## 🔍 Monitoring and Troubleshooting
 

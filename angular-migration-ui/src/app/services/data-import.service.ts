@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface ImportResponse {
   status: string;
@@ -17,13 +18,14 @@ export interface ImportResponse {
 })
 export class DataImportService {
   
-  private baseUrl = 'http://localhost:8080/api/data-import';
-  private importBaseUrl = 'http://localhost:8080/api/import';
-  private userImportBaseUrl = 'http://localhost:8080/api/user-import';
-  private correspondenceImportBaseUrl = 'http://localhost:8080/api/correspondence-import';
+  private baseUrl = `${environment.apiBaseUrl}/api/data-import`;
+  private importBaseUrl = `${environment.apiBaseUrl}/api/import`;
+  private userImportBaseUrl = `${environment.apiBaseUrl}/api/user-import`;
+  private correspondenceImportBaseUrl = `${environment.apiBaseUrl}/api/correspondence-import`;
   
   constructor(private http: HttpClient) {
     console.log('DataImportService initialized');
+    console.log('Using API Base URL:', environment.apiBaseUrl);
   }
   
   // Basic entity imports
