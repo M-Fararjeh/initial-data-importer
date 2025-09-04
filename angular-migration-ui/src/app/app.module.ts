@@ -46,6 +46,9 @@ const routes: Routes = [
   { path: 'outgoing-approval-details', component: OutgoingApprovalDetailsComponent },
   { path: 'outgoing-business-log-details', component: OutgoingBusinessLogDetailsComponent },
   { path: 'outgoing-closing-details', component: OutgoingClosingDetailsComponent },
+  { path: 'internal-migration-dashboard', component: InternalMigrationDashboardComponent },
+  { path: 'internal-creation-details', component: InternalCreationDetailsComponent },
+  { path: 'internal-approval-details', component: InternalApprovalDetailsComponent },
   { path: '**', redirectTo: '' }
 ];
 
