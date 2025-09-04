@@ -4,6 +4,7 @@ import com.importservice.dto.*;
 import com.importservice.entity.Correspondence;
 import com.importservice.entity.CorrespondenceAttachment;
 import com.importservice.entity.CorrespondenceComment;
+import com.importservice.entity.CorrespondenceSendTo;
 import com.importservice.util.AgencyMappingUtils;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
@@ -30,10 +31,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class OutgoingDestinationSystemService {
@@ -367,7 +365,7 @@ public class OutgoingDestinationSystemService {
         outCorrespondence.put("corr:requireReply", CorrespondenceUtils.mapRequireReply(correspondence.getNeedReplyStatus()));
         
         // Department mapping
-        String fromDepartment = DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getFromDepartmentGuid());
+        String fromDepartment = DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getCreationDepartmentGuid());
         if (fromDepartment == null) {
             fromDepartment = "COF"; // Default department
         }
@@ -944,7 +942,7 @@ public class OutgoingDestinationSystemService {
             logger.debug("Looking up toAgency for correspondence: {}", correspondenceGuid);
             
             // Get send_tos records for this correspondence
-            List<com.importservice.entity.CorrespondenceSendTo> sendTos = 
+            List<CorrespondenceSendTo> sendTos =
                 correspondenceSendToRepository.findByDocGuid(correspondenceGuid);
             
             if (sendTos == null || sendTos.isEmpty()) {

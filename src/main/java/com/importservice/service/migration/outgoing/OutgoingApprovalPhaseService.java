@@ -299,7 +299,7 @@ public class OutgoingApprovalPhaseService {
         context.put("corr:requireReply", CorrespondenceUtils.mapRequireReply(correspondence.getNeedReplyStatus()));
         
         // Department mapping
-        String fromDepartment = com.importservice.util.DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getFromDepartmentGuid());
+        String fromDepartment = com.importservice.util.DepartmentUtils.getDepartmentCodeByOldGuid(correspondence.getCreationDepartmentGuid());
         if (fromDepartment == null) {
             fromDepartment = "COF"; // Default department
         }
