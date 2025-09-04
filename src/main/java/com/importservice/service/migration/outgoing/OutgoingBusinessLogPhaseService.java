@@ -148,8 +148,8 @@ public class OutgoingBusinessLogPhaseService {
      * Gets outgoing business logs that need processing
      */
     private List<CorrespondenceTransaction> getOutgoingBusinessLogsNeedingProcessing() {
-        // For now, reuse the existing method - in production, you'd want to filter by correspondence type
-        return transactionRepository.findBusinessLogsNeedingProcessing();
+        // Use the new method that filters by outgoing correspondence type
+        return transactionRepository.findOutgoingBusinessLogsNeedingProcessing();
     }
     
     /**
@@ -226,15 +226,15 @@ public class OutgoingBusinessLogPhaseService {
         try {
             Pageable pageable = PageRequest.of(page, size);
             
-            // Reuse existing business log query methods
+            // Use outgoing-specific business log query methods
             Page<Object[]> businessLogPage;
             if ((status != null && !"all".equals(status)) || (search != null && !search.trim().isEmpty())) {
                 String statusParam = "all".equals(status) ? null : status;
                 String searchParam = (search == null || search.trim().isEmpty()) ? null : search.trim();
-                businessLogPage = transactionRepository.findBusinessLogMigrationsWithSearchAndPagination(
+                businessLogPage = transactionRepository.findOutgoingBusinessLogMigrationsWithSearchAndPagination(
                     statusParam, searchParam, pageable);
             } else {
-                businessLogPage = transactionRepository.findBusinessLogMigrationsWithPagination(pageable);
+                businessLogPage = transactionRepository.findOutgoingBusinessLogMigrationsWithPagination(pageable);
             }
             
             List<Map<String, Object>> businessLogs = new ArrayList<>();

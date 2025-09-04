@@ -148,8 +148,8 @@ public class OutgoingCommentPhaseService {
      * Gets outgoing comments that need processing
      */
     private List<CorrespondenceComment> getOutgoingCommentsNeedingProcessing() {
-        // For now, reuse the existing method - in production, you'd want to filter by correspondence type
-        return commentRepository.findCommentsNeedingProcessing();
+        // Use the new method that filters by outgoing correspondence type
+        return commentRepository.findOutgoingCommentsNeedingProcessing();
     }
     
     /**
@@ -225,7 +225,7 @@ public class OutgoingCommentPhaseService {
         try {
             Pageable pageable = PageRequest.of(page, size);
             
-            // Reuse existing comment query methods
+            // Use outgoing-specific comment query methods
             Page<Object[]> commentPage;
             if ((status != null && !"all".equals(status)) || 
                 (commentType != null && !"all".equals(commentType)) || 
@@ -235,10 +235,10 @@ public class OutgoingCommentPhaseService {
                 String commentTypeParam = "all".equals(commentType) ? null : commentType;
                 String searchParam = (search == null || search.trim().isEmpty()) ? null : search.trim();
                 
-                commentPage = commentRepository.findCommentMigrationsWithSearchAndPagination(
+                commentPage = commentRepository.findOutgoingCommentMigrationsWithSearchAndPagination(
                     statusParam, commentTypeParam, searchParam, pageable);
             } else {
-                commentPage = commentRepository.findCommentMigrationsWithPagination(pageable);
+                commentPage = commentRepository.findOutgoingCommentMigrationsWithPagination(pageable);
             }
             
             List<Map<String, Object>> comments = new ArrayList<>();
