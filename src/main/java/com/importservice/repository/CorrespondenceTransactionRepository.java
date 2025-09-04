@@ -272,6 +272,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      * Get business log statistics efficiently
     * Filters for INCOMING correspondences (correspondence_type_id = 2)
      */
+    @Query(value = "SELECT " +
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
@@ -400,6 +401,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      * Get OUTGOING assignment statistics efficiently
      * Filters for outgoing correspondences (correspondence_type_id = 1)
      */
+    @Query(value = "SELECT " +
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
@@ -529,6 +531,7 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
      * Get OUTGOING business log statistics efficiently
      * Filters for OUTGOING correspondences (correspondence_type_id = 1)
      */
+    @Query(value = "SELECT " +
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +

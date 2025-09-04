@@ -136,6 +136,7 @@ public interface CorrespondenceCommentRepository extends JpaRepository<Correspon
      * Get comment statistics efficiently
     * Filters for INCOMING correspondences (correspondence_type_id = 2)
      */
+    @Query(value = "SELECT " +
                    "SUM(CASE WHEN cc.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN cc.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN cc.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
@@ -279,6 +280,7 @@ public interface CorrespondenceCommentRepository extends JpaRepository<Correspon
      * Get OUTGOING comment statistics efficiently
      * Filters for OUTGOING correspondences (correspondence_type_id = 1)
      */
+    @Query(value = "SELECT " +
     @Query(value = "SELECT " +
                    "SUM(CASE WHEN cc.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN cc.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
