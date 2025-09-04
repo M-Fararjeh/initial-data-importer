@@ -351,7 +351,7 @@ public class OutgoingDestinationSystemService {
         
         outCorrespondence.put("corr:gDocumentDate", gDocumentDate);
         outCorrespondence.put("corr:hDocumentDate", hDocumentDate);
-        outCorrespondence.put("out_corr:signee", "SECTOR");
+        //outCorrespondence.put("out_corr:signee", "SECTOR");
         outCorrespondence.put("corr:action", CorrespondenceUtils.mapAction(correspondence.getLastDecisionGuid()));
         outCorrespondence.put("corr:subject", finalSubject != null ? finalSubject : "");
         outCorrespondence.put("corr:remarks", correspondence.getNotes() != null ? CorrespondenceUtils.cleanHtmlTags(correspondence.getNotes()) : "");
@@ -372,6 +372,7 @@ public class OutgoingDestinationSystemService {
         outCorrespondence.put("corr:from", fromDepartment);
         outCorrespondence.put("corr:to", "");
         outCorrespondence.put("corr:fromAgency", "ITBA");
+        // TODO use to agency GUID
         outCorrespondence.put("corr:toAgency", AgencyMappingUtils.mapAgencyGuidToCode(correspondence.getComingFromGuid()));
         outCorrespondence.put("out_corr:multiRecivers", Arrays.asList());
         

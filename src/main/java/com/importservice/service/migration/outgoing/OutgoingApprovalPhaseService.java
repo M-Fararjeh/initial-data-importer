@@ -283,7 +283,7 @@ public class OutgoingApprovalPhaseService {
         
         context.put("corr:gDocumentDate", gDocumentDate);
         context.put("corr:hDocumentDate", hDocumentDate);
-        context.put("out_corr:signee", "SECTOR");
+        //context.put("out_corr:signee", "SECTOR");
         context.put("corr:action", CorrespondenceUtils.mapAction(correspondence.getLastDecisionGuid()));
         context.put("corr:subject", correspondence.getSubject() != null ? correspondence.getSubject() : "");
         context.put("corr:remarks", correspondence.getNotes() != null ? CorrespondenceUtils.cleanHtmlTags(correspondence.getNotes()) : "");
