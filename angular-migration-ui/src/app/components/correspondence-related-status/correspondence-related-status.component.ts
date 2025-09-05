@@ -94,7 +94,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     console.log('CorrespondenceRelatedStatusComponent initialized');
     this.loadCorrespondenceStatuses();
-    this.loadStatistics().subscribe();
+    this.loadStatistics();
   }
   
   ngOnDestroy(): void {
@@ -122,7 +122,30 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
       });
   }
   
-  loadStatistics(): void {
+  refreshAllData(): void {
+    console.log('Refreshing all correspondence related data and statistics');
+    this.isLoading = true;
+    
+    // Load correspondence statuses first
+    this.dataImportService.getCorrespondenceImportStatuses()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (statuses) => {
+          console.log('Correspondence statuses refreshed:', statuses);
+          this.correspondenceStatuses = statuses;
+          this.applyFilters();
+          
+          // Then load statistics
+          this.loadStatistics();
+        },
+        error: (error) => {
+          console.error('Error refreshing correspondence statuses:', error);
+          this.isLoading = false;
+        }
+      });
+  }
+  
+  private loadStatistics(): void {
     console.log('Loading correspondence import statistics...');
     
     this.dataImportService.getCorrespondenceImportStatistics()
@@ -131,9 +154,11 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
         next: (stats) => {
           console.log('Correspondence import statistics loaded:', stats);
           this.statistics = stats;
+          this.isLoading = false;
         },
         error: (error) => {
           console.error('Error loading correspondence import statistics:', error);
+          this.isLoading = false;
         }
       });
   }
@@ -192,8 +217,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
         next: (response: ImportResponse) => {
           console.log('Bulk import completed:', response);
           this.isLoading = false;
-          this.loadCorrespondenceStatuses();
-          this.loadStatistics();
+          this.refreshAllData();
           
           if (response.status === 'SUCCESS') {
             alert(`Bulk import completed successfully: ${response.successfulImports} correspondences processed.`);
@@ -227,8 +251,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
         next: (response: any) => {
           console.log('Related data import completed:', response);
           this.isLoading = false;
-          this.loadCorrespondenceStatuses();
-          this.loadStatistics();
+          this.refreshAllData();
           
           if (response.success) {
             alert('Related data imported successfully.');
@@ -262,7 +285,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
         next: (response: ImportResponse) => {
           console.log('Specific entity import completed:', response);
           this.isLoading = false;
-          this.loadCorrespondenceStatuses();
+          this.refreshAllData();
           
           if (response.status === 'SUCCESS') {
             alert(`${entityType.name} imported successfully: ${response.successfulImports} records.`);
@@ -296,8 +319,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
         next: (response: ImportResponse) => {
           console.log('Retry completed:', response);
           this.isLoading = false;
-          this.loadCorrespondenceStatuses();
-          this.loadStatistics();
+          this.refreshAllData();
           
           if (response.status === 'SUCCESS') {
             alert(`Retry completed successfully: ${response.successfulImports} correspondences processed.`);
@@ -331,7 +353,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
         next: (response: any) => {
           console.log('Reset completed:', response);
           this.isLoading = false;
-          this.loadCorrespondenceStatuses();
+          this.refreshAllData();
           
           if (response.success) {
             alert('Import status reset successfully.');
