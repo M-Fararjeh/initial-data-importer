@@ -339,8 +339,7 @@ public class CorrespondenceRelatedImportService {
                    timeout = 30,
                    isolation = org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public CorrespondenceImportStatus createOrGetImportStatusInNewTransaction(String correspondenceGuid) {
-        logger.info("[NEW_TRANSACTION] Creating or getting import status for correspondence: {}", correspondenceGuid);
-        
+
         int maxRetries = 3;
         int retryCount = 0;
         
@@ -349,12 +348,8 @@ public class CorrespondenceRelatedImportService {
                 return createOrGetImportStatusInternal(correspondenceGuid);
             } catch (org.springframework.dao.PessimisticLockingFailureException e) {
                 retryCount++;
-                logger.warn("[NEW_TRANSACTION] Lock timeout on attempt {} for correspondence: {} - {}", 
-                           retryCount, correspondenceGuid, e.getMessage());
                 
                 if (retryCount >= maxRetries) {
-                    logger.error("[NEW_TRANSACTION] Failed to create/get import status after {} attempts for correspondence: {}", 
-                               maxRetries, correspondenceGuid);
                     throw new RuntimeException("Failed to create/get import status after " + maxRetries + " attempts: " + e.getMessage(), e);
                 }
                 
@@ -381,13 +376,10 @@ public class CorrespondenceRelatedImportService {
                 importStatusRepository.findByCorrespondenceGuid(correspondenceGuid);
             
             if (existingStatus.isPresent()) {
-                logger.info("[NEW_TRANSACTION] Found existing import status with ID: {} for correspondence: {}", 
-                           existingStatus.get().getId(), correspondenceGuid);
                 return existingStatus.get();
             }
             
             // Create new status record
-            logger.info("[NEW_TRANSACTION] Creating new import status record for correspondence: {}", correspondenceGuid);
             CorrespondenceImportStatus newStatus = new CorrespondenceImportStatus(correspondenceGuid);
             newStatus.setOverallStatus("PENDING");
             newStatus.setStartedAt(LocalDateTime.now());
@@ -395,14 +387,11 @@ public class CorrespondenceRelatedImportService {
             // Save and flush immediately
             CorrespondenceImportStatus savedStatus = importStatusRepository.save(newStatus);
             importStatusRepository.flush();
-            
-            logger.info("[NEW_TRANSACTION] Successfully created and committed import status record with ID: {} for correspondence: {}", 
-                       savedStatus.getId(), correspondenceGuid);
+
             
             return savedStatus;
             
         } catch (Exception e) {
-            logger.error("[NEW_TRANSACTION] Error creating import status for correspondence: {}", correspondenceGuid, e);
             throw new RuntimeException("Failed to create import status: " + e.getMessage(), e);
         }
     }
@@ -423,12 +412,10 @@ public class CorrespondenceRelatedImportService {
                 return; // Success, exit retry loop
             } catch (org.springframework.dao.PessimisticLockingFailureException e) {
                 retryCount++;
-                logger.warn("[NEW_TRANSACTION] Lock timeout on attempt {} for correspondence: {} - {}", 
-                           retryCount, importStatus.getCorrespondenceGuid(), e.getMessage());
+
                 
                 if (retryCount >= maxRetries) {
-                    logger.error("[NEW_TRANSACTION] Failed to update import status after {} attempts for correspondence: {}", 
-                               maxRetries, importStatus.getCorrespondenceGuid());
+
                     throw new RuntimeException("Failed to update import status after " + maxRetries + " attempts: " + e.getMessage(), e);
                 }
                 
@@ -448,16 +435,13 @@ public class CorrespondenceRelatedImportService {
      */
     private void updateImportStatusInternal(CorrespondenceImportStatus importStatus) {
         try {
-            logger.info("[NEW_TRANSACTION] Updating import status ID: {} for correspondence: {}", 
-                       importStatus.getId(), importStatus.getCorrespondenceGuid());
+
             importStatusRepository.save(importStatus);
             importStatusRepository.flush();
-            logger.info("[NEW_TRANSACTION] Successfully updated and committed import status for correspondence: {}", 
-                       importStatus.getCorrespondenceGuid());
+
             
         } catch (Exception e) {
-            logger.error("[NEW_TRANSACTION] Error updating import status for correspondence: {}", 
-                        importStatus.getCorrespondenceGuid(), e);
+
             throw new RuntimeException("Failed to update import status: " + e.getMessage(), e);
         }
     }
