@@ -56,6 +56,7 @@ public class InternalCreationPhaseService {
      * Phase 2: Creation
      * Creates internal correspondences in destination system
      */
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCreationPhase() {
         logger.info("Starting Internal Phase 2: Creation");
         
@@ -65,20 +66,41 @@ public class InternalCreationPhaseService {
         
         try {
             List<InternalCorrespondenceMigration> migrations = migrationRepository.findByCurrentPhase("CREATION");
+            logger.info("Found {} internal correspondences in CREATION phase", migrations.size());
             
-            for (InternalCorrespondenceMigration migration : migrations) {
+            // Process each correspondence in its own transaction for immediate status updates
+            for (int i = 0; i < migrations.size(); i++) {
+                InternalCorrespondenceMigration migration = migrations.get(i);
                 try {
-                    boolean success = processCorrespondenceCreation(migration);
+                    logger.info("Processing internal correspondence: {} ({}/{})", 
+                               migration.getCorrespondenceGuid(), i + 1, migrations.size());
+                    
+                    // Process in separate transaction for immediate status update
+                    boolean success = processCorrespondenceCreationInNewTransaction(migration.getCorrespondenceGuid());
+                    
                     if (success) {
                         successfulImports++;
+                        logger.info("Successfully completed internal creation for correspondence: {}", migration.getCorrespondenceGuid());
                     } else {
                         failedImports++;
+                        logger.warn("Failed to complete internal creation for correspondence: {}", migration.getCorrespondenceGuid());
                     }
+                    
+                    // Add small delay between correspondences to reduce system load
+                    if (i < migrations.size() - 1) {
+                        try {
+                            Thread.sleep(200); // 200ms delay between correspondences
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            logger.warn("Thread interrupted during processing delay");
+                            break;
+                        }
+                    }
+                    
                 } catch (Exception e) {
                     failedImports++;
                     String errorMsg = "Error processing internal correspondence " + migration.getCorrespondenceGuid() + ": " + e.getMessage();
                     errors.add(errorMsg);
-                    updateCreationError(migration, errorMsg);
                     logger.error(errorMsg, e);
                 }
             }
@@ -100,7 +122,6 @@ public class InternalCreationPhaseService {
     /**
      * Executes creation for specific correspondences
      */
-    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting internal creation for {} specific correspondences", correspondenceGuids.size());
         
@@ -108,17 +129,33 @@ public class InternalCreationPhaseService {
         int successfulImports = 0;
         int failedImports = 0;
         
-        for (String correspondenceGuid : correspondenceGuids) {
+        // Process each correspondence in its own transaction for immediate status updates
+        for (int i = 0; i < correspondenceGuids.size(); i++) {
+            String correspondenceGuid = correspondenceGuids.get(i);
             try {
                 logger.info("Processing internal correspondence: {} ({}/{})", 
-                           correspondenceGuid, successfulImports + failedImports + 1, correspondenceGuids.size());
-                boolean success = processCorrespondenceCreationSimple(correspondenceGuid);
+                           correspondenceGuid, i + 1, correspondenceGuids.size());
+                
+                // Process in separate transaction for immediate status update
+                boolean success = processCorrespondenceCreationInNewTransaction(correspondenceGuid);
+                
                 if (success) {
                     successfulImports++;
                     logger.info("Successfully completed internal creation for correspondence: {}", correspondenceGuid);
                 } else {
                     failedImports++;
                     logger.warn("Failed to complete internal creation for correspondence: {}", correspondenceGuid);
+                }
+                
+                // Add small delay between correspondences to reduce system load
+                if (i < correspondenceGuids.size() - 1) {
+                    try {
+                        Thread.sleep(200); // 200ms delay between correspondences
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Thread interrupted during processing delay");
+                        break;
+                    }
                 }
                 
             } catch (Exception e) {
@@ -138,8 +175,91 @@ public class InternalCreationPhaseService {
     }
     
     /**
-     * Processes correspondence creation for a single correspondence without nested transactions
+     * Processes correspondence creation in a new transaction for immediate status updates
      */
+    @Transactional(readOnly = false, timeout = 120)
+    public boolean processCorrespondenceCreationInNewTransaction(String correspondenceGuid) {
+        try {
+            logger.debug("Starting new transaction for internal correspondence: {}", correspondenceGuid);
+            
+            Optional<InternalCorrespondenceMigration> migrationOpt = 
+                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+            
+            if (!migrationOpt.isPresent()) {
+                logger.error("Internal migration record not found for correspondence: {}", correspondenceGuid);
+                return false;
+            }
+            
+            InternalCorrespondenceMigration migration = migrationOpt.get();
+            
+            // Mark as in progress
+            migration.setCreationStatus("IN_PROGRESS");
+            migration.setLastModifiedDate(LocalDateTime.now());
+            migrationRepository.save(migration);
+            
+            // Process the creation
+            boolean result = processCorrespondenceCreation(migration);
+            
+            // Update final status
+            if (result) {
+                migration.setCreationStatus("COMPLETED");
+                migration.setCreationStep("COMPLETED");
+                
+                // Check if there are assignment transactions for this correspondence
+                boolean hasAssignments = checkIfCorrespondenceHasAssignments(correspondenceGuid);
+                if (hasAssignments) {
+                    migration.setCurrentPhase("ASSIGNMENT");
+                    migration.setNextPhase("APPROVAL");
+                } else {
+                    // Skip assignment phase and go directly to approval
+                    migration.setCurrentPhase("APPROVAL");
+                    migration.setNextPhase("BUSINESS_LOG");
+                    migration.setAssignmentStatus("SKIPPED");
+                    logger.info("No assignments found for internal correspondence {}, skipping to approval phase", correspondenceGuid);
+                }
+                migration.setPhaseStatus("PENDING");
+                migration.setRetryCount(0); // Reset retry count on success
+            } else {
+                migration.setCreationStatus("ERROR");
+                migration.setCreationError("Creation process failed");
+                migration.setRetryCount(migration.getRetryCount() + 1);
+                migration.setLastErrorAt(LocalDateTime.now());
+            }
+            
+            migrationRepository.save(migration);
+            
+            logger.info("Completed internal creation transaction for correspondence: {} with result: {}", 
+                       correspondenceGuid, result);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error in internal creation transaction for correspondence: {}", correspondenceGuid, e);
+            
+            // Update error status in separate try-catch to ensure it gets saved
+            try {
+                Optional<InternalCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                if (migrationOpt.isPresent()) {
+                    InternalCorrespondenceMigration migration = migrationOpt.get();
+                    migration.setCreationStatus("ERROR");
+                    migration.setCreationError("Transaction failed: " + e.getMessage());
+                    migration.setRetryCount(migration.getRetryCount() + 1);
+                    migration.setLastErrorAt(LocalDateTime.now());
+                    migrationRepository.save(migration);
+                }
+            } catch (Exception statusError) {
+                logger.error("Error updating error status for correspondence: {}", correspondenceGuid, statusError);
+            }
+            
+            return false;
+        }
+    }
+    
+    /**
+     * Processes correspondence creation for a single correspondence without nested transactions
+     * @deprecated Use processCorrespondenceCreationInNewTransaction for better transaction handling
+     */
+    @Deprecated
     private boolean processCorrespondenceCreationSimple(String correspondenceGuid) {
         try {
             logger.info("Starting internal creation process for correspondence: {}", correspondenceGuid);
@@ -215,6 +335,9 @@ public class InternalCreationPhaseService {
             // Step-based processing: Resume from current step
             if ("GET_DETAILS".equals(migration.getCreationStep())) {
                 logger.info("Step 1: Getting details and attachments for internal correspondence: {}", correspondenceGuid);
+                updateCreationStep(migration, "GET_ATTACHMENTS");
+                migrationRepository.save(migration); // Save step progress
+                
                 attachments = attachmentRepository.findByDocGuid(correspondenceGuid);
                 primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
 
@@ -224,6 +347,8 @@ public class InternalCreationPhaseService {
                 if (primaryAttachment != null && AttachmentUtils.isValidForUpload(primaryAttachment)) {
                     logger.info("Step 2: Uploading main attachment for internal correspondence: {}", correspondenceGuid);
                     updateCreationStep(migration, "UPLOAD_MAIN_ATTACHMENT");
+                    migrationRepository.save(migration); // Save step progress
+                    
                     batchId = destinationService.createBatch();
                     if (batchId != null) {
                         migration.setBatchId(batchId);
@@ -252,6 +377,8 @@ public class InternalCreationPhaseService {
                 // Step 3: Create internal correspondence
                 logger.info("Step 3: Creating internal correspondence in destination: {}", correspondenceGuid);
                 updateCreationStep(migration, "CREATE_CORRESPONDENCE");
+                migrationRepository.save(migration); // Save step progress
+                
                 documentId = createInternalCorrespondenceInDestination(correspondence, batchId);
                 if (documentId == null) {
                     logger.error("Step 3 failed: Failed to create internal correspondence in destination system: {}", correspondenceGuid);
@@ -261,11 +388,16 @@ public class InternalCreationPhaseService {
                 migration.setCreatedDocumentId(documentId);
                 migrationRepository.save(migration); // Save progress
                 updateCreationStep(migration, "UPLOAD_OTHER_ATTACHMENTS");
+                migrationRepository.save(migration); // Save step progress
             }
             
             // Resume processing: Get document ID if not available
             if (documentId == null) {
                 documentId = migration.getCreatedDocumentId();
+                if (documentId == null) {
+                    logger.error("No document ID available for internal correspondence: {}", correspondenceGuid);
+                    return false;
+                }
             }
             
             // Step 4: Upload other attachments
@@ -305,6 +437,18 @@ public class InternalCreationPhaseService {
             return false;
         } catch (Exception e) {
             logger.error("Error in internal creation process for correspondence: {}", correspondenceGuid, e);
+            
+            // Update error status immediately
+            try {
+                migration.setCreationStatus("ERROR");
+                migration.setCreationError("Step failed: " + e.getMessage());
+                migration.setRetryCount(migration.getRetryCount() + 1);
+                migration.setLastErrorAt(LocalDateTime.now());
+                migrationRepository.save(migration);
+            } catch (Exception saveError) {
+                logger.error("Error saving error status for correspondence: {}", correspondenceGuid, saveError);
+            }
+            
             return false;
         }
     }
