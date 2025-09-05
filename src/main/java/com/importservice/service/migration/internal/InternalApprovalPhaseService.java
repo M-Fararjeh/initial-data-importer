@@ -215,64 +215,6 @@ public class InternalApprovalPhaseService {
     }
     
     /**
-     * Processes approval for a single correspondence in a new transaction for immediate status updates
-     */
-    @Transactional(readOnly = false, timeout = 120)
-    public boolean processInternalApprovalInNewTransaction(String correspondenceGuid) {
-        try {
-            logger.debug("Starting new transaction for internal approval: {}", correspondenceGuid);
-            
-            Optional<InternalCorrespondenceMigration> migrationOpt = 
-                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
-            
-            if (!migrationOpt.isPresent()) {
-                logger.error("Internal migration record not found: {}", correspondenceGuid);
-                return false;
-            }
-            
-            InternalCorrespondenceMigration migration = migrationOpt.get();
-            
-            // Mark as in progress immediately
-            migration.setApprovalStatus("IN_PROGRESS");
-            migration.setLastModifiedDate(LocalDateTime.now());
-            migrationRepository.save(migration);
-            
-            // Process the approval
-            boolean result = processApproval(migration);
-            
-            // Update final status immediately
-            if (result) {
-                updateApprovalSuccess(migration);
-                logger.info("Successfully processed internal approval: {}", correspondenceGuid);
-            } else {
-                updateApprovalError(migration, "Approval process failed");
-                logger.warn("Failed to process internal approval: {}", correspondenceGuid);
-            }
-            
-            logger.debug("Completed internal approval transaction for: {} with result: {}", 
-                        correspondenceGuid, result);
-            return result;
-            
-        } catch (Exception e) {
-            logger.error("Error in internal approval transaction for: {}", correspondenceGuid, e);
-            
-            // Update error status in separate try-catch to ensure it gets saved
-            try {
-                Optional<InternalCorrespondenceMigration> migrationOpt = 
-                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
-                if (migrationOpt.isPresent()) {
-                    InternalCorrespondenceMigration migration = migrationOpt.get();
-                    updateApprovalError(migration, "Transaction failed: " + e.getMessage());
-                }
-            } catch (Exception statusError) {
-                logger.error("Error updating error status for correspondence: {}", correspondenceGuid, statusError);
-            }
-            
-            return false;
-        }
-    }
-    
-    /**
      * Processes approval for a single correspondence
      * @deprecated Use processInternalApprovalInNewTransaction for better transaction handling
      */
