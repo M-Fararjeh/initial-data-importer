@@ -146,7 +146,6 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
     @Query(value = "SELECT " +
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
-                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_transactions ct " +
                    "INNER JOIN correspondences c ON ct.doc_guid = c.guid " +
@@ -276,7 +275,6 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
-                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_transactions ct " +
                    "INNER JOIN correspondences c ON ct.doc_guid = c.guid " +
@@ -404,7 +402,6 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
     @Query(value = "SELECT " +
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
-                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_transactions ct " +
@@ -534,7 +531,6 @@ public interface CorrespondenceTransactionRepository extends JpaRepository<Corre
     @Query(value = "SELECT " +
                    "SUM(CASE WHEN ct.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN ct.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
-                   "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "SUM(CASE WHEN ct.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_transactions ct " +

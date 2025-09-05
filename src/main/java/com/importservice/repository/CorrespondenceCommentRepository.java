@@ -140,7 +140,6 @@ public interface CorrespondenceCommentRepository extends JpaRepository<Correspon
                    "SUM(CASE WHEN cc.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN cc.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
                    "SUM(CASE WHEN cc.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
-                   "SUM(CASE WHEN migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_comments cc " +
                    "INNER JOIN correspondences c ON cc.doc_guid = c.guid " +
@@ -283,7 +282,6 @@ public interface CorrespondenceCommentRepository extends JpaRepository<Correspon
     @Query(value = "SELECT " +
                    "SUM(CASE WHEN cc.migrate_status = 'PENDING' THEN 1 ELSE 0 END) as pending, " +
                    "SUM(CASE WHEN cc.migrate_status = 'SUCCESS' THEN 1 ELSE 0 END) as success, " +
-                   "SUM(CASE WHEN cc.migrate_status = 'FAILED' THEN 1 ELSE 0 END) as failed, " +
                    "COUNT(*) as total " +
                    "FROM correspondence_comments cc " +
                    "INNER JOIN correspondences c ON cc.doc_guid = c.guid " +
