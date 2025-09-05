@@ -10,38 +10,26 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
-    /**
-     * Global CORS configuration for all endpoints
-     * Uses allowedOriginPatterns instead of allowedOrigins when credentials are enabled
-     */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("*") // Use allowedOriginPatterns instead of allowedOrigins
+                .allowedOriginPatterns("*")  // Use allowedOriginPatterns instead of allowedOrigins
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH")
                 .allowedHeaders("*")
-                .allowCredentials(true)
-                .exposedHeaders("Authorization", "Content-Type", "X-Requested-With", "Accept", 
-                              "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers",
-                              "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials")
+                .allowCredentials(false)  // Disable credentials to avoid conflict
                 .maxAge(3600);
     }
 
-    /**
-     * CORS configuration source bean
-     * Alternative configuration method for more control
-     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Use allowedOriginPatterns for wildcard support with credentials
-        configuration.setAllowedOriginPatterns(Collections.singletonList("*"));
+        // Use allowedOriginPatterns for wildcard support
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         
         // Allow all HTTP methods
         configuration.setAllowedMethods(Arrays.asList(
@@ -49,17 +37,23 @@ public class CorsConfig implements WebMvcConfigurer {
         ));
         
         // Allow all headers
-        configuration.setAllowedHeaders(Collections.singletonList("*"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         
-        // Allow credentials (cookies, authorization headers, etc.)
-        configuration.setAllowCredentials(true);
+        // Disable credentials to avoid the conflict with wildcard origins
+        configuration.setAllowCredentials(false);
         
-        // Expose important headers to the client
+        // Expose common headers that clients might need
         configuration.setExposedHeaders(Arrays.asList(
-            "Authorization", "Content-Type", "X-Requested-With", "Accept", 
-            "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers",
-            "Access-Control-Allow-Origin", "Access-Control-Allow-Credentials",
-            "X-Total-Count", "X-Page-Count", "Link"
+            "Authorization", 
+            "Content-Type", 
+            "X-Requested-With",
+            "Accept",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers",
+            "X-Total-Count",
+            "X-Page-Number",
+            "X-Page-Size"
         ));
         
         // Cache preflight response for 1 hour
@@ -71,10 +65,6 @@ public class CorsConfig implements WebMvcConfigurer {
         return source;
     }
 
-    /**
-     * CORS filter bean for additional CORS handling
-     * This provides another layer of CORS support
-     */
     @Bean
     public CorsFilter corsFilter() {
         return new CorsFilter(corsConfigurationSource());
