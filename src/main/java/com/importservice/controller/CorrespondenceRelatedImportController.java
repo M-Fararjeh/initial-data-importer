@@ -113,7 +113,6 @@ public class CorrespondenceRelatedImportController {
         
         try {
             boolean importResult = correspondenceRelatedImportService.importRelatedDataForCorrespondence(correspondenceGuid);
-            
             Map<String, Object> response = new HashMap<>();
             response.put("success", importResult);
             response.put("success", success);
@@ -315,10 +314,10 @@ public class CorrespondenceRelatedImportController {
             boolean success = correspondenceRelatedImportService.resetImportStatus(correspondenceGuid);
             
             Map<String, Object> response = new HashMap<>();
-            response.put("success", success);
+            response.put("success", importResult);
             response.put("correspondenceGuid", correspondenceGuid);
-            response.put("message", success ? "Import status reset successfully" : "Failed to reset import status");
-            
+            response.put("message", importResult ? "Import completed successfully" : "Import failed");
+            response.put("details", null);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Unexpected error during reset import status for: {}", correspondenceGuid, e);
