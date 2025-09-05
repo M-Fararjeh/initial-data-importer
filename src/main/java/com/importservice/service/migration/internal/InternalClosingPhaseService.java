@@ -190,7 +190,7 @@ public class InternalClosingPhaseService {
                 logger.info("Internal correspondence {} does not need to be closed (isNeedToClose = false), marking as success", correspondenceGuid);
                 // Mark as completed since no action is needed
                 migration.setClosingStatus("COMPLETED");
-                updateInternalPhaseStatus(migration, "CLOSING", "COMPLETED", null);
+                updateInternalPhaseStatus(correspondenceGuid, "CLOSING", "COMPLETED", null);
                 return true;
             }
             
