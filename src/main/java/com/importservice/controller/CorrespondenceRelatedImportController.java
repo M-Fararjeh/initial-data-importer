@@ -112,14 +112,13 @@ public class CorrespondenceRelatedImportController {
         logger.info("Received request to import related data for correspondence: {}", correspondenceGuid);
         
         try {
-            boolean success = correspondenceRelatedImportService.importRelatedDataForCorrespondence(correspondenceGuid);
-            boolean success = "SUCCESS".equals(result.getStatus()) || "PARTIAL_SUCCESS".equals(result.getStatus());
+            boolean importResult = correspondenceRelatedImportService.importRelatedDataForCorrespondence(correspondenceGuid);
             
             Map<String, Object> response = new HashMap<>();
-            response.put("success", success);
+            response.put("success", importResult);
             response.put("success", success);
             response.put("message", result.getMessage());
-            response.put("message", success ? "Import completed successfully" : "Import failed");
+            response.put("message", importResult ? "Import completed successfully" : "Import failed");
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
