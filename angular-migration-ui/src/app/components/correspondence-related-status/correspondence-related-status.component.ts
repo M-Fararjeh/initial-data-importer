@@ -153,11 +153,26 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (stats) => {
           console.log('Correspondence import statistics loaded:', stats);
-          this.statistics = stats;
+          // Map the statistics to the expected format
+          this.statistics = {
+            total: stats.total || 0,
+            completed: stats.completed || 0,
+            inProgress: stats.inProgress || 0,
+            failed: stats.failed || 0,
+            pending: stats.pending || 0
+          };
           this.isLoading = false;
         },
         error: (error) => {
           console.error('Error loading correspondence import statistics:', error);
+          // Set default statistics on error
+          this.statistics = {
+            total: 0,
+            completed: 0,
+            inProgress: 0,
+            failed: 0,
+            pending: 0
+          };
           this.isLoading = false;
         }
       });

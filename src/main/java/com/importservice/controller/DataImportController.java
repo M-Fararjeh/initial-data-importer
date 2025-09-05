@@ -550,19 +550,19 @@ public class DataImportController {
         logger.info("Received request for correspondence import statistics");
         
         try {
-            Map<String, Object> statistics = new HashMap<>();
-            
-            // Get basic counts from repositories
-            statistics.put("totalCorrespondences", correspondenceRepository.count());
-            statistics.put("totalAttachments", correspondenceAttachmentRepository.count());
-            statistics.put("totalComments", correspondenceCommentRepository.count());
-            statistics.put("totalTransactions", correspondenceTransactionRepository.count());
-            
-            return ResponseEntity.ok(statistics);
+            // Redirect to the proper correspondence import statistics endpoint
+            return ResponseEntity.status(302)
+                .header("Location", "/api/correspondence-import/statistics")
+                .build();
         } catch (Exception e) {
             logger.error("Error getting correspondence import statistics", e);
             Map<String, Object> errorMap = new HashMap<>();
             errorMap.put("error", "Failed to get statistics: " + e.getMessage());
+            errorMap.put("pending", 0L);
+            errorMap.put("inProgress", 0L);
+            errorMap.put("completed", 0L);
+            errorMap.put("failed", 0L);
+            errorMap.put("total", 0L);
             return ResponseEntity.status(500).body(errorMap);
         }
     }
@@ -578,20 +578,10 @@ public class DataImportController {
         logger.info("Received request for all correspondence import statuses");
         
         try {
-            // Return basic correspondence information
-            List<Object> statuses = new ArrayList<>();
-            List<Correspondence> correspondences = correspondenceRepository.findAll();
-            
-            for (Correspondence correspondence : correspondences) {
-                Map<String, Object> statusInfo = new HashMap<>();
-                statusInfo.put("correspondenceGuid", correspondence.getGuid());
-                statusInfo.put("subject", correspondence.getSubject());
-                statusInfo.put("referenceNo", correspondence.getReferenceNo());
-                statusInfo.put("importStatus", correspondence.getImportStatus());
-                statuses.add(statusInfo);
-            }
-            
-            return ResponseEntity.ok(statuses);
+            // Redirect to the proper correspondence import status endpoint
+            return ResponseEntity.status(302)
+                .header("Location", "/api/correspondence-import/status")
+                .build();
         } catch (Exception e) {
             logger.error("Error getting all import statuses", e);
             return ResponseEntity.status(500).body(new ArrayList<>());
