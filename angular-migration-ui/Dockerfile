@@ -7,12 +7,14 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install &&  npm ci --only=production
 
 # Copy source code
 COPY . .
 
 # Build the application
+RUN npm install -g @angular/cli
+RUN npm install @angular-devkit/build-angular --save-dev
 RUN npm run build
 
 # Production stage
