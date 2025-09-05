@@ -207,13 +207,13 @@ public class InternalClosingPhaseService {
             // Update final status immediately
             if (result) {
                 migration.setClosingStatus("COMPLETED");
-                updateInternalPhaseStatus(migration, "CLOSING", "COMPLETED", null);
+                updateInternalPhaseStatus(correspondenceGuid, "CLOSING", "COMPLETED", null);
                 logger.info("Successfully closed internal correspondence: {}", correspondenceGuid);
             } else {
                 migration.setClosingStatus("FAILED");
                 migration.setRetryCount(migration.getRetryCount() + 1);
                 migration.setLastErrorAt(LocalDateTime.now());
-                updateInternalPhaseStatus(migration, "CLOSING", "ERROR", "Closing process failed");
+                updateInternalPhaseStatus(correspondenceGuid, "CLOSING", "ERROR", "Closing process failed");
                 logger.warn("Failed to close internal correspondence: {}", correspondenceGuid);
             }
             
