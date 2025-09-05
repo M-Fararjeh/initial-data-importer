@@ -107,7 +107,6 @@ public class InternalAssignmentPhaseService {
     /**
      * Executes assignment for specific transactions
      */
-    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto executeAssignmentForSpecific(List<String> transactionGuids) {
         logger.info("Starting internal assignment for {} specific transactions", transactionGuids.size());
         
@@ -115,22 +114,33 @@ public class InternalAssignmentPhaseService {
         int successfulImports = 0;
         int failedImports = 0;
         
-        for (String transactionGuid : transactionGuids) {
+        // Process each assignment in its own transaction for immediate status updates
+        for (int i = 0; i < transactionGuids.size(); i++) {
+            String transactionGuid = transactionGuids.get(i);
             try {
-                boolean success = processInternalAssignmentForTransaction(transactionGuid);
+                logger.info("Processing internal assignment: {} ({}/{})", 
+                           transactionGuid, i + 1, transactionGuids.size());
                 
-                // Add small delay between transactions to reduce lock contention
-                try {
-                    Thread.sleep(100); // 100ms delay
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+                // Process in separate transaction for immediate status update
+                boolean success = processInternalAssignmentInNewTransaction(transactionGuid);
                 
                 if (success) {
                     successfulImports++;
+                    logger.info("Successfully completed internal assignment for transaction: {}", transactionGuid);
                 } else {
                     failedImports++;
+                    logger.warn("Failed to complete internal assignment for transaction: {}", transactionGuid);
+                }
+                
+                // Add delay between assignments to reduce system load
+                if (i < transactionGuids.size() - 1) {
+                    try {
+                        Thread.sleep(150); // 150ms delay between assignments
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Thread interrupted during processing delay");
+                        break;
+                    }
                 }
                 
             } catch (Exception e) {
@@ -150,6 +160,75 @@ public class InternalAssignmentPhaseService {
     }
     
     /**
+     * Processes assignment for a single transaction in a new transaction for immediate status updates
+     */
+    @Transactional(readOnly = false, timeout = 60)
+    public boolean processInternalAssignmentInNewTransaction(String transactionGuid) {
+        try {
+            logger.debug("Starting new transaction for internal assignment: {}", transactionGuid);
+            
+            Optional<CorrespondenceTransaction> transactionOpt = 
+                transactionRepository.findById(transactionGuid);
+            
+            if (!transactionOpt.isPresent()) {
+                logger.error("Internal transaction not found: {}", transactionGuid);
+                return false;
+            }
+            
+            CorrespondenceTransaction transaction = transactionOpt.get();
+            
+            // Mark as in progress immediately
+            transaction.setMigrateStatus("IN_PROGRESS");
+            transaction.setLastModifiedDate(LocalDateTime.now());
+            transactionRepository.save(transaction);
+            
+            // Process the assignment
+            boolean result = processInternalAssignment(transaction);
+            
+            // Update final status immediately
+            if (result) {
+                transaction.setMigrateStatus("SUCCESS");
+                transaction.setRetryCount(0); // Reset retry count on success
+                logger.info("Successfully processed internal assignment: {}", transactionGuid);
+                
+                // Check if all assignments for this correspondence are complete
+                checkAndUpdateAssignmentStatusForCorrespondence(transaction.getDocGuid());
+            } else {
+                transaction.setMigrateStatus("FAILED");
+                transaction.setRetryCount(transaction.getRetryCount() + 1);
+                logger.warn("Failed to process internal assignment: {}", transactionGuid);
+            }
+            
+            transaction.setLastModifiedDate(LocalDateTime.now());
+            transactionRepository.save(transaction);
+            
+            logger.debug("Completed internal assignment transaction for: {} with result: {}", 
+                        transactionGuid, result);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error in internal assignment transaction for: {}", transactionGuid, e);
+            
+            // Update error status in separate try-catch to ensure it gets saved
+            try {
+                Optional<CorrespondenceTransaction> transactionOpt = 
+                    transactionRepository.findById(transactionGuid);
+                if (transactionOpt.isPresent()) {
+                    CorrespondenceTransaction transaction = transactionOpt.get();
+                    transaction.setMigrateStatus("FAILED");
+                    transaction.setRetryCount(transaction.getRetryCount() + 1);
+                    transaction.setLastModifiedDate(LocalDateTime.now());
+                    transactionRepository.save(transaction);
+                }
+            } catch (Exception statusError) {
+                logger.error("Error updating error status for transaction: {}", transactionGuid, statusError);
+            }
+            
+            return false;
+        }
+    }
+    
+    /**
      * Gets internal assignments that need processing
      */
     private List<CorrespondenceTransaction> getInternalAssignmentsNeedingProcessing() {
@@ -159,7 +238,9 @@ public class InternalAssignmentPhaseService {
     
     /**
      * Processes assignment for a single transaction
+     * @deprecated Use processInternalAssignmentInNewTransaction for better transaction handling
      */
+    @Deprecated
     private boolean processInternalAssignmentForTransaction(String transactionGuid) {
         try {
             Optional<CorrespondenceTransaction> transactionOpt = 
