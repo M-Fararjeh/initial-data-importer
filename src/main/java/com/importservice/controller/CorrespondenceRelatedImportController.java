@@ -1,11 +1,11 @@
 package com.importservice.controller;
 
 import com.importservice.dto.ImportResponseDto;
-import com.importservice.service.CorrespondenceRelatedImportService;
 import com.importservice.entity.Correspondence;
+import com.importservice.entity.CorrespondenceImportStatus;
 import com.importservice.repository.CorrespondenceImportStatusRepository;
 import com.importservice.repository.CorrespondenceRepository;
-import com.importservice.entity.CorrespondenceImportStatus;
+import com.importservice.service.CorrespondenceRelatedImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -30,18 +29,18 @@ import java.util.Map;
 @Tag(name = "Correspondence Related Import Controller", description = "Operations for importing correspondence-related data with status tracking")
 @CrossOrigin(origins = "*")
 public class CorrespondenceRelatedImportController {
-
+    
     private static final Logger logger = LoggerFactory.getLogger(CorrespondenceRelatedImportController.class);
-
+    
     @Autowired
     private CorrespondenceRelatedImportService correspondenceRelatedImportService;
-
+    
     @Autowired
     private CorrespondenceImportStatusRepository importStatusRepository;
     
     @Autowired
     private CorrespondenceRepository correspondenceRepository;
-
+    
     @PostMapping("/all-correspondences-with-related")
     @Operation(summary = "Import All Correspondences with Related Data", 
                description = "Import all correspondences with related data using status tracking")
@@ -51,11 +50,12 @@ public class CorrespondenceRelatedImportController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<ImportResponseDto> importAllCorrespondencesWithRelated() {
-        logger.info("Received request to import all correspondences with related data (with status tracking)");
+        logger.info("Received request to import all correspondences with related data");
         
         try {
-            // Get all correspondences and import their related data
+            // Get all correspondences
             List<Correspondence> correspondences = correspondenceRepository.findAll();
+            logger.info("Found {} correspondences to process", correspondences.size());
             
             int totalRecords = correspondences.size();
             int successfulImports = 0;
@@ -73,28 +73,37 @@ public class CorrespondenceRelatedImportController {
                     }
                 } catch (Exception e) {
                     failedImports++;
-                    errors.add("Error importing related data for correspondence " + correspondence.getGuid() + ": " + e.getMessage());
-                    logger.error("Error importing related data for correspondence: {}", correspondence.getGuid(), e);
+                    String errorMsg = "Error importing correspondence " + correspondence.getGuid() + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
                 }
             }
             
-            ImportResponseDto response = new ImportResponseDto();
+            // Determine final status
+            String status;
             if (failedImports == 0) {
-                response.setStatus("SUCCESS");
+                status = "SUCCESS";
             } else if (successfulImports > 0) {
-                response.setStatus("PARTIAL_SUCCESS");
+                status = "PARTIAL_SUCCESS";
             } else {
-                response.setStatus("ERROR");
+                status = "ERROR";
             }
-            response.setMessage(String.format("Import completed. Success: %d, Failed: %d", successfulImports, failedImports));
+            
+            String message = String.format("Bulk import completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
+            
+            ImportResponseDto response = new ImportResponseDto();
+            response.setStatus(status);
+            response.setMessage(message);
             response.setTotalRecords(totalRecords);
             response.setSuccessfulImports(successfulImports);
             response.setFailedImports(failedImports);
             response.setErrors(errors);
             
             return getResponseEntity(response);
+            
         } catch (Exception e) {
-            logger.error("Unexpected error during correspondence related import", e);
+            logger.error("Unexpected error during bulk correspondence import", e);
             return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
         }
     }
@@ -113,11 +122,11 @@ public class CorrespondenceRelatedImportController {
         
         try {
             boolean serviceResult = correspondenceRelatedImportService.importRelatedDataForCorrespondence(correspondenceGuid);
+            
             Map<String, Object> response = new HashMap<>();
-            response.put("success", importResult);
             response.put("success", serviceResult);
-            response.put("message", serviceResult ? "Import completed successfully" : "Import failed");
-            response.put("message", importResult ? "Import completed successfully" : "Import failed");
+            response.put("correspondenceGuid", correspondenceGuid);
+            response.put("message", serviceResult ? "Related data imported successfully" : "Failed to import related data");
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
@@ -132,7 +141,7 @@ public class CorrespondenceRelatedImportController {
     
     @GetMapping("/statistics")
     @Operation(summary = "Get Correspondence Import Statistics", 
-               description = "Returns comprehensive statistics about correspondence import status")
+               description = "Returns statistics about correspondence import status")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
     })
@@ -141,75 +150,58 @@ public class CorrespondenceRelatedImportController {
         logger.info("Received request for correspondence import statistics");
         
         try {
+            // Get statistics from import status table
+            Object[] statsArray = importStatusRepository.getImportStatistics();
+            
             Map<String, Object> statistics = new HashMap<>();
             
-            // Get statistics from import status table
-            Object[] importStats = importStatusRepository.getImportStatistics();
-            
-            if (importStats != null && importStats.length >= 5) {
+            if (statsArray != null && statsArray.length >= 5) {
                 // Extract values safely
-                Long pending = importStats[0] != null ? ((Number) importStats[0]).longValue() : 0L;
-                Long inProgress = importStats[1] != null ? ((Number) importStats[1]).longValue() : 0L;
-                Long completed = importStats[2] != null ? ((Number) importStats[2]).longValue() : 0L;
-                Long failed = importStats[3] != null ? ((Number) importStats[3]).longValue() : 0L;
-                Long total = importStats[4] != null ? ((Number) importStats[4]).longValue() : 0L;
+                Long pending = statsArray[0] != null ? ((Number) statsArray[0]).longValue() : 0L;
+                Long inProgress = statsArray[1] != null ? ((Number) statsArray[1]).longValue() : 0L;
+                Long completed = statsArray[2] != null ? ((Number) statsArray[2]).longValue() : 0L;
+                Long failed = statsArray[3] != null ? ((Number) statsArray[3]).longValue() : 0L;
+                Long total = statsArray[4] != null ? ((Number) statsArray[4]).longValue() : 0L;
                 
                 statistics.put("pending", pending);
                 statistics.put("inProgress", inProgress);
                 statistics.put("completed", completed);
                 statistics.put("failed", failed);
                 statistics.put("total", total);
-                
-                logger.info("Import statistics: total={}, completed={}, inProgress={}, failed={}, pending={}", 
-                           total, completed, inProgress, failed, pending);
             } else {
-                // Fallback to zero values if query fails
-                logger.warn("Import statistics query returned null or insufficient data, using defaults");
-                statistics.put("pending", 0L);
-                statistics.put("inProgress", 0L);
-                statistics.put("completed", 0L);
-                statistics.put("failed", 0L);
-                statistics.put("total", 0L);
+                // Fallback to manual count if query fails
+                Long totalCount = importStatusRepository.count();
+                Long completedCount = importStatusRepository.countByOverallStatus("COMPLETED");
+                Long inProgressCount = importStatusRepository.countByOverallStatus("IN_PROGRESS");
+                Long failedCount = importStatusRepository.countByOverallStatus("FAILED");
+                Long pendingCount = importStatusRepository.countByOverallStatus("PENDING");
+                
+                statistics.put("total", totalCount);
+                statistics.put("completed", completedCount);
+                statistics.put("inProgress", inProgressCount);
+                statistics.put("failed", failedCount);
+                statistics.put("pending", pendingCount);
             }
             
-            // Get entity-specific statistics
-            try {
-                Object[] entityStats = importStatusRepository.getEntityStatistics();
-                if (entityStats != null && entityStats.length >= 10) {
-                    Map<String, Object> entityStatistics = new HashMap<>();
-                    entityStatistics.put("attachmentsSuccess", entityStats[0] != null ? ((Number) entityStats[0]).longValue() : 0L);
-                    entityStatistics.put("commentsSuccess", entityStats[1] != null ? ((Number) entityStats[1]).longValue() : 0L);
-                    entityStatistics.put("copyTosSuccess", entityStats[2] != null ? ((Number) entityStats[2]).longValue() : 0L);
-                    entityStatistics.put("currentDepartmentsSuccess", entityStats[3] != null ? ((Number) entityStats[3]).longValue() : 0L);
-                    entityStatistics.put("currentPositionsSuccess", entityStats[4] != null ? ((Number) entityStats[4]).longValue() : 0L);
-                    entityStatistics.put("currentUsersSuccess", entityStats[5] != null ? ((Number) entityStats[5]).longValue() : 0L);
-                    entityStatistics.put("customFieldsSuccess", entityStats[6] != null ? ((Number) entityStats[6]).longValue() : 0L);
-                    entityStatistics.put("linksSuccess", entityStats[7] != null ? ((Number) entityStats[7]).longValue() : 0L);
-                    entityStatistics.put("sendTosSuccess", entityStats[8] != null ? ((Number) entityStats[8]).longValue() : 0L);
-                    entityStatistics.put("transactionsSuccess", entityStats[9] != null ? ((Number) entityStats[9]).longValue() : 0L);
-                    statistics.put("entityStatistics", entityStatistics);
-                }
-            } catch (Exception e) {
-                logger.warn("Error getting entity statistics: {}", e.getMessage());
-            }
-            
+            logger.info("Returning correspondence import statistics: {}", statistics);
             return ResponseEntity.ok(statistics);
+            
         } catch (Exception e) {
             logger.error("Error getting correspondence import statistics", e);
-            Map<String, Object> errorMap = new HashMap<>();
-            errorMap.put("error", "Failed to get statistics: " + e.getMessage());
-            errorMap.put("pending", 0L);
-            errorMap.put("inProgress", 0L);
-            errorMap.put("completed", 0L);
-            errorMap.put("failed", 0L);
-            errorMap.put("total", 0L);
-            return ResponseEntity.status(500).body(errorMap);
+            Map<String, Object> errorStats = new HashMap<>();
+            errorStats.put("error", "Failed to get statistics: " + e.getMessage());
+            errorStats.put("total", 0L);
+            errorStats.put("completed", 0L);
+            errorStats.put("inProgress", 0L);
+            errorStats.put("failed", 0L);
+            errorStats.put("pending", 0L);
+            return ResponseEntity.status(500).body(errorStats);
         }
     }
     
     @GetMapping("/status")
     @Operation(summary = "Get All Correspondence Import Statuses", 
-               description = "Returns detailed import status for all correspondences")
+               description = "Returns import status for all correspondences")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Statuses retrieved successfully")
     })
@@ -218,62 +210,60 @@ public class CorrespondenceRelatedImportController {
         logger.info("Received request for all correspondence import statuses");
         
         try {
-            List<CorrespondenceImportStatus> importStatuses = importStatusRepository.findAll();
+            List<CorrespondenceImportStatus> statuses = importStatusRepository.findAll();
             List<Map<String, Object>> statusList = new ArrayList<>();
             
-            for (CorrespondenceImportStatus status : importStatuses) {
-                Map<String, Object> statusInfo = new HashMap<>();
-                statusInfo.put("id", status.getId());
-                statusInfo.put("correspondenceGuid", status.getCorrespondenceGuid());
-                statusInfo.put("overallStatus", status.getOverallStatus());
+            for (CorrespondenceImportStatus status : statuses) {
+                Map<String, Object> statusMap = new HashMap<>();
+                statusMap.put("id", status.getId());
+                statusMap.put("correspondenceGuid", status.getCorrespondenceGuid());
+                statusMap.put("overallStatus", status.getOverallStatus());
+                statusMap.put("attachmentsStatus", status.getAttachmentsStatus());
+                statusMap.put("commentsStatus", status.getCommentsStatus());
+                statusMap.put("copyTosStatus", status.getCopyTosStatus());
+                statusMap.put("currentDepartmentsStatus", status.getCurrentDepartmentsStatus());
+                statusMap.put("currentPositionsStatus", status.getCurrentPositionsStatus());
+                statusMap.put("currentUsersStatus", status.getCurrentUsersStatus());
+                statusMap.put("customFieldsStatus", status.getCustomFieldsStatus());
+                statusMap.put("linksStatus", status.getLinksStatus());
+                statusMap.put("sendTosStatus", status.getSendTosStatus());
+                statusMap.put("transactionsStatus", status.getTransactionsStatus());
+                statusMap.put("attachmentsCount", status.getAttachmentsCount());
+                statusMap.put("commentsCount", status.getCommentsCount());
+                statusMap.put("copyTosCount", status.getCopyTosCount());
+                statusMap.put("currentDepartmentsCount", status.getCurrentDepartmentsCount());
+                statusMap.put("currentPositionsCount", status.getCurrentPositionsCount());
+                statusMap.put("currentUsersCount", status.getCurrentUsersCount());
+                statusMap.put("customFieldsCount", status.getCustomFieldsCount());
+                statusMap.put("linksCount", status.getLinksCount());
+                statusMap.put("sendTosCount", status.getSendTosCount());
+                statusMap.put("transactionsCount", status.getTransactionsCount());
+                statusMap.put("totalEntitiesCount", status.getTotalEntitiesCount());
+                statusMap.put("successfulEntitiesCount", status.getSuccessfulEntitiesCount());
+                statusMap.put("failedEntitiesCount", status.getFailedEntitiesCount());
+                statusMap.put("retryCount", status.getRetryCount());
+                statusMap.put("startedAt", status.getStartedAt());
+                statusMap.put("completedAt", status.getCompletedAt());
+                statusMap.put("lastModifiedDate", status.getLastModifiedDate());
                 
-                // Individual entity statuses
-                statusInfo.put("attachmentsStatus", status.getAttachmentsStatus());
-                statusInfo.put("commentsStatus", status.getCommentsStatus());
-                statusInfo.put("copyTosStatus", status.getCopyTosStatus());
-                statusInfo.put("currentDepartmentsStatus", status.getCurrentDepartmentsStatus());
-                statusInfo.put("currentPositionsStatus", status.getCurrentPositionsStatus());
-                statusInfo.put("currentUsersStatus", status.getCurrentUsersStatus());
-                statusInfo.put("customFieldsStatus", status.getCustomFieldsStatus());
-                statusInfo.put("linksStatus", status.getLinksStatus());
-                statusInfo.put("sendTosStatus", status.getSendTosStatus());
-                statusInfo.put("transactionsStatus", status.getTransactionsStatus());
+                // Get correspondence details
+                try {
+                    Correspondence correspondence = correspondenceRepository.findById(status.getCorrespondenceGuid()).orElse(null);
+                    if (correspondence != null) {
+                        statusMap.put("correspondenceSubject", correspondence.getSubject());
+                        statusMap.put("correspondenceReferenceNo", correspondence.getReferenceNo());
+                    }
+                } catch (Exception e) {
+                    logger.warn("Error getting correspondence details for: {}", status.getCorrespondenceGuid());
+                }
                 
-                // Entity counts
-                statusInfo.put("attachmentsCount", status.getAttachmentsCount());
-                statusInfo.put("commentsCount", status.getCommentsCount());
-                statusInfo.put("copyTosCount", status.getCopyTosCount());
-                statusInfo.put("currentDepartmentsCount", status.getCurrentDepartmentsCount());
-                statusInfo.put("currentPositionsCount", status.getCurrentPositionsCount());
-                statusInfo.put("currentUsersCount", status.getCurrentUsersCount());
-                statusInfo.put("customFieldsCount", status.getCustomFieldsCount());
-                statusInfo.put("linksCount", status.getLinksCount());
-                statusInfo.put("sendTosCount", status.getSendTosCount());
-                statusInfo.put("transactionsCount", status.getTransactionsCount());
-                
-                // Summary counts
-                statusInfo.put("totalEntitiesCount", status.getTotalEntitiesCount());
-                statusInfo.put("successfulEntitiesCount", status.getSuccessfulEntitiesCount());
-                statusInfo.put("failedEntitiesCount", status.getFailedEntitiesCount());
-                
-                // Retry and timing info
-                statusInfo.put("retryCount", status.getRetryCount());
-                statusInfo.put("startedAt", status.getStartedAt());
-                statusInfo.put("completedAt", status.getCompletedAt());
-                statusInfo.put("lastModifiedDate", status.getLastModifiedDate());
-                
-                // Get correspondence details if needed (you might want to join this in a query for better performance)
-                // For now, we'll leave these as null and let the frontend handle missing data
-                statusInfo.put("correspondenceSubject", null);
-                statusInfo.put("correspondenceReferenceNo", null);
-                
-                statusList.add(statusInfo);
+                statusList.add(statusMap);
             }
             
-            logger.info("Retrieved {} correspondence import statuses", statusList.size());
             return ResponseEntity.ok(statusList);
+            
         } catch (Exception e) {
-            logger.error("Error getting all correspondence import statuses", e);
+            logger.error("Error getting all import statuses", e);
             return ResponseEntity.status(500).body(new ArrayList<>());
         }
     }
@@ -286,12 +276,57 @@ public class CorrespondenceRelatedImportController {
         @ApiResponse(responseCode = "400", description = "Retry failed with errors"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<ImportResponseDto> retryFailedCorrespondenceImports() {
+    public ResponseEntity<ImportResponseDto> retryFailedImports() {
         logger.info("Received request to retry failed correspondence imports");
         
         try {
-            ImportResponseDto response = correspondenceRelatedImportService.retryFailedImports();
+            List<CorrespondenceImportStatus> retryableImports = importStatusRepository.findRetryableImports();
+            
+            int totalRecords = retryableImports.size();
+            int successfulImports = 0;
+            int failedImports = 0;
+            List<String> errors = new ArrayList<>();
+            
+            for (CorrespondenceImportStatus importStatus : retryableImports) {
+                try {
+                    boolean retryResult = correspondenceRelatedImportService.importRelatedDataForCorrespondence(importStatus.getCorrespondenceGuid());
+                    if (retryResult) {
+                        successfulImports++;
+                    } else {
+                        failedImports++;
+                        errors.add("Failed to retry import for correspondence: " + importStatus.getCorrespondenceGuid());
+                    }
+                } catch (Exception e) {
+                    failedImports++;
+                    String errorMsg = "Error retrying correspondence " + importStatus.getCorrespondenceGuid() + ": " + e.getMessage();
+                    errors.add(errorMsg);
+                    logger.error(errorMsg, e);
+                }
+            }
+            
+            // Determine final status
+            String status;
+            if (failedImports == 0) {
+                status = "SUCCESS";
+            } else if (successfulImports > 0) {
+                status = "PARTIAL_SUCCESS";
+            } else {
+                status = "ERROR";
+            }
+            
+            String message = String.format("Retry completed. Success: %d, Failed: %d", 
+                                         successfulImports, failedImports);
+            
+            ImportResponseDto response = new ImportResponseDto();
+            response.setStatus(status);
+            response.setMessage(message);
+            response.setTotalRecords(totalRecords);
+            response.setSuccessfulImports(successfulImports);
+            response.setFailedImports(failedImports);
+            response.setErrors(errors);
+            
             return getResponseEntity(response);
+            
         } catch (Exception e) {
             logger.error("Unexpected error during retry failed imports", e);
             return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
@@ -306,21 +341,21 @@ public class CorrespondenceRelatedImportController {
         @ApiResponse(responseCode = "400", description = "Reset failed with errors"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<Map<String, Object>> resetCorrespondenceImportStatus(
+    public ResponseEntity<Map<String, Object>> resetImportStatus(
             @Parameter(description = "Correspondence GUID") @PathVariable String correspondenceGuid) {
         logger.info("Received request to reset import status for correspondence: {}", correspondenceGuid);
         
         try {
-            boolean success = correspondenceRelatedImportService.resetImportStatus(correspondenceGuid);
+            boolean resetResult = correspondenceRelatedImportService.resetImportStatus(correspondenceGuid);
             
             Map<String, Object> response = new HashMap<>();
-            response.put("success", importResult);
+            response.put("success", resetResult);
             response.put("correspondenceGuid", correspondenceGuid);
-            response.put("message", importResult ? "Import completed successfully" : "Import failed");
-            response.put("details", null);
+            response.put("message", resetResult ? "Import status reset successfully" : "Failed to reset import status");
+            
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            logger.error("Unexpected error during reset import status for: {}", correspondenceGuid, e);
+            logger.error("Unexpected error during reset for: {}", correspondenceGuid, e);
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("correspondenceGuid", correspondenceGuid);
@@ -344,7 +379,7 @@ public class CorrespondenceRelatedImportController {
         errorResponse.setTotalRecords(0);
         errorResponse.setSuccessfulImports(0);
         errorResponse.setFailedImports(0);
-        errorResponse.setErrors(java.util.Arrays.asList(errorMessage));
+        errorResponse.setErrors(Arrays.asList(errorMessage));
         return errorResponse;
     }
 }
