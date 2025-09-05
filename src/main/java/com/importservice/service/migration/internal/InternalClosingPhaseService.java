@@ -77,13 +77,12 @@ public class InternalClosingPhaseService {
                     if (success) {
                         successfulImports++;
                         migration.setClosingStatus("COMPLETED");
-                        updateInternalPhaseStatus(migration.getCorrespondenceGuid(), "CLOSING", "COMPLETED", null);
+                        // Status is already updated in the individual transaction method
                     } else {
                         failedImports++;
                         migration.setClosingStatus("FAILED");
                         migration.setRetryCount(migration.getRetryCount() + 1);
-                        updateInternalPhaseStatus(migration.getCorrespondenceGuid(), "CLOSING", "ERROR", 
-                                                "Closing process failed");
+                        // Status is already updated in the individual transaction method
                     }
                     migrationRepository.save(migration);
                     
@@ -134,7 +133,7 @@ public class InternalClosingPhaseService {
                 boolean success = processInternalClosingInNewTransaction(correspondenceGuid);
                 
                 if (success) {
-                    successfulImports++;
+                    logger.info("Successfully completed internal closing for correspondence: {}", correspondenceGuid);
                     logger.info("Successfully completed internal closing for correspondence: {}", correspondenceGuid);
                 } else {
                     failedImports++;
@@ -236,7 +235,7 @@ public class InternalClosingPhaseService {
                     migration.setClosingStatus("FAILED");
                     migration.setClosingError("Transaction failed: " + e.getMessage());
                     migration.setRetryCount(migration.getRetryCount() + 1);
-                    migration.setLastErrorAt(LocalDateTime.now());
+                    logger.warn("Failed to complete internal closing for correspondence: {}", correspondenceGuid);
                     migrationRepository.save(migration);
                 }
             } catch (Exception statusError) {
@@ -331,19 +330,26 @@ public class InternalClosingPhaseService {
     }
     
     /**
-     * Updates internal phase status
+     * Updates internal phase status - helper method for migration entity updates
      */
-    private void updateInternalPhaseStatus(InternalCorrespondenceMigration migration, String phase, String status, String error) {
+    private void updateInternalPhaseStatus(String correspondenceGuid, String phase, String status, String error) {
         try {
-            if ("ERROR".equals(status)) {
-                migration.markPhaseError(phase, error);
-                migration.incrementRetryCount();
-            } else if ("COMPLETED".equals(status)) {
-                migration.markPhaseCompleted(phase);
-                migration.setRetryCount(0); // Reset retry count on success
-            }
+            Optional<InternalCorrespondenceMigration> migrationOpt = 
+                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
             
-            migrationRepository.save(migration);
+            if (migrationOpt.isPresent()) {
+                InternalCorrespondenceMigration migration = migrationOpt.get();
+                
+                if ("ERROR".equals(status)) {
+                    migration.markPhaseError(phase, error);
+                    migration.incrementRetryCount();
+                } else if ("COMPLETED".equals(status)) {
+                    migration.markPhaseCompleted(phase);
+                    migration.setRetryCount(0); // Reset retry count on success
+                }
+                
+                migrationRepository.save(migration);
+            }
         } catch (Exception e) {
             logger.error("Error updating internal phase status: {}", e.getMessage());
         }
