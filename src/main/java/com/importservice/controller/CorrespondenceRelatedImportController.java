@@ -2,7 +2,9 @@ package com.importservice.controller;
 
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.service.CorrespondenceRelatedImportService;
+import com.importservice.entity.Correspondence;
 import com.importservice.repository.CorrespondenceImportStatusRepository;
+import com.importservice.repository.CorrespondenceRepository;
 import com.importservice.entity.CorrespondenceImportStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -17,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +38,9 @@ public class CorrespondenceRelatedImportController {
 
     @Autowired
     private CorrespondenceImportStatusRepository importStatusRepository;
+    
+    @Autowired
+    private CorrespondenceRepository correspondenceRepository;
 
     @PostMapping("/all-correspondences-with-related")
     @Operation(summary = "Import All Correspondences with Related Data", 
@@ -47,7 +54,44 @@ public class CorrespondenceRelatedImportController {
         logger.info("Received request to import all correspondences with related data (with status tracking)");
         
         try {
-            ImportResponseDto response = correspondenceRelatedImportService.importAllCorrespondencesWithRelated();
+            // Get all correspondences and import their related data
+            List<Correspondence> correspondences = correspondenceRepository.findAll();
+            
+            int totalRecords = correspondences.size();
+            int successfulImports = 0;
+            int failedImports = 0;
+            List<String> errors = new ArrayList<>();
+            
+            for (Correspondence correspondence : correspondences) {
+                try {
+                    boolean success = correspondenceRelatedImportService.importRelatedDataForCorrespondence(correspondence.getGuid());
+                    if (success) {
+                        successfulImports++;
+                    } else {
+                        failedImports++;
+                        errors.add("Failed to import related data for correspondence: " + correspondence.getGuid());
+                    }
+                } catch (Exception e) {
+                    failedImports++;
+                    errors.add("Error importing related data for correspondence " + correspondence.getGuid() + ": " + e.getMessage());
+                    logger.error("Error importing related data for correspondence: {}", correspondence.getGuid(), e);
+                }
+            }
+            
+            ImportResponseDto response = new ImportResponseDto();
+            if (failedImports == 0) {
+                response.setStatus("SUCCESS");
+            } else if (successfulImports > 0) {
+                response.setStatus("PARTIAL_SUCCESS");
+            } else {
+                response.setStatus("ERROR");
+            }
+            response.setMessage(String.format("Import completed. Success: %d, Failed: %d", successfulImports, failedImports));
+            response.setTotalRecords(totalRecords);
+            response.setSuccessfulImports(successfulImports);
+            response.setFailedImports(failedImports);
+            response.setErrors(errors);
+            
             return getResponseEntity(response);
         } catch (Exception e) {
             logger.error("Unexpected error during correspondence related import", e);
@@ -68,14 +112,14 @@ public class CorrespondenceRelatedImportController {
         logger.info("Received request to import related data for correspondence: {}", correspondenceGuid);
         
         try {
-            ImportResponseDto result = correspondenceRelatedImportService.importRelatedDataForCorrespondence(correspondenceGuid);
+            boolean success = correspondenceRelatedImportService.importRelatedDataForCorrespondence(correspondenceGuid);
             boolean success = "SUCCESS".equals(result.getStatus()) || "PARTIAL_SUCCESS".equals(result.getStatus());
             
             Map<String, Object> response = new HashMap<>();
             response.put("success", success);
-            response.put("correspondenceGuid", correspondenceGuid);
+            response.put("success", success);
             response.put("message", result.getMessage());
-            response.put("details", result);
+            response.put("message", success ? "Import completed successfully" : "Import failed");
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
