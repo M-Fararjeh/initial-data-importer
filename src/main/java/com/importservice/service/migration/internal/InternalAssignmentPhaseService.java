@@ -320,44 +320,6 @@ public class InternalAssignmentPhaseService {
     }
     
     /**
-     * Processes assignment for a single transaction
-     * @deprecated Use processInternalAssignmentInNewTransaction for better transaction handling
-     */
-    @Deprecated
-    private boolean processInternalAssignmentForTransaction(String transactionGuid) {
-        try {
-            Optional<CorrespondenceTransaction> transactionOpt = 
-                transactionRepository.findById(transactionGuid);
-            
-            if (!transactionOpt.isPresent()) {
-                logger.error("Internal transaction not found: {}", transactionGuid);
-                return false;
-            }
-            
-            CorrespondenceTransaction transaction = transactionOpt.get();
-            boolean success = processInternalAssignment(transaction);
-            
-            if (success) {
-                transaction.setMigrateStatus("SUCCESS");
-            } else {
-                transaction.setMigrateStatus("FAILED");
-                transaction.setRetryCount(transaction.getRetryCount() + 1);
-            }
-            transactionRepository.save(transaction);
-            
-            // Check if all transactions for this correspondence are migrated
-            if (success) {
-                checkAndUpdateAssignmentStatusForCorrespondence(transaction.getDocGuid());
-            }
-            
-            return success;
-        } catch (Exception e) {
-            logger.error("Error processing internal assignment for: {}", transactionGuid, e);
-            return false;
-        }
-    }
-    
-    /**
      * Processes a single internal assignment transaction
      */
     private boolean processInternalAssignment(CorrespondenceTransaction assignment) {
