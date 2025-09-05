@@ -113,6 +113,7 @@ public class InternalAssignmentPhaseService {
         List<String> errors = new ArrayList<>();
         int successfulImports = 0;
         int failedImports = 0;
+        List<String> successfulCorrespondenceGuids = new ArrayList<>();
         
         // Process each assignment in its own transaction for immediate status updates
         for (int i = 0; i < transactionGuids.size(); i++) {
@@ -122,10 +123,13 @@ public class InternalAssignmentPhaseService {
                            transactionGuid, i + 1, transactionGuids.size());
                 
                 // Process in separate transaction for immediate status update
-                boolean success = processInternalAssignmentInNewTransaction(transactionGuid);
+                ProcessResult result = processInternalAssignmentInNewTransaction(transactionGuid);
                 
-                if (success) {
+                if (result.success) {
                     successfulImports++;
+                    if (result.correspondenceGuid != null) {
+                        successfulCorrespondenceGuids.add(result.correspondenceGuid);
+                    }
                     logger.info("Successfully completed internal assignment for transaction: {}", transactionGuid);
                 } else {
                     failedImports++;
@@ -151,6 +155,17 @@ public class InternalAssignmentPhaseService {
             }
         }
         
+        // After all individual transactions are committed, check assignment completion status
+        // This runs in separate transactions to see the committed changes
+        for (String correspondenceGuid : successfulCorrespondenceGuids) {
+            try {
+                checkAndUpdateAssignmentStatusInSeparateTransaction(correspondenceGuid);
+            } catch (Exception e) {
+                logger.warn("Error checking assignment completion status for correspondence: {}", correspondenceGuid, e);
+                // Don't fail the overall process for status check errors
+            }
+        }
+        
         String status = phaseService.determineFinalStatus(successfulImports, failedImports);
         String message = String.format("Specific internal assignment completed. Assigned: %d, Failed: %d", 
                                      successfulImports, failedImports);
@@ -160,10 +175,23 @@ public class InternalAssignmentPhaseService {
     }
     
     /**
+     * Helper class to return both success status and correspondence GUID
+     */
+    private static class ProcessResult {
+        final boolean success;
+        final String correspondenceGuid;
+        
+        ProcessResult(boolean success, String correspondenceGuid) {
+            this.success = success;
+            this.correspondenceGuid = correspondenceGuid;
+        }
+    }
+    
+    /**
      * Processes assignment for a single transaction in a new transaction for immediate status updates
      */
     @Transactional(readOnly = false, timeout = 60)
-    public boolean processInternalAssignmentInNewTransaction(String transactionGuid) {
+    public ProcessResult processInternalAssignmentInNewTransaction(String transactionGuid) {
         try {
             logger.debug("Starting new transaction for internal assignment: {}", transactionGuid);
             
@@ -172,10 +200,11 @@ public class InternalAssignmentPhaseService {
             
             if (!transactionOpt.isPresent()) {
                 logger.error("Internal transaction not found: {}", transactionGuid);
-                return false;
+                return new ProcessResult(false, null);
             }
             
             CorrespondenceTransaction transaction = transactionOpt.get();
+            String correspondenceGuid = transaction.getDocGuid();
             
             // Mark as in progress immediately
             transaction.setMigrateStatus("IN_PROGRESS");
@@ -190,9 +219,6 @@ public class InternalAssignmentPhaseService {
                 transaction.setMigrateStatus("SUCCESS");
                 transaction.setRetryCount(0); // Reset retry count on success
                 logger.info("Successfully processed internal assignment: {}", transactionGuid);
-                
-                // Check if all assignments for this correspondence are complete
-                checkAndUpdateAssignmentStatusForCorrespondence(transaction.getDocGuid());
             } else {
                 transaction.setMigrateStatus("FAILED");
                 transaction.setRetryCount(transaction.getRetryCount() + 1);
@@ -204,17 +230,19 @@ public class InternalAssignmentPhaseService {
             
             logger.debug("Completed internal assignment transaction for: {} with result: {}", 
                         transactionGuid, result);
-            return result;
+            return new ProcessResult(result, correspondenceGuid);
             
         } catch (Exception e) {
             logger.error("Error in internal assignment transaction for: {}", transactionGuid, e);
             
             // Update error status in separate try-catch to ensure it gets saved
+            String correspondenceGuid = null;
             try {
                 Optional<CorrespondenceTransaction> transactionOpt = 
                     transactionRepository.findById(transactionGuid);
                 if (transactionOpt.isPresent()) {
                     CorrespondenceTransaction transaction = transactionOpt.get();
+                    correspondenceGuid = transaction.getDocGuid();
                     transaction.setMigrateStatus("FAILED");
                     transaction.setRetryCount(transaction.getRetryCount() + 1);
                     transaction.setLastModifiedDate(LocalDateTime.now());
@@ -224,7 +252,62 @@ public class InternalAssignmentPhaseService {
                 logger.error("Error updating error status for transaction: {}", transactionGuid, statusError);
             }
             
-            return false;
+            return new ProcessResult(false, correspondenceGuid);
+        }
+    }
+    
+    /**
+     * Checks and updates assignment status in a separate transaction
+     * This ensures we see the committed changes from individual assignment transactions
+     */
+    @Transactional(readOnly = false, timeout = 30)
+    public void checkAndUpdateAssignmentStatusInSeparateTransaction(String correspondenceGuid) {
+        try {
+            logger.debug("Checking assignment completion status for internal correspondence in separate transaction: {}", correspondenceGuid);
+            
+            // Get all assignment transactions for this correspondence (action_id = 12)
+            List<CorrespondenceTransaction> assignmentTransactions = transactionRepository
+                .findByDocGuidAndActionId(correspondenceGuid, 12);
+            
+            if (assignmentTransactions.isEmpty()) {
+                logger.debug("No assignment transactions found for correspondence: {}", correspondenceGuid);
+                return;
+            }
+            
+            // Check if all assignment transactions are successfully migrated
+            boolean allTransactionsMigrated = assignmentTransactions.stream()
+                .allMatch(transaction -> "SUCCESS".equals(transaction.getMigrateStatus()));
+            
+            if (allTransactionsMigrated) {
+                logger.info("All assignment transactions migrated for internal correspondence: {}, updating assignment status", correspondenceGuid);
+                
+                // Update the assignment status in internal migration table
+                Optional<InternalCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                
+                if (migrationOpt.isPresent()) {
+                    InternalCorrespondenceMigration migration = migrationOpt.get();
+                    migration.setAssignmentStatus("COMPLETED");
+                    migration.setCurrentPhase("APPROVAL");
+                    migration.setNextPhase("BUSINESS_LOG");
+                    migration.setPhaseStatus("PENDING");
+                    migrationRepository.save(migration);
+                    
+                    logger.info("Updated assignment status to COMPLETED for internal correspondence: {}", correspondenceGuid);
+                } else {
+                    logger.warn("Internal migration record not found for correspondence: {}", correspondenceGuid);
+                }
+            } else {
+                logger.debug("Not all assignment transactions are migrated yet for internal correspondence: {}", correspondenceGuid);
+                
+                // Log the status of each transaction for debugging
+                for (CorrespondenceTransaction transaction : assignmentTransactions) {
+                    logger.debug("Transaction {} status: {}", transaction.getGuid(), transaction.getMigrateStatus());
+                }
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error checking assignment completion status for internal correspondence: {}", correspondenceGuid, e);
         }
     }
     
@@ -314,55 +397,6 @@ public class InternalAssignmentPhaseService {
         } catch (Exception e) {
             logger.error("Error processing internal assignment: {}", assignment.getGuid(), e);
             return false;
-        }
-    }
-    
-    /**
-     * Checks if all assignment transactions for a correspondence are migrated
-     * and updates the assignment status in internal migration table
-     */
-    private void checkAndUpdateAssignmentStatusForCorrespondence(String correspondenceGuid) {
-        try {
-            logger.debug("Checking assignment completion status for internal correspondence: {}", correspondenceGuid);
-            
-            // Get all assignment transactions for this correspondence (action_id = 12)
-            List<CorrespondenceTransaction> assignmentTransactions = transactionRepository
-                .findByDocGuidAndActionId(correspondenceGuid, 12);
-            
-            if (assignmentTransactions.isEmpty()) {
-                logger.debug("No assignment transactions found for correspondence: {}", correspondenceGuid);
-                return;
-            }
-            
-            // Check if all assignment transactions are successfully migrated
-            boolean allTransactionsMigrated = assignmentTransactions.stream()
-                .allMatch(transaction -> "SUCCESS".equals(transaction.getMigrateStatus()));
-            
-            if (allTransactionsMigrated) {
-                logger.info("All assignment transactions migrated for internal correspondence: {}, updating assignment status", correspondenceGuid);
-                
-                // Update the assignment status in internal migration table
-                Optional<InternalCorrespondenceMigration> migrationOpt = 
-                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
-                
-                if (migrationOpt.isPresent()) {
-                    InternalCorrespondenceMigration migration = migrationOpt.get();
-                    migration.setAssignmentStatus("COMPLETED");
-                    migration.setCurrentPhase("APPROVAL");
-                    migration.setNextPhase("BUSINESS_LOG");
-                    migration.setPhaseStatus("PENDING");
-                    migrationRepository.save(migration);
-                    
-                    logger.info("Updated assignment status to COMPLETED for internal correspondence: {}", correspondenceGuid);
-                } else {
-                    logger.warn("Internal migration record not found for correspondence: {}", correspondenceGuid);
-                }
-            } else {
-                logger.debug("Not all assignment transactions are migrated yet for internal correspondence: {}", correspondenceGuid);
-            }
-            
-        } catch (Exception e) {
-            logger.error("Error checking assignment completion status for internal correspondence: {}", correspondenceGuid, e);
         }
     }
     
