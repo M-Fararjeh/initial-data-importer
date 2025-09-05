@@ -102,7 +102,6 @@ public class InternalBusinessLogPhaseService {
     /**
      * Executes business log for specific transactions
      */
-    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto executeBusinessLogForSpecific(List<String> transactionGuids) {
         logger.info("Starting internal business log for {} specific transactions", transactionGuids.size());
         
@@ -110,22 +109,33 @@ public class InternalBusinessLogPhaseService {
         int successfulImports = 0;
         int failedImports = 0;
         
-        for (String transactionGuid : transactionGuids) {
+        // Process each business log in its own transaction for immediate status updates
+        for (int i = 0; i < transactionGuids.size(); i++) {
+            String transactionGuid = transactionGuids.get(i);
             try {
-                boolean success = processInternalBusinessLogForTransaction(transactionGuid);
+                logger.info("Processing internal business log: {} ({}/{})", 
+                           transactionGuid, i + 1, transactionGuids.size());
                 
-                // Add small delay between transactions to reduce lock contention
-                try {
-                    Thread.sleep(100); // 100ms delay
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+                // Process in separate transaction for immediate status update
+                boolean success = processInternalBusinessLogInNewTransaction(transactionGuid);
                 
                 if (success) {
                     successfulImports++;
+                    logger.info("Successfully completed internal business log for transaction: {}", transactionGuid);
                 } else {
                     failedImports++;
+                    logger.warn("Failed to complete internal business log for transaction: {}", transactionGuid);
+                }
+                
+                // Add delay between business logs to reduce system load
+                if (i < transactionGuids.size() - 1) {
+                    try {
+                        Thread.sleep(150); // 150ms delay between business logs
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Thread interrupted during processing delay");
+                        break;
+                    }
                 }
                 
             } catch (Exception e) {
@@ -145,6 +155,72 @@ public class InternalBusinessLogPhaseService {
     }
     
     /**
+     * Processes business log for a single transaction in a new transaction for immediate status updates
+     */
+    @Transactional(readOnly = false, timeout = 60)
+    public boolean processInternalBusinessLogInNewTransaction(String transactionGuid) {
+        try {
+            logger.debug("Starting new transaction for internal business log: {}", transactionGuid);
+            
+            Optional<CorrespondenceTransaction> transactionOpt = 
+                transactionRepository.findById(transactionGuid);
+            
+            if (!transactionOpt.isPresent()) {
+                logger.error("Internal transaction not found: {}", transactionGuid);
+                return false;
+            }
+            
+            CorrespondenceTransaction transaction = transactionOpt.get();
+            
+            // Mark as in progress immediately
+            transaction.setMigrateStatus("IN_PROGRESS");
+            transaction.setLastModifiedDate(LocalDateTime.now());
+            transactionRepository.save(transaction);
+            
+            // Process the business log
+            boolean result = processInternalBusinessLog(transaction);
+            
+            // Update final status immediately
+            if (result) {
+                transaction.setMigrateStatus("SUCCESS");
+                transaction.setRetryCount(0); // Reset retry count on success
+                logger.info("Successfully processed internal business log: {}", transactionGuid);
+            } else {
+                transaction.setMigrateStatus("FAILED");
+                transaction.setRetryCount(transaction.getRetryCount() + 1);
+                logger.warn("Failed to process internal business log: {}", transactionGuid);
+            }
+            
+            transaction.setLastModifiedDate(LocalDateTime.now());
+            transactionRepository.save(transaction);
+            
+            logger.debug("Completed internal business log transaction for: {} with result: {}", 
+                        transactionGuid, result);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error in internal business log transaction for: {}", transactionGuid, e);
+            
+            // Update error status in separate try-catch to ensure it gets saved
+            try {
+                Optional<CorrespondenceTransaction> transactionOpt = 
+                    transactionRepository.findById(transactionGuid);
+                if (transactionOpt.isPresent()) {
+                    CorrespondenceTransaction transaction = transactionOpt.get();
+                    transaction.setMigrateStatus("FAILED");
+                    transaction.setRetryCount(transaction.getRetryCount() + 1);
+                    transaction.setLastModifiedDate(LocalDateTime.now());
+                    transactionRepository.save(transaction);
+                }
+            } catch (Exception statusError) {
+                logger.error("Error updating error status for transaction: {}", transactionGuid, statusError);
+            }
+            
+            return false;
+        }
+    }
+    
+    /**
      * Gets internal business logs that need processing
      */
     private List<CorrespondenceTransaction> getInternalBusinessLogsNeedingProcessing() {
@@ -154,7 +230,9 @@ public class InternalBusinessLogPhaseService {
     
     /**
      * Processes business log for a single transaction
+     * @deprecated Use processInternalBusinessLogInNewTransaction for better transaction handling
      */
+    @Deprecated
     private boolean processInternalBusinessLogForTransaction(String transactionGuid) {
         try {
             Optional<CorrespondenceTransaction> transactionOpt = 

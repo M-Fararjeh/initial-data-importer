@@ -104,7 +104,6 @@ public class InternalApprovalPhaseService {
     /**
      * Executes approval for specific correspondences
      */
-    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto executeApprovalForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting approval for {} specific internal correspondences", correspondenceGuids.size());
         
@@ -112,22 +111,33 @@ public class InternalApprovalPhaseService {
         int successfulImports = 0;
         int failedImports = 0;
         
-        for (String correspondenceGuid : correspondenceGuids) {
+        // Process each approval in its own transaction for immediate status updates
+        for (int i = 0; i < correspondenceGuids.size(); i++) {
+            String correspondenceGuid = correspondenceGuids.get(i);
             try {
-                boolean success = processApprovalForCorrespondence(correspondenceGuid);
+                logger.info("Processing internal approval: {} ({}/{})", 
+                           correspondenceGuid, i + 1, correspondenceGuids.size());
                 
-                // Add small delay between correspondences to reduce lock contention
-                try {
-                    Thread.sleep(100); // 100ms delay
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+                // Process in separate transaction for immediate status update
+                boolean success = processInternalApprovalInNewTransaction(correspondenceGuid);
                 
                 if (success) {
                     successfulImports++;
+                    logger.info("Successfully completed internal approval for correspondence: {}", correspondenceGuid);
                 } else {
                     failedImports++;
+                    logger.warn("Failed to complete internal approval for correspondence: {}", correspondenceGuid);
+                }
+                
+                // Add delay between approvals to reduce system load
+                if (i < correspondenceGuids.size() - 1) {
+                    try {
+                        Thread.sleep(250); // 250ms delay between approvals (longer due to complexity)
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Thread interrupted during processing delay");
+                        break;
+                    }
                 }
                 
             } catch (Exception e) {
@@ -147,8 +157,126 @@ public class InternalApprovalPhaseService {
     }
     
     /**
-     * Processes approval for a single correspondence
+     * Processes approval for a single correspondence in a new transaction for immediate status updates
      */
+    @Transactional(readOnly = false, timeout = 180)
+    public boolean processInternalApprovalInNewTransaction(String correspondenceGuid) {
+        try {
+            logger.debug("Starting new transaction for internal approval: {}", correspondenceGuid);
+            
+            Optional<InternalCorrespondenceMigration> migrationOpt = 
+                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+            
+            if (!migrationOpt.isPresent()) {
+                logger.error("Internal migration record not found: {}", correspondenceGuid);
+                return false;
+            }
+            
+            InternalCorrespondenceMigration migration = migrationOpt.get();
+            
+            // Mark as in progress immediately
+            migration.setApprovalStatus("IN_PROGRESS");
+            migration.setLastModifiedDate(LocalDateTime.now());
+            migrationRepository.save(migration);
+            
+            // Process the approval
+            boolean result = processApproval(migration);
+            
+            // Update final status immediately
+            if (result) {
+                updateApprovalSuccess(migration);
+                logger.info("Successfully processed internal approval: {}", correspondenceGuid);
+            } else {
+                updateApprovalError(migration, "Approval process failed");
+                logger.warn("Failed to process internal approval: {}", correspondenceGuid);
+            }
+            
+            logger.debug("Completed internal approval transaction for: {} with result: {}", 
+                        correspondenceGuid, result);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error in internal approval transaction for: {}", correspondenceGuid, e);
+            
+            // Update error status in separate try-catch to ensure it gets saved
+            try {
+                Optional<InternalCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                if (migrationOpt.isPresent()) {
+                    InternalCorrespondenceMigration migration = migrationOpt.get();
+                    updateApprovalError(migration, "Transaction failed: " + e.getMessage());
+                }
+            } catch (Exception statusError) {
+                logger.error("Error updating error status for correspondence: {}", correspondenceGuid, statusError);
+            }
+            
+            return false;
+        }
+    }
+    
+    /**
+     * Processes approval for a single correspondence in a new transaction for immediate status updates
+     */
+    @Transactional(readOnly = false, timeout = 120)
+    public boolean processInternalApprovalInNewTransaction(String correspondenceGuid) {
+        try {
+            logger.debug("Starting new transaction for internal approval: {}", correspondenceGuid);
+            
+            Optional<InternalCorrespondenceMigration> migrationOpt = 
+                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+            
+            if (!migrationOpt.isPresent()) {
+                logger.error("Internal migration record not found: {}", correspondenceGuid);
+                return false;
+            }
+            
+            InternalCorrespondenceMigration migration = migrationOpt.get();
+            
+            // Mark as in progress immediately
+            migration.setApprovalStatus("IN_PROGRESS");
+            migration.setLastModifiedDate(LocalDateTime.now());
+            migrationRepository.save(migration);
+            
+            // Process the approval
+            boolean result = processApproval(migration);
+            
+            // Update final status immediately
+            if (result) {
+                updateApprovalSuccess(migration);
+                logger.info("Successfully processed internal approval: {}", correspondenceGuid);
+            } else {
+                updateApprovalError(migration, "Approval process failed");
+                logger.warn("Failed to process internal approval: {}", correspondenceGuid);
+            }
+            
+            logger.debug("Completed internal approval transaction for: {} with result: {}", 
+                        correspondenceGuid, result);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error in internal approval transaction for: {}", correspondenceGuid, e);
+            
+            // Update error status in separate try-catch to ensure it gets saved
+            try {
+                Optional<InternalCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                if (migrationOpt.isPresent()) {
+                    InternalCorrespondenceMigration migration = migrationOpt.get();
+                    updateApprovalError(migration, "Transaction failed: " + e.getMessage());
+                }
+            } catch (Exception statusError) {
+                logger.error("Error updating error status for correspondence: {}", correspondenceGuid, statusError);
+            }
+            
+            return false;
+        }
+    }
+    
+    /**
+     * Processes approval for a single correspondence
+     * @deprecated Use processInternalApprovalInNewTransaction for better transaction handling
+     */
+    @Deprecated
     private boolean processApprovalForCorrespondence(String correspondenceGuid) {
         try {
             Optional<InternalCorrespondenceMigration> migrationOpt = 

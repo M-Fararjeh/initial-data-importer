@@ -116,7 +116,6 @@ public class InternalClosingPhaseService {
     /**
      * Executes closing for specific correspondences
      */
-    @Transactional(readOnly = false, timeout = 300)
     public ImportResponseDto executeClosingForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting internal closing for {} specific correspondences", correspondenceGuids.size());
         
@@ -124,24 +123,33 @@ public class InternalClosingPhaseService {
         int successfulImports = 0;
         int failedImports = 0;
         
-        for (String correspondenceGuid : correspondenceGuids) {
+        // Process each closing in its own transaction for immediate status updates
+        for (int i = 0; i < correspondenceGuids.size(); i++) {
+            String correspondenceGuid = correspondenceGuids.get(i);
             try {
-                boolean success = processInternalClosingForCorrespondence(correspondenceGuid);
+                logger.info("Processing internal closing: {} ({}/{})", 
+                           correspondenceGuid, i + 1, correspondenceGuids.size());
                 
-                // Add small delay between correspondences to reduce lock contention
-                try {
-                    Thread.sleep(100); // 100ms delay
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+                // Process in separate transaction for immediate status update
+                boolean success = processInternalClosingInNewTransaction(correspondenceGuid);
                 
                 if (success) {
                     successfulImports++;
-                    updateInternalPhaseStatus(correspondenceGuid, "CLOSING", "COMPLETED", null);
+                    logger.info("Successfully completed internal closing for correspondence: {}", correspondenceGuid);
                 } else {
                     failedImports++;
-                    updateInternalPhaseStatus(correspondenceGuid, "CLOSING", "ERROR", "Closing process failed");
+                    logger.warn("Failed to complete internal closing for correspondence: {}", correspondenceGuid);
+                }
+                
+                // Add delay between closings to reduce system load
+                if (i < correspondenceGuids.size() - 1) {
+                    try {
+                        Thread.sleep(200); // 200ms delay between closings
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Thread interrupted during processing delay");
+                        break;
+                    }
                 }
                 
             } catch (Exception e) {
@@ -161,8 +169,89 @@ public class InternalClosingPhaseService {
     }
     
     /**
-     * Processes closing for a single correspondence
+     * Processes closing for a single correspondence in a new transaction for immediate status updates
      */
+    @Transactional(readOnly = false, timeout = 60)
+    public boolean processInternalClosingInNewTransaction(String correspondenceGuid) {
+        try {
+            logger.debug("Starting new transaction for internal closing: {}", correspondenceGuid);
+            
+            Optional<InternalCorrespondenceMigration> migrationOpt = 
+                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+            
+            if (!migrationOpt.isPresent()) {
+                logger.error("Internal migration record not found: {}", correspondenceGuid);
+                return false;
+            }
+            
+            InternalCorrespondenceMigration migration = migrationOpt.get();
+            
+            // Strict check: only process if isNeedToClose is explicitly true
+            if (!migration.getIsNeedToClose()) {
+                logger.info("Internal correspondence {} does not need to be closed (isNeedToClose = false), marking as success", correspondenceGuid);
+                // Mark as completed since no action is needed
+                migration.setClosingStatus("COMPLETED");
+                updateInternalPhaseStatus(migration, "CLOSING", "COMPLETED", null);
+                return true;
+            }
+            
+            // Mark as in progress immediately
+            migration.setClosingStatus("IN_PROGRESS");
+            migration.setLastModifiedDate(LocalDateTime.now());
+            migrationRepository.save(migration);
+            
+            logger.info("Processing internal correspondence {} for closing (isNeedToClose = true)", correspondenceGuid);
+            
+            // Process the closing
+            boolean result = processInternalClosing(migration);
+            
+            // Update final status immediately
+            if (result) {
+                migration.setClosingStatus("COMPLETED");
+                updateInternalPhaseStatus(migration, "CLOSING", "COMPLETED", null);
+                logger.info("Successfully closed internal correspondence: {}", correspondenceGuid);
+            } else {
+                migration.setClosingStatus("FAILED");
+                migration.setRetryCount(migration.getRetryCount() + 1);
+                migration.setLastErrorAt(LocalDateTime.now());
+                updateInternalPhaseStatus(migration, "CLOSING", "ERROR", "Closing process failed");
+                logger.warn("Failed to close internal correspondence: {}", correspondenceGuid);
+            }
+            
+            migrationRepository.save(migration);
+            
+            logger.debug("Completed internal closing transaction for: {} with result: {}", 
+                        correspondenceGuid, result);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error in internal closing transaction for: {}", correspondenceGuid, e);
+            
+            // Update error status in separate try-catch to ensure it gets saved
+            try {
+                Optional<InternalCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                if (migrationOpt.isPresent()) {
+                    InternalCorrespondenceMigration migration = migrationOpt.get();
+                    migration.setClosingStatus("FAILED");
+                    migration.setClosingError("Transaction failed: " + e.getMessage());
+                    migration.setRetryCount(migration.getRetryCount() + 1);
+                    migration.setLastErrorAt(LocalDateTime.now());
+                    migrationRepository.save(migration);
+                }
+            } catch (Exception statusError) {
+                logger.error("Error updating error status for correspondence: {}", correspondenceGuid, statusError);
+            }
+            
+            return false;
+        }
+    }
+    
+    /**
+     * Processes closing for a single correspondence
+     * @deprecated Use processInternalClosingInNewTransaction for better transaction handling
+     */
+    @Deprecated
     private boolean processInternalClosingForCorrespondence(String correspondenceGuid) {
         try {
             Optional<InternalCorrespondenceMigration> migrationOpt = 
@@ -244,24 +333,17 @@ public class InternalClosingPhaseService {
     /**
      * Updates internal phase status
      */
-    private void updateInternalPhaseStatus(String correspondenceGuid, String phase, String status, String error) {
+    private void updateInternalPhaseStatus(InternalCorrespondenceMigration migration, String phase, String status, String error) {
         try {
-            Optional<InternalCorrespondenceMigration> migrationOpt = 
-                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
-            
-            if (migrationOpt.isPresent()) {
-                InternalCorrespondenceMigration migration = migrationOpt.get();
-                
-                if ("ERROR".equals(status)) {
-                    migration.markPhaseError(phase, error);
-                    migration.incrementRetryCount();
-                } else if ("COMPLETED".equals(status)) {
-                    migration.markPhaseCompleted(phase);
-                    migration.setRetryCount(0); // Reset retry count on success
-                }
-                
-                migrationRepository.save(migration);
+            if ("ERROR".equals(status)) {
+                migration.markPhaseError(phase, error);
+                migration.incrementRetryCount();
+            } else if ("COMPLETED".equals(status)) {
+                migration.markPhaseCompleted(phase);
+                migration.setRetryCount(0); // Reset retry count on success
             }
+            
+            migrationRepository.save(migration);
         } catch (Exception e) {
             logger.error("Error updating internal phase status: {}", e.getMessage());
         }
