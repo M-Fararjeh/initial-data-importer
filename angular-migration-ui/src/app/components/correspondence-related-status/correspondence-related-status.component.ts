@@ -94,7 +94,7 @@ export class CorrespondenceRelatedStatusComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     console.log('CorrespondenceRelatedStatusComponent initialized');
     this.loadCorrespondenceStatuses();
-    this.loadStatistics();
+    this.loadStatistics().subscribe();
   }
   
   ngOnDestroy(): void {
