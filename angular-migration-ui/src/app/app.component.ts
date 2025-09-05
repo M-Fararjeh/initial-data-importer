@@ -42,7 +42,6 @@ import { environment } from '../environments/environment';
               </nav>
             </div>
             <div class="flex items-center space-x-4">
-              <span class="text-sm text-gray-500">Data Import Service</span>
             </div>
           </div>
         </div>
