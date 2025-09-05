@@ -49,6 +49,9 @@ public class RequestLoggingInterceptor implements ClientHttpRequestInterceptor {
     
     private void logRequest(HttpRequest request, byte[] body) {
         try {
+            if (request.getURI().getRawPath().toLowerCase().contains("upload")) {
+                return;
+            }
             System.out.println("=== DESTINATION API REQUEST ===");
             System.out.println("URL: " + request.getURI());
             System.out.println("Method: " + request.getMethod());
