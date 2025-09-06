@@ -181,10 +181,16 @@ public class CreationPhaseService {
             
             IncomingCorrespondenceMigration migration = migrationOpt.get();
             
-            // Mark as in progress
+            // Mark as in progress and ensure we start from the right step
             migration.setCreationStatus("IN_PROGRESS");
+            if ("PENDING".equals(migration.getCreationStep()) || migration.getCreationStep() == null) {
+                migration.setCreationStep("GET_DETAILS");
+            }
             migration.setLastModifiedDate(LocalDateTime.now());
             migrationRepository.save(migration);
+            
+            logger.info("Starting creation process for correspondence: {} at step: {}", 
+                       correspondenceGuid, migration.getCreationStep());
             
             // Process the creation
             boolean result = processCorrespondenceCreation(migration);
@@ -197,17 +203,23 @@ public class CreationPhaseService {
                 migration.setNextPhase("BUSINESS_LOG");
                 migration.setPhaseStatus("PENDING");
                 migration.setRetryCount(0); // Reset retry count on success
+                
+                logger.info("Successfully completed creation for correspondence: {} with document ID: {}", 
+                           correspondenceGuid, migration.getCreatedDocumentId());
             } else {
                 migration.setCreationStatus("ERROR");
                 migration.setCreationError("Creation process failed");
                 migration.setRetryCount(migration.getRetryCount() + 1);
                 migration.setLastErrorAt(LocalDateTime.now());
+                
+                logger.error("Failed creation for correspondence: {} at step: {}", 
+                           correspondenceGuid, migration.getCreationStep());
             }
             
             migrationRepository.save(migration);
             
-            logger.info("Completed creation transaction for correspondence: {} with result: {}", 
-                       correspondenceGuid, result);
+            logger.info("Completed creation transaction for correspondence: {} with result: {} (Document ID: {})", 
+                       correspondenceGuid, result, migration.getCreatedDocumentId());
             return result;
             
         } catch (Exception e) {
@@ -224,6 +236,9 @@ public class CreationPhaseService {
                     migration.setRetryCount(migration.getRetryCount() + 1);
                     migration.setLastErrorAt(LocalDateTime.now());
                     migrationRepository.save(migration);
+                    
+                    logger.error("Saved error status for correspondence: {} - Error: {}", 
+                               correspondenceGuid, e.getMessage());
                 }
             } catch (Exception statusError) {
                 logger.error("Error updating error status for correspondence: {}", correspondenceGuid, statusError);
@@ -316,173 +331,225 @@ public class CreationPhaseService {
         logger.info("Processing creation for correspondence: {}", correspondenceGuid);
         
         try {
-            // Step 1: Get correspondence details
-            //updateCreationStep(migration, "GET_DETAILS");
+            // Step 1: Get correspondence details and attachments
             Optional<Correspondence> correspondenceOpt = correspondenceRepository.findById(correspondenceGuid);
             if (!correspondenceOpt.isPresent()) {
                 logger.error("Correspondence not found: {}", correspondenceGuid);
                 return false;
             }
             Correspondence correspondence = correspondenceOpt.get();
-            CorrespondenceAttachment primaryAttachment=null;
+            
+            CorrespondenceAttachment primaryAttachment = null;
             List<CorrespondenceAttachment> attachments = null;
             String documentId = null;
-            if("GET_DETAILS".equals(migration.getCreationStep())){
+            
+            // Step 1: Get Details and Attachments
+            if ("GET_DETAILS".equals(migration.getCreationStep())) {
+                logger.info("Step 1: Getting details and attachments for correspondence: {}", correspondenceGuid);
                 attachments = attachmentRepository.findByDocGuid(correspondenceGuid);
                 primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
-
+                
+                updateCreationStep(migration, "GET_ATTACHMENTS");
+                migrationRepository.save(migration); // Save step progress
+            }
+            
+            // Step 2: Get Attachments (already done above, move to upload)
+            if ("GET_ATTACHMENTS".equals(migration.getCreationStep())) {
+                if (attachments == null) {
+                    attachments = attachmentRepository.findByDocGuid(correspondenceGuid);
+                    primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
+                }
+                
                 String batchId = null;
-
+                
                 // Step 3: Upload main attachment if exists
                 if (primaryAttachment != null && AttachmentUtils.isValidForUpload(primaryAttachment)) {
+                    logger.info("Step 3: Uploading main attachment for correspondence: {}", correspondenceGuid);
                     updateCreationStep(migration, "UPLOAD_MAIN_ATTACHMENT");
                     migrationRepository.save(migration); // Save step progress
                     
                     batchId = destinationService.createBatch();
                     if (batchId != null) {
                         migration.setBatchId(batchId);
-
+                        migrationRepository.save(migration); // Save batch ID
+                        
                         String fileData = AttachmentUtils.getFileDataForUpload(
                                 primaryAttachment.getFileData(),
                                 primaryAttachment.getName(),
                                 true
                         );
-
+                        
                         boolean uploaded = destinationService.uploadBase64FileToBatch(
                                 batchId, "0", fileData,
                                 AttachmentUtils.getFileNameForUpload(primaryAttachment.getName(), true)
                         );
-
-                        if (!uploaded) {
-                            logger.warn("Failed to upload primary attachment for correspondence: {}", correspondenceGuid);
-                            return false;
-                        }
-
-                        updateCreationStep(migration, "CREATE_CORRESPONDENCE");
-                        migrationRepository.save(migration); // Save step progress
                         
-                        documentId = createCorrespondenceInDestination(correspondence, batchId);
-                        if (documentId == null) {
-                            logger.error("Failed to create correspondence in destination system: {}", correspondenceGuid);
+                        if (!uploaded) {
+                            logger.error("Step 3 failed: Failed to upload primary attachment for correspondence: {}", correspondenceGuid);
                             return false;
                         }
-
-                        migration.setCreatedDocumentId(documentId);
-                        migrationRepository.save(migration); // Save progress
-
-                        // Step 5: Upload other attachments
-                        updateCreationStep(migration, "UPLOAD_OTHER_ATTACHMENTS");
-                        migrationRepository.save(migration); // Save step progress
-
                     } else {
-                        logger.error("Failed to create batch for primary attachment upload: {}", correspondenceGuid);
+                        logger.error("Step 3 failed: Failed to create batch for primary attachment upload: {}", correspondenceGuid);
                         return false;
                     }
+                } else {
+                    logger.info("No primary attachment found for correspondence: {}, proceeding without batch", correspondenceGuid);
                 }
-
+                
+                // Move to next step
+                updateCreationStep(migration, "CREATE_CORRESPONDENCE");
+                migrationRepository.save(migration); // Save step progress
             }
-            if (documentId==null){
-                documentId=migration.getCreatedDocumentId();
-            }
-            // Step 2: Get attachments
-            //updateCreationStep(migration, "GET_ATTACHMENTS");
-
             
             // Step 4: Create correspondence
-
-            if("UPLOAD_OTHER_ATTACHMENTS".equals(migration.getCreationStep())){
-                boolean otherAttachmentsSuccess = uploadOtherAttachments(attachments, primaryAttachment, documentId);
-                if (!otherAttachmentsSuccess) {
-                    logger.error("Failed to upload other attachments for correspondence: {}", correspondenceGuid);
+            if ("CREATE_CORRESPONDENCE".equals(migration.getCreationStep())) {
+                logger.info("Step 4: Creating correspondence in destination: {}", correspondenceGuid);
+                
+                String batchId = migration.getBatchId(); // Get saved batch ID
+                documentId = createCorrespondenceInDestination(correspondence, batchId);
+                if (documentId == null) {
+                    logger.error("Step 4 failed: Failed to create correspondence in destination system: {}", correspondenceGuid);
                     return false;
                 }
-
-                // Step 6: Create physical attachment
+                
+                // CRITICAL: Save the created document ID immediately
+                migration.setCreatedDocumentId(documentId);
+                updateCreationStep(migration, "UPLOAD_OTHER_ATTACHMENTS");
+                migrationRepository.save(migration); // Save progress with document ID
+                
+                logger.info("Successfully created correspondence with document ID: {} for correspondence: {}", documentId, correspondenceGuid);
+            }
+            
+            // Resume processing: Get document ID if not available
+            if (documentId == null) {
+                documentId = migration.getCreatedDocumentId();
+                if (documentId == null) {
+                    logger.error("No document ID available for correspondence: {}", correspondenceGuid);
+                    return false;
+                }
+            }
+            
+            // Step 5: Upload other attachments
+            if ("UPLOAD_OTHER_ATTACHMENTS".equals(migration.getCreationStep())) {
+                logger.info("Step 5: Uploading other attachments for correspondence: {}", correspondenceGuid);
+                
+                if (attachments == null) {
+                    attachments = attachmentRepository.findByDocGuid(correspondenceGuid);
+                    primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
+                }
+                
+                boolean otherAttachmentsSuccess = uploadOtherAttachments(attachments, primaryAttachment, documentId);
+                if (!otherAttachmentsSuccess) {
+                    logger.error("Step 5 failed: Failed to upload other attachments for correspondence: {}", correspondenceGuid);
+                    return false;
+                }
+                
                 updateCreationStep(migration, "CREATE_PHYSICAL_ATTACHMENT");
                 migrationRepository.save(migration); // Save progress
             }
-
-            if("CREATE_PHYSICAL_ATTACHMENT".equals(migration.getCreationStep())) {
+            
+            // Step 6: Create physical attachment
+            if ("CREATE_PHYSICAL_ATTACHMENT".equals(migration.getCreationStep())) {
+                logger.info("Step 6: Creating physical attachment for correspondence: {}", correspondenceGuid);
                 boolean physicalAttachmentSuccess = createPhysicalAttachment(correspondence, documentId);
                 if (!physicalAttachmentSuccess) {
-                    logger.error("Failed to create physical attachment for correspondence: {}", correspondenceGuid);
+                    logger.error("Step 6 failed: Failed to create physical attachment for correspondence: {}", correspondenceGuid);
                     return false;
                 }
-                // Step 7: Set ready to register
+                
                 updateCreationStep(migration, "SET_READY_TO_REGISTER");
                 migrationRepository.save(migration); // Save progress
             }
-
-            if("SET_READY_TO_REGISTER".equals(migration.getCreationStep())) {
+            
+            // Step 7: Set ready to register
+            if ("SET_READY_TO_REGISTER".equals(migration.getCreationStep())) {
+                logger.info("Step 7: Setting ready to register for correspondence: {}", correspondenceGuid);
                 String asUserForRegister = correspondence.getCreationUserName() != null ?
                         correspondence.getCreationUserName() : "itba-emp1";
-                //boolean readyToRegisterSuccess = destinationService.setIncomingReadyToRegister(documentId, asUserForRegister);
-                boolean readyToRegisterSuccess=true;
+                
+                boolean readyToRegisterSuccess = destinationService.setIncomingReadyToRegister(documentId, asUserForRegister);
                 if (!readyToRegisterSuccess) {
-                    String errorMsg = "Failed to set ready to register for correspondence: " + correspondenceGuid;
-                    logger.error(errorMsg);
+                    logger.error("Step 7 failed: Failed to set ready to register for correspondence: {}", correspondenceGuid);
                     return false;
                 }
-
-                // Step 8: Register with reference
+                
                 updateCreationStep(migration, "REGISTER_WITH_REFERENCE");
                 migrationRepository.save(migration); // Save progress
             }
-
-            if("REGISTER_WITH_REFERENCE".equals(migration.getCreationStep())) {
+            
+            // Step 8: Register with reference
+            if ("REGISTER_WITH_REFERENCE".equals(migration.getCreationStep())) {
+                logger.info("Step 8: Registering with reference for correspondence: {}", correspondenceGuid);
                 boolean registerSuccess = registerCorrespondenceWithReference(correspondence, documentId);
                 if (!registerSuccess) {
-                    String errorMsg = "Failed to register correspondence with reference: " + correspondenceGuid;
-                    logger.error(errorMsg);
+                    logger.error("Step 8 failed: Failed to register correspondence with reference: {}", correspondenceGuid);
                     return false;
                 }
+                
                 updateCreationStep(migration, "START_WORK");
-
-                // Add shorter delay for destination system processing
+                migrationRepository.save(migration); // Save progress
+                
+                // Add delay for destination system processing
                 try {
                     Thread.sleep(2000); // Reduced to 2 seconds
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 }
-                migrationRepository.save(migration); // Save progress
             }
-            if("START_WORK".equals(migration.getCreationStep())) {
-                // Step 9: Start work
+            
+            // Step 9: Start work
+            if ("START_WORK".equals(migration.getCreationStep())) {
+                logger.info("Step 9: Starting work for correspondence: {}", correspondenceGuid);
                 String asUserForWork = correspondence.getCreationUserName() != null ?
                         correspondence.getCreationUserName() : "itba-emp1";
+                
                 boolean startWorkSuccess = destinationService.startIncomingCorrespondenceWork(documentId, asUserForWork);
                 if (!startWorkSuccess) {
-                    String errorMsg = "Failed to start work for correspondence: " + correspondenceGuid;
-                    logger.error(errorMsg);
+                    logger.error("Step 9 failed: Failed to start work for correspondence: {}", correspondenceGuid);
                     return false;
                 }
-
-                // Step 10: Set owner
+                
                 updateCreationStep(migration, "SET_OWNER");
                 migrationRepository.save(migration); // Save progress
             }
-
-            if("SET_OWNER".equals(migration.getCreationStep())) {
+            
+            // Step 10: Set owner
+            if ("SET_OWNER".equals(migration.getCreationStep())) {
+                logger.info("Step 10: Setting owner for correspondence: {}", correspondenceGuid);
                 String asUserForOwner = correspondence.getCreationUserName() != null ?
                         correspondence.getCreationUserName() : "itba-emp1";
+                
                 boolean setOwnerSuccess = destinationService.setCorrespondenceOwner(documentId, asUserForOwner);
                 if (!setOwnerSuccess) {
-                    String errorMsg = "Failed to set owner for correspondence: " + correspondenceGuid;
-                    logger.error(errorMsg);
+                    logger.error("Step 10 failed: Failed to set owner for correspondence: {}", correspondenceGuid);
                     return false;
                 }
-
-                // Mark as completed
+                
+                // Final step: Mark as completed
                 updateCreationStep(migration, "COMPLETED");
                 migrationRepository.save(migration); // Save final progress
                 logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
                 return true;
             }
+            
+            logger.warn("Creation process reached end without completion for correspondence: {}", correspondenceGuid);
+            return false;
         } catch (Exception e) {
             logger.error("Error in creation process for correspondence: {}", correspondenceGuid, e);
+            
+            // Update error status immediately
+            try {
+                migration.setCreationStatus("ERROR");
+                migration.setCreationError("Step failed: " + e.getMessage());
+                migration.setRetryCount(migration.getRetryCount() + 1);
+                migration.setLastErrorAt(LocalDateTime.now());
+                migrationRepository.save(migration);
+            } catch (Exception saveError) {
+                logger.error("Error saving error status for correspondence: {}", correspondenceGuid, saveError);
+            }
+            
             return false;
         }
-        return false;
     }
     
     /**
