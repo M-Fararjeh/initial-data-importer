@@ -353,7 +353,7 @@ public class CreationPhaseService {
                 primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
                 
                 updateCreationStep(migration, "GET_ATTACHMENTS");
-                migrationRepository.save(migration); // Save step progress
+                migrationRepository.saveAndFlush(migration); // Save step progress
             }
             
             // Step 2: Get Attachments (already done above, move to upload)
@@ -369,12 +369,12 @@ public class CreationPhaseService {
                 if (primaryAttachment != null && AttachmentUtils.isValidForUpload(primaryAttachment)) {
                     logger.info("Step 3: Uploading main attachment for correspondence: {}", correspondenceGuid);
                     updateCreationStep(migration, "UPLOAD_MAIN_ATTACHMENT");
-                    migrationRepository.save(migration); // Save step progress
+                    migrationRepository.saveAndFlush(migration); // Save step progress
                     
                     batchId = destinationService.createBatch();
                     if (batchId != null) {
                         migration.setBatchId(batchId);
-                        migrationRepository.save(migration); // Save batch ID
+                        migrationRepository.saveAndFlush(migration); // Save batch ID
                         
                         String fileData = AttachmentUtils.getFileDataForUpload(
                                 primaryAttachment.getFileData(),
