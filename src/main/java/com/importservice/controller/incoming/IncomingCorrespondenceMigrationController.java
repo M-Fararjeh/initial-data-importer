@@ -389,7 +389,7 @@ public class IncomingCorrespondenceMigrationController {
                     CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
                         try {
                             logger.debug("Processing correspondence in thread: {}", correspondenceGuid);
-                            return migrationService.processCorrespondenceCreationInNewTransaction(correspondenceGuid);
+                            return creationPhaseService.processCorrespondenceCreationInNewTransaction(correspondenceGuid);
                         } catch (Exception e) {
                             logger.error("Error processing correspondence {}: {}", correspondenceGuid, e.getMessage());
                             errors.add("Error processing correspondence " + correspondenceGuid + ": " + e.getMessage());
@@ -412,7 +412,7 @@ public class IncomingCorrespondenceMigrationController {
                         } else {
                             failedImports.incrementAndGet();
                             logger.warn("❌ Failed to complete creation for correspondence: {}", correspondenceGuid);
-                       return creationPhaseService.processCorrespondenceCreationInNewTransaction(correspondenceGuid);
+                        }
                     } catch (Exception e) {
                         failedImports.incrementAndGet();
                         String correspondenceGuid = batch.get(i);
