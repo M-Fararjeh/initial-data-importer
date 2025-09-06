@@ -59,9 +59,8 @@ public class IncomingCorrespondenceMigrationController {
         @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    //@Transactional(timeout = 900)
     public ResponseEntity<ImportResponseDto> executeCreation() {
-        logger.info("Received request for Phase 2: Creation");
+        logger.info("Received request for Phase 2: Creation (Multithreaded)");
         
         try {
             ImportResponseDto response = migrationService.executeCreationPhase();
@@ -128,10 +127,9 @@ public class IncomingCorrespondenceMigrationController {
         @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    //@Transactional(timeout = 900)
     public ResponseEntity<ImportResponseDto> executeCreationForSpecific(@RequestBody Map<String, List<String>> request) {
         List<String> correspondenceGuids = request.get("correspondenceGuids");
-        logger.info("Received request to execute creation for {} specific correspondences", 
+        logger.info("Received request to execute creation for {} specific correspondences (Multithreaded)", 
                    correspondenceGuids != null ? correspondenceGuids.size() : 0);
         
         try {

@@ -22,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Isolation;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,6 +32,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Service for Phase 2: Creation
@@ -61,46 +67,55 @@ public class CreationPhaseService {
     @Autowired
     private CorrespondenceSubjectGenerator subjectGenerator;
 
+    @Autowired
+    @Qualifier("creationTaskExecutor")
+    private Executor creationTaskExecutor;
+
     /**
      * Phase 2: Creation
      * Creates correspondences in destination system
      */
-    //@Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCreationPhase() {
-        logger.info("Starting Phase 2: Creation");
+        logger.info("Starting Phase 2: Creation with multithreading");
         
         List<String> errors = new ArrayList<>();
-        int successfulImports = 0;
-        int failedImports = 0;
+        AtomicInteger successfulImports = new AtomicInteger(0);
+        AtomicInteger failedImports = new AtomicInteger(0);
         
         try {
             List<IncomingCorrespondenceMigration> migrations = phaseService.getMigrationsForPhase("CREATION");
+            logger.info("Found {} correspondences to process in parallel", migrations.size());
             
-            for (IncomingCorrespondenceMigration migration : migrations) {
-                try {
-                    boolean success = processCorrespondenceCreation(migration);
-                    if (success) {
-                        successfulImports++;
-                        phaseService.updatePhaseStatus(migration.getCorrespondenceGuid(), "CREATION", "COMPLETED", null);
-                    } else {
-                        failedImports++;
-                        // Don't update phase status here as it's already updated in processCorrespondenceCreation
-                    }
-                } catch (Exception e) {
-                    failedImports++;
-                    String errorMsg = "Error processing correspondence " + migration.getCorrespondenceGuid() + ": " + e.getMessage();
-                    errors.add(errorMsg);
-                    phaseService.updatePhaseStatus(migration.getCorrespondenceGuid(), "CREATION", "ERROR", errorMsg);
-                    logger.error(errorMsg, e);
-                }
+            if (migrations.isEmpty()) {
+                return phaseService.createResponse("SUCCESS", "No correspondences found in CREATION phase", 
+                                                 0, 0, 0, new ArrayList<>());
             }
             
-            String status = phaseService.determineFinalStatus(successfulImports, failedImports);
+            // Process correspondences in parallel using CompletableFuture
+            List<CompletableFuture<ProcessingResult>> futures = migrations.stream()
+                .map(migration -> processCorrespondenceAsync(migration.getCorrespondenceGuid(), successfulImports, failedImports, errors))
+                .collect(Collectors.toList());
+            
+            // Wait for all tasks to complete
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                futures.toArray(new CompletableFuture[0])
+            );
+            
+            // Block until all tasks complete (with timeout handling)
+            try {
+                allFutures.get(30, java.util.concurrent.TimeUnit.MINUTES); // 30 minute timeout
+                logger.info("All creation tasks completed");
+            } catch (java.util.concurrent.TimeoutException e) {
+                logger.error("Creation phase timed out after 30 minutes");
+                errors.add("Creation phase timed out after 30 minutes");
+            }
+            
+            String status = phaseService.determineFinalStatus(successfulImports.get(), failedImports.get());
             String message = String.format("Phase 2 completed. Created: %d, Failed: %d", 
-                                         successfulImports, failedImports);
+                                         successfulImports.get(), failedImports.get());
             
             return phaseService.createResponse(status, message, migrations.size(), 
-                                             successfulImports, failedImports, errors);
+                                             successfulImports.get(), failedImports.get(), errors);
             
         } catch (Exception e) {
             logger.error("Error in Phase 2: Creation", e);
@@ -112,57 +127,104 @@ public class CreationPhaseService {
     /**
      * Executes creation for specific correspondences
      */
-    //@Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
-        logger.info("Starting creation for {} specific correspondences", correspondenceGuids.size());
+        logger.info("Starting creation for {} specific correspondences with multithreading", correspondenceGuids.size());
         
         List<String> errors = new ArrayList<>();
-        int successfulImports = 0;
-        int failedImports = 0;
+        AtomicInteger successfulImports = new AtomicInteger(0);
+        AtomicInteger failedImports = new AtomicInteger(0);
         
-        // Process correspondences one by one with individual transactions for better timeout handling
-        for (int i = 0; i < correspondenceGuids.size(); i++) {
-            String correspondenceGuid = correspondenceGuids.get(i);
+        try {
+            // Process correspondences in parallel using CompletableFuture
+            List<CompletableFuture<ProcessingResult>> futures = correspondenceGuids.stream()
+                .map(correspondenceGuid -> processCorrespondenceAsync(correspondenceGuid, successfulImports, failedImports, errors))
+                .collect(Collectors.toList());
+            
+            // Wait for all tasks to complete
+            CompletableFuture<Void> allFutures = CompletableFuture.allOf(
+                futures.toArray(new CompletableFuture[0])
+            );
+            
+            // Block until all tasks complete (with timeout handling)
             try {
-                logger.info("Processing correspondence: {} ({}/{})", 
-                           correspondenceGuid, i + 1, correspondenceGuids.size());
+                allFutures.get(30, java.util.concurrent.TimeUnit.MINUTES); // 30 minute timeout
+                logger.info("All specific creation tasks completed");
+            } catch (java.util.concurrent.TimeoutException e) {
+                logger.error("Specific creation phase timed out after 30 minutes");
+                errors.add("Specific creation phase timed out after 30 minutes");
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error in specific creation phase setup", e);
+            errors.add("Error in specific creation phase setup: " + e.getMessage());
+        }
+        
+        String status = phaseService.determineFinalStatus(successfulImports.get(), failedImports.get());
+        String message = String.format("Specific creation completed. Created: %d, Failed: %d", 
+                                     successfulImports.get(), failedImports.get());
+        
+        return phaseService.createResponse(status, message, correspondenceGuids.size(), 
+                                         successfulImports.get(), failedImports.get(), errors);
+    }
+    
+    /**
+     * Helper class to hold processing results
+     */
+    private static class ProcessingResult {
+        final boolean success;
+        final String correspondenceGuid;
+        final String errorMessage;
+        
+        ProcessingResult(boolean success, String correspondenceGuid, String errorMessage) {
+            this.success = success;
+            this.correspondenceGuid = correspondenceGuid;
+            this.errorMessage = errorMessage;
+        }
+    }
+    
+    /**
+     * Processes a single correspondence asynchronously
+     */
+    private CompletableFuture<ProcessingResult> processCorrespondenceAsync(
+            String correspondenceGuid, 
+            AtomicInteger successfulImports, 
+            AtomicInteger failedImports, 
+            List<String> errors) {
+        
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                logger.info("Processing correspondence in thread {}: {}", 
+                           Thread.currentThread().getName(), correspondenceGuid);
                 
-                // Process in separate transaction for better timeout handling
                 boolean success = processCorrespondenceCreationInNewTransaction(correspondenceGuid);
                 
                 if (success) {
-                    successfulImports++;
-                    logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
+                    int currentSuccess = successfulImports.incrementAndGet();
+                    logger.info("Successfully completed creation for correspondence: {} (Total success: {})", 
+                               correspondenceGuid, currentSuccess);
+                    return new ProcessingResult(true, correspondenceGuid, null);
                 } else {
-                    failedImports++;
-                    logger.warn("Failed to complete creation for correspondence: {}", correspondenceGuid);
-                }
-                
-                // Add small delay between correspondences to reduce system load
-                if (i < correspondenceGuids.size() - 1) {
-                    try {
-                        Thread.sleep(200); // 200ms delay between correspondences
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        logger.warn("Thread interrupted during processing delay");
-                        break;
-                    }
+                    int currentFailed = failedImports.incrementAndGet();
+                    logger.warn("Failed to complete creation for correspondence: {} (Total failed: {})", 
+                               correspondenceGuid, currentFailed);
+                    return new ProcessingResult(false, correspondenceGuid, "Creation process failed");
                 }
                 
             } catch (Exception e) {
-                failedImports++;
+                int currentFailed = failedImports.incrementAndGet();
                 String errorMsg = "Error processing correspondence " + correspondenceGuid + ": " + e.getMessage();
-                errors.add(errorMsg);
-                logger.error(errorMsg, e);
+                
+                // Thread-safe error collection
+                synchronized (errors) {
+                    errors.add(errorMsg);
+                }
+                
+                logger.error("Error in thread {} for correspondence {}: {}", 
+                           Thread.currentThread().getName(), correspondenceGuid, e.getMessage(), e);
+                
+                return new ProcessingResult(false, correspondenceGuid, errorMsg);
             }
-        }
-        
-        String status = phaseService.determineFinalStatus(successfulImports, failedImports);
-        String message = String.format("Specific creation completed. Created: %d, Failed: %d", 
-                                     successfulImports, failedImports);
-        
-        return phaseService.createResponse(status, message, correspondenceGuids.size(), 
-                                         successfulImports, failedImports, errors);
+        }, creationTaskExecutor);
     }
     
     /**
