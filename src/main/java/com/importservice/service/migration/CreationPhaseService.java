@@ -110,7 +110,7 @@ public class CreationPhaseService {
     /**
      * Executes creation for specific correspondences
      */
-    @Transactional(readOnly = false, timeout = 300)
+    @Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting creation for {} specific correspondences", correspondenceGuids.size());
         
@@ -118,18 +118,33 @@ public class CreationPhaseService {
         int successfulImports = 0;
         int failedImports = 0;
         
-        // Process correspondences one by one without nested transactions
-        for (String correspondenceGuid : correspondenceGuids) {
+        // Process correspondences one by one with individual transactions for better timeout handling
+        for (int i = 0; i < correspondenceGuids.size(); i++) {
+            String correspondenceGuid = correspondenceGuids.get(i);
             try {
                 logger.info("Processing correspondence: {} ({}/{})", 
-                           correspondenceGuid, successfulImports + failedImports + 1, correspondenceGuids.size());
-                boolean success = processCorrespondenceCreationSimple(correspondenceGuid);
+                           correspondenceGuid, i + 1, correspondenceGuids.size());
+                
+                // Process in separate transaction for better timeout handling
+                boolean success = processCorrespondenceCreationInNewTransaction(correspondenceGuid);
+                
                 if (success) {
                     successfulImports++;
                     logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
                 } else {
                     failedImports++;
                     logger.warn("Failed to complete creation for correspondence: {}", correspondenceGuid);
+                }
+                
+                // Add small delay between correspondences to reduce system load
+                if (i < correspondenceGuids.size() - 1) {
+                    try {
+                        Thread.sleep(200); // 200ms delay between correspondences
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        logger.warn("Thread interrupted during processing delay");
+                        break;
+                    }
                 }
                 
             } catch (Exception e) {
@@ -149,8 +164,80 @@ public class CreationPhaseService {
     }
     
     /**
-     * Processes correspondence creation for a single correspondence without nested transactions
+     * Processes correspondence creation in a new transaction for better timeout handling
      */
+    @Transactional(readOnly = false, timeout = 180)
+    public boolean processCorrespondenceCreationInNewTransaction(String correspondenceGuid) {
+        try {
+            logger.debug("Starting new transaction for correspondence: {}", correspondenceGuid);
+            
+            Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+            
+            if (!migrationOpt.isPresent()) {
+                logger.error("Migration record not found for correspondence: {}", correspondenceGuid);
+                return false;
+            }
+            
+            IncomingCorrespondenceMigration migration = migrationOpt.get();
+            
+            // Mark as in progress
+            migration.setCreationStatus("IN_PROGRESS");
+            migration.setLastModifiedDate(LocalDateTime.now());
+            migrationRepository.save(migration);
+            
+            // Process the creation
+            boolean result = processCorrespondenceCreation(migration);
+            
+            // Update final status
+            if (result) {
+                migration.setCreationStatus("COMPLETED");
+                migration.setCreationStep("COMPLETED");
+                migration.setCurrentPhase("ASSIGNMENT");
+                migration.setNextPhase("BUSINESS_LOG");
+                migration.setPhaseStatus("PENDING");
+                migration.setRetryCount(0); // Reset retry count on success
+            } else {
+                migration.setCreationStatus("ERROR");
+                migration.setCreationError("Creation process failed");
+                migration.setRetryCount(migration.getRetryCount() + 1);
+                migration.setLastErrorAt(LocalDateTime.now());
+            }
+            
+            migrationRepository.save(migration);
+            
+            logger.info("Completed creation transaction for correspondence: {} with result: {}", 
+                       correspondenceGuid, result);
+            return result;
+            
+        } catch (Exception e) {
+            logger.error("Error in creation transaction for correspondence: {}", correspondenceGuid, e);
+            
+            // Update error status in separate try-catch to ensure it gets saved
+            try {
+                Optional<IncomingCorrespondenceMigration> migrationOpt = 
+                    migrationRepository.findByCorrespondenceGuid(correspondenceGuid);
+                if (migrationOpt.isPresent()) {
+                    IncomingCorrespondenceMigration migration = migrationOpt.get();
+                    migration.setCreationStatus("ERROR");
+                    migration.setCreationError("Transaction failed: " + e.getMessage());
+                    migration.setRetryCount(migration.getRetryCount() + 1);
+                    migration.setLastErrorAt(LocalDateTime.now());
+                    migrationRepository.save(migration);
+                }
+            } catch (Exception statusError) {
+                logger.error("Error updating error status for correspondence: {}", correspondenceGuid, statusError);
+            }
+            
+            return false;
+        }
+    }
+    
+    /**
+     * Processes correspondence creation for a single correspondence without nested transactions
+     * @deprecated Use processCorrespondenceCreationInNewTransaction for better transaction handling
+     */
+    @Deprecated
     private boolean processCorrespondenceCreationSimple(String correspondenceGuid) {
         try {
             logger.info("Starting creation process for correspondence: {}", correspondenceGuid);
@@ -212,13 +299,11 @@ public class CreationPhaseService {
      */
     private void updateCreationStep(IncomingCorrespondenceMigration migration, String step) {
         try {
-            // Simple field update without separate transaction
             migration.setCreationStep(step);
             migration.setLastModifiedDate(LocalDateTime.now());
             logger.debug("Updated creation step to {} for correspondence: {}", step, migration.getCorrespondenceGuid());
         } catch (Exception e) {
             logger.warn("Error updating creation step to {}: {}", step, e.getMessage());
-            // Don't throw exception - continue with process
         }
     }
     
@@ -250,7 +335,9 @@ public class CreationPhaseService {
 
                 // Step 3: Upload main attachment if exists
                 if (primaryAttachment != null && AttachmentUtils.isValidForUpload(primaryAttachment)) {
-                    //updateCreationStep(migration, "UPLOAD_MAIN_ATTACHMENT");
+                    updateCreationStep(migration, "UPLOAD_MAIN_ATTACHMENT");
+                    migrationRepository.save(migration); // Save step progress
+                    
                     batchId = destinationService.createBatch();
                     if (batchId != null) {
                         migration.setBatchId(batchId);
@@ -272,6 +359,8 @@ public class CreationPhaseService {
                         }
 
                         updateCreationStep(migration, "CREATE_CORRESPONDENCE");
+                        migrationRepository.save(migration); // Save step progress
+                        
                         documentId = createCorrespondenceInDestination(correspondence, batchId);
                         if (documentId == null) {
                             logger.error("Failed to create correspondence in destination system: {}", correspondenceGuid);
@@ -279,9 +368,11 @@ public class CreationPhaseService {
                         }
 
                         migration.setCreatedDocumentId(documentId);
+                        migrationRepository.save(migration); // Save progress
 
                         // Step 5: Upload other attachments
                         updateCreationStep(migration, "UPLOAD_OTHER_ATTACHMENTS");
+                        migrationRepository.save(migration); // Save step progress
 
                     } else {
                         logger.error("Failed to create batch for primary attachment upload: {}", correspondenceGuid);
@@ -308,6 +399,7 @@ public class CreationPhaseService {
 
                 // Step 6: Create physical attachment
                 updateCreationStep(migration, "CREATE_PHYSICAL_ATTACHMENT");
+                migrationRepository.save(migration); // Save progress
             }
 
             if("CREATE_PHYSICAL_ATTACHMENT".equals(migration.getCreationStep())) {
@@ -318,6 +410,7 @@ public class CreationPhaseService {
                 }
                 // Step 7: Set ready to register
                 updateCreationStep(migration, "SET_READY_TO_REGISTER");
+                migrationRepository.save(migration); // Save progress
             }
 
             if("SET_READY_TO_REGISTER".equals(migration.getCreationStep())) {
@@ -333,6 +426,7 @@ public class CreationPhaseService {
 
                 // Step 8: Register with reference
                 updateCreationStep(migration, "REGISTER_WITH_REFERENCE");
+                migrationRepository.save(migration); // Save progress
             }
 
             if("REGISTER_WITH_REFERENCE".equals(migration.getCreationStep())) {
@@ -344,12 +438,13 @@ public class CreationPhaseService {
                 }
                 updateCreationStep(migration, "START_WORK");
 
-                // Add delay for destination system processing
+                // Add shorter delay for destination system processing
                 try {
-                    Thread.sleep(5000); // Reduced to 5 seconds
+                    Thread.sleep(2000); // Reduced to 2 seconds
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 }
+                migrationRepository.save(migration); // Save progress
             }
             if("START_WORK".equals(migration.getCreationStep())) {
                 // Step 9: Start work
@@ -364,6 +459,7 @@ public class CreationPhaseService {
 
                 // Step 10: Set owner
                 updateCreationStep(migration, "SET_OWNER");
+                migrationRepository.save(migration); // Save progress
             }
 
             if("SET_OWNER".equals(migration.getCreationStep())) {
@@ -378,6 +474,7 @@ public class CreationPhaseService {
 
                 // Mark as completed
                 updateCreationStep(migration, "COMPLETED");
+                migrationRepository.save(migration); // Save final progress
                 logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
                 return true;
             }

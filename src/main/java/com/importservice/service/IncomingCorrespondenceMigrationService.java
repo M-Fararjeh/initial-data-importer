@@ -61,11 +61,13 @@ public class IncomingCorrespondenceMigrationService {
     }
     
     // Phase 2: Creation
+    @Transactional(readOnly = false, timeout = 900)
     public ImportResponseDto executeCreationPhase() {
         logger.info("Delegating to CreationPhaseService");
         return creationPhaseService.executeCreationPhase();
     }
     
+    @Transactional(readOnly = false, timeout = 900)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Delegating creation for specific correspondences to CreationPhaseService");
         return creationPhaseService.executeCreationForSpecific(correspondenceGuids);
