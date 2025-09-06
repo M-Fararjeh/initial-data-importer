@@ -168,7 +168,7 @@ public class CreationPhaseService {
     /**
      * Processes correspondence creation in a new transaction for better timeout handling
      */
-    @Transactional(readOnly = false, timeout = 180, propagation = Propagation.REQUIRES_NEW, isolation = Isolation.READ_COMMITTED)
+    @Transactional(readOnly = false, timeout = 180, propagation = Propagation.REQUIRES_NEW)
     public boolean processCorrespondenceCreationInNewTransaction(String correspondenceGuid) {
         try {
             logger.debug("Starting new transaction for correspondence: {}", correspondenceGuid);
@@ -183,16 +183,12 @@ public class CreationPhaseService {
             
             IncomingCorrespondenceMigration migration = migrationOpt.get();
             
-            // Mark as in progress and ensure we start from the right step
+            // Mark as in progress immediately
             migration.setCreationStatus("IN_PROGRESS");
-            if ("PENDING".equals(migration.getCreationStep()) || migration.getCreationStep() == null) {
-                migration.setCreationStep("GET_DETAILS");
-            }
             migration.setLastModifiedDate(LocalDateTime.now());
-            migrationRepository.saveAndFlush(migration); // Force immediate database write
             
-            logger.info("Marked correspondence {} as IN_PROGRESS at step: {} - Status saved to database", 
-                       correspondenceGuid, migration.getCreationStep());
+            // Force immediate commit of status change
+            updateMigrationStatusImmediately(migration);
             
             // Process the creation
             boolean result = processCorrespondenceCreation(migration);
@@ -205,23 +201,18 @@ public class CreationPhaseService {
                 migration.setNextPhase("BUSINESS_LOG");
                 migration.setPhaseStatus("PENDING");
                 migration.setRetryCount(0); // Reset retry count on success
-                
-                logger.info("Successfully completed creation for correspondence: {} with document ID: {}", 
-                           correspondenceGuid, migration.getCreatedDocumentId());
             } else {
                 migration.setCreationStatus("ERROR");
                 migration.setCreationError("Creation process failed");
                 migration.setRetryCount(migration.getRetryCount() + 1);
                 migration.setLastErrorAt(LocalDateTime.now());
-                
-                logger.error("Failed creation for correspondence: {} at step: {}", 
-                           correspondenceGuid, migration.getCreationStep());
             }
             
-            migrationRepository.saveAndFlush(migration); // Force immediate database write
+            // Force immediate commit of final status
+            updateMigrationStatusImmediately(migration);
             
-            logger.info("Final status saved to database for correspondence: {} - Status: {}, Document ID: {}", 
-                       correspondenceGuid, migration.getCreationStatus(), migration.getCreatedDocumentId());
+            logger.info("Completed creation transaction for correspondence: {} with result: {}", 
+                       correspondenceGuid, result);
             
             return result;
             
@@ -238,10 +229,7 @@ public class CreationPhaseService {
                     migration.setCreationError("Transaction failed: " + e.getMessage());
                     migration.setRetryCount(migration.getRetryCount() + 1);
                     migration.setLastErrorAt(LocalDateTime.now());
-                    migrationRepository.saveAndFlush(migration); // Force immediate database write
-                    
-                    logger.error("Saved error status to database for correspondence: {} - Error: {}", 
-                               correspondenceGuid, e.getMessage());
+                    updateMigrationStatusImmediately(migration);
                 }
             } catch (Exception statusError) {
                 logger.error("Error updating error status for correspondence: {}", correspondenceGuid, statusError);
@@ -319,9 +307,8 @@ public class CreationPhaseService {
         try {
             migration.setCreationStep(step);
             migration.setLastModifiedDate(LocalDateTime.now());
-            migrationRepository.flush(); // Force immediate database write
+            updateMigrationStatusImmediately(migration);
             logger.debug("Updated creation step to {} for correspondence: {}", step, migration.getCorrespondenceGuid());
-        } catch (Exception e) {
             logger.warn("Error updating creation step to {}: {}", step, e.getMessage());
         }
     }
