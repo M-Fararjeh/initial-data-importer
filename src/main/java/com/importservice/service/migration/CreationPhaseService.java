@@ -309,6 +309,7 @@ public class CreationPhaseService {
             migration.setLastModifiedDate(LocalDateTime.now());
             updateMigrationStatusImmediately(migration);
             logger.debug("Updated creation step to {} for correspondence: {}", step, migration.getCorrespondenceGuid());
+        } catch (Exception e) {
             logger.warn("Error updating creation step to {}: {}", step, e.getMessage());
         }
     }
