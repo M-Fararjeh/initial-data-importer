@@ -77,7 +77,7 @@ public class MigrationPhaseService {
     /**
      * Gets migrations that need processing for a specific phase
      */
-    @Transactional(readOnly = true, timeout = 60)
+    //@Transactional(readOnly = true, timeout = 60)
     public List<IncomingCorrespondenceMigration> getMigrationsForPhase(String phase) {
         try {
             List<IncomingCorrespondenceMigration> migrations = migrationRepository.findByCurrentPhase(phase);

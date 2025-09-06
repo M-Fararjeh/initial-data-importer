@@ -143,7 +143,7 @@ public class IncomingCorrespondenceMigrationService {
         }
     }
     
-    @Transactional(readOnly = false, timeout = 900)
+    //@Transactional(readOnly = false, timeout = 900)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Delegating creation for specific correspondences to CreationPhaseService");
         return creationPhaseService.executeCreationForSpecific(correspondenceGuids);

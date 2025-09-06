@@ -112,7 +112,7 @@ public class CreationPhaseService {
     /**
      * Executes creation for specific correspondences
      */
-    @Transactional(readOnly = false, timeout = 600)
+    //@Transactional(readOnly = false, timeout = 600)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Starting creation for {} specific correspondences", correspondenceGuids.size());
         

@@ -59,7 +59,7 @@ public class IncomingCorrespondenceMigrationController {
         @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @Transactional(timeout = 900)
+    //@Transactional(timeout = 900)
     public ResponseEntity<ImportResponseDto> executeCreation() {
         logger.info("Received request for Phase 2: Creation");
         
@@ -128,7 +128,7 @@ public class IncomingCorrespondenceMigrationController {
         @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    @Transactional(timeout = 900)
+    //@Transactional(timeout = 900)
     public ResponseEntity<ImportResponseDto> executeCreationForSpecific(@RequestBody Map<String, List<String>> request) {
         List<String> correspondenceGuids = request.get("correspondenceGuids");
         logger.info("Received request to execute creation for {} specific correspondences", 
