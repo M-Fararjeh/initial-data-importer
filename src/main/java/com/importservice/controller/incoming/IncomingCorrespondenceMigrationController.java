@@ -13,10 +13,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/incoming-migration")
@@ -30,8 +30,7 @@ public class IncomingCorrespondenceMigrationController {
     private IncomingCorrespondenceMigrationService migrationService;
     
     @PostMapping("/prepare-data")
-    @Operation(summary = "Phase 1: Prepare Data", 
-               description = "Prepares incoming correspondences for migration")
+    @Operation(summary = "Phase 1: Prepare Data", description = "Prepares incoming correspondences for migration")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
         @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
@@ -39,111 +38,23 @@ public class IncomingCorrespondenceMigrationController {
     })
     public ResponseEntity<ImportResponseDto> prepareData() {
         logger.info("Received request for Phase 1: Prepare Data");
-        
-        try {
-            ImportResponseDto response = migrationService.prepareData();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in prepare data phase", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
+        return executePhase(() -> migrationService.prepareData());
     }
     
     @PostMapping("/creation")
-    @Operation(summary = "Phase 2: Creation", 
-               description = "Creates correspondences in destination system")
+    @Operation(summary = "Phase 2: Creation", description = "Creates correspondences in destination system")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
         @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    //@Transactional(timeout = 900)
     public ResponseEntity<ImportResponseDto> executeCreation() {
         logger.info("Received request for Phase 2: Creation");
-        
-        try {
-            ImportResponseDto response = migrationService.executeCreationPhase();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in creation phase", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
-    }
-    
-    @GetMapping("/creation/details")
-    @Operation(summary = "Get Creation Phase Details", 
-               description = "Returns detailed information about creation phase migrations")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 60)
-    public ResponseEntity<Map<String, Object>> getCreationDetails() {
-        logger.info("Received request for creation phase details");
-        
-        try {
-            Map<String, Object> migrations = migrationService.getCreationMigrationsWithDetails();
-            return ResponseEntity.ok(migrations);
-        } catch (Exception e) {
-            logger.error("Error getting creation details", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("content", new ArrayList<>());
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
-    @GetMapping("/creation/statistics")
-    @Operation(summary = "Get Creation Phase Statistics", 
-               description = "Returns statistics about creation phase status distribution")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 60)
-    public ResponseEntity<Map<String, Object>> getCreationStatistics() {
-        logger.info("Received request for creation phase statistics");
-        
-        try {
-            Map<String, Object> statistics = migrationService.getCreationStatistics();
-            return ResponseEntity.ok(statistics);
-        } catch (Exception e) {
-            logger.error("Error getting creation statistics", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("total", 0);
-            errorResponse.put("completed", 0);
-            errorResponse.put("pending", 0);
-            errorResponse.put("error", 0);
-            errorResponse.put("stepStatistics", new ArrayList<>());
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
-    @PostMapping("/creation/execute-specific")
-    @Operation(summary = "Execute Creation for Specific Correspondences", 
-               description = "Executes creation phase for specified correspondence GUIDs")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    //@Transactional(timeout = 900)
-    public ResponseEntity<ImportResponseDto> executeCreationForSpecific(@RequestBody Map<String, List<String>> request) {
-        List<String> correspondenceGuids = request.get("correspondenceGuids");
-        logger.info("Received request to execute creation for {} specific correspondences", 
-                   correspondenceGuids != null ? correspondenceGuids.size() : 0);
-        
-        try {
-            ImportResponseDto response = migrationService.executeCreationForSpecific(correspondenceGuids);
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in execute creation for specific", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
+        return executePhase(() -> migrationService.executeCreationPhase());
     }
     
     @PostMapping("/assignment")
-    @Operation(summary = "Phase 3: Assignment", 
-               description = "Assigns correspondences to users/departments")
+    @Operation(summary = "Phase 3: Assignment", description = "Assigns correspondences to users/departments")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
         @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
@@ -151,22 +62,122 @@ public class IncomingCorrespondenceMigrationController {
     })
     public ResponseEntity<ImportResponseDto> executeAssignment() {
         logger.info("Received request for Phase 3: Assignment");
-        
-        try {
-            ImportResponseDto response = migrationService.executeAssignmentPhase();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in assignment phase", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
+        return executePhase(() -> migrationService.executeAssignmentPhase());
+    }
+    
+    @PostMapping("/business-log")
+    @Operation(summary = "Phase 4: Business Log", description = "Processes business logic for correspondences")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> executeBusinessLog() {
+        logger.info("Received request for Phase 4: Business Log");
+        return executePhase(() -> migrationService.executeBusinessLogPhase());
+    }
+    
+    @PostMapping("/comment")
+    @Operation(summary = "Phase 5: Comment", description = "Processes comments for correspondences")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> executeComment() {
+        logger.info("Received request for Phase 5: Comment");
+        return executePhase(() -> migrationService.executeCommentPhase());
+    }
+    
+    @PostMapping("/closing")
+    @Operation(summary = "Phase 6: Closing", description = "Closes correspondences that need to be closed")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> executeClosing() {
+        logger.info("Received request for Phase 6: Closing");
+        return executePhase(() -> migrationService.executeClosingPhase());
+    }
+    
+    @PostMapping("/retry-failed")
+    @Operation(summary = "Retry Failed Migrations", description = "Retries failed migrations that haven't exceeded max retry count")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Retry completed successfully"),
+        @ApiResponse(responseCode = "400", description = "Retry failed with errors"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<ImportResponseDto> retryFailed() {
+        logger.info("Received request to retry failed migrations");
+        return executePhase(() -> migrationService.retryFailedMigrations());
+    }
+    
+    // Specific execution endpoints
+    @PostMapping("/creation/execute-specific")
+    @Operation(summary = "Execute Creation for Specific Correspondences", description = "Executes creation phase for specified correspondence GUIDs")
+    public ResponseEntity<ImportResponseDto> executeCreationForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> correspondenceGuids = request.get("correspondenceGuids");
+        logger.info("Received request to execute creation for {} specific correspondences", 
+                   correspondenceGuids != null ? correspondenceGuids.size() : 0);
+        return executePhase(() -> migrationService.executeCreationForSpecific(correspondenceGuids));
+    }
+    
+    @PostMapping("/assignment/execute-specific")
+    @Operation(summary = "Execute Assignment for Specific Transactions", description = "Executes assignment phase for specified transaction GUIDs")
+    public ResponseEntity<ImportResponseDto> executeAssignmentForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> transactionGuids = request.get("transactionGuids");
+        logger.info("Received request to execute assignment for {} specific transactions", 
+                   transactionGuids != null ? transactionGuids.size() : 0);
+        return executePhase(() -> migrationService.executeAssignmentForSpecific(transactionGuids));
+    }
+    
+    @PostMapping("/business-log/execute-specific")
+    @Operation(summary = "Execute Business Log for Specific Transactions", description = "Executes business log phase for specified transaction GUIDs")
+    public ResponseEntity<ImportResponseDto> executeBusinessLogForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> transactionGuids = request.get("transactionGuids");
+        logger.info("Received request to execute business log for {} specific transactions", 
+                   transactionGuids != null ? transactionGuids.size() : 0);
+        return executePhase(() -> migrationService.executeBusinessLogForSpecific(transactionGuids));
+    }
+    
+    @PostMapping("/comment/execute-specific")
+    @Operation(summary = "Execute Comment for Specific Comments", description = "Executes comment phase for specified comment GUIDs")
+    public ResponseEntity<ImportResponseDto> executeCommentForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> commentGuids = request.get("commentGuids");
+        logger.info("Received request to execute comment for {} specific comments", 
+                   commentGuids != null ? commentGuids.size() : 0);
+        return executePhase(() -> migrationService.executeCommentForSpecific(commentGuids));
+    }
+    
+    @PostMapping("/closing/execute-specific")
+    @Operation(summary = "Execute Closing for Specific Correspondences", description = "Executes closing phase for specified correspondence GUIDs")
+    public ResponseEntity<ImportResponseDto> executeClosingForSpecific(@RequestBody Map<String, List<String>> request) {
+        List<String> correspondenceGuids = request.get("correspondenceGuids");
+        logger.info("Received request to execute closing for {} specific correspondences", 
+                   correspondenceGuids != null ? correspondenceGuids.size() : 0);
+        return executePhase(() -> migrationService.executeClosingForSpecific(correspondenceGuids));
+    }
+    
+    // Detail endpoints
+    @GetMapping("/creation/details")
+    @Operation(summary = "Get Creation Phase Details", description = "Returns detailed information about creation phase migrations")
+    @Transactional(readOnly = true, timeout = 60)
+    public ResponseEntity<Map<String, Object>> getCreationDetails() {
+        logger.info("Received request for creation phase details");
+        return getDetails(() -> migrationService.getCreationMigrationsWithDetails());
+    }
+    
+    @GetMapping("/creation/statistics")
+    @Operation(summary = "Get Creation Phase Statistics", description = "Returns statistics about creation phase status distribution")
+    @Transactional(readOnly = true, timeout = 60)
+    public ResponseEntity<Map<String, Object>> getCreationStatistics() {
+        logger.info("Received request for creation phase statistics");
+        return getDetails(() -> migrationService.getCreationStatistics());
     }
     
     @GetMapping("/assignment/details")
-    @Operation(summary = "Get Assignment Phase Details", 
-               description = "Returns detailed information about assignment phase migrations")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
-    })
+    @Operation(summary = "Get Assignment Phase Details", description = "Returns detailed information about assignment phase migrations")
     @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getAssignmentDetails(
             @RequestParam(defaultValue = "0") int page,
@@ -175,73 +186,11 @@ public class IncomingCorrespondenceMigrationController {
             @RequestParam(defaultValue = "") String search) {
         logger.info("Received request for assignment phase details - page: {}, size: {}, status: {}, search: '{}'", 
                    page, size, status, search);
-        
-        try {
-            Map<String, Object> assignments = migrationService.getAssignmentMigrations(page, size, status, search);
-            return ResponseEntity.ok(assignments);
-        } catch (Exception e) {
-            logger.error("Error getting assignment details", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("content", new ArrayList<>());
-            errorResponse.put("totalElements", 0L);
-            errorResponse.put("totalPages", 0);
-            errorResponse.put("currentPage", page);
-            errorResponse.put("pageSize", size);
-            errorResponse.put("hasNext", false);
-            errorResponse.put("hasPrevious", false);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
-    @PostMapping("/assignment/execute-specific")
-    @Operation(summary = "Execute Assignment for Specific Transactions", 
-               description = "Executes assignment phase for specified transaction GUIDs")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeAssignmentForSpecific(@RequestBody Map<String, List<String>> request) {
-        List<String> transactionGuids = request.get("transactionGuids");
-        logger.info("Received request to execute assignment for {} specific transactions", 
-                   transactionGuids != null ? transactionGuids.size() : 0);
-        
-        try {
-            ImportResponseDto response = migrationService.executeAssignmentForSpecific(transactionGuids);
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in execute assignment for specific", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
-    }
-    
-    @PostMapping("/business-log")
-    @Operation(summary = "Phase 4: Business Log", 
-               description = "Processes business logic for correspondences")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeBusinessLog() {
-        logger.info("Received request for Phase 4: Business Log");
-        
-        try {
-            ImportResponseDto response = migrationService.executeBusinessLogPhase();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in business log phase", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
+        return getDetails(() -> migrationService.getAssignmentMigrations(page, size, status, search));
     }
     
     @GetMapping("/business-log/details")
-    @Operation(summary = "Get Business Log Phase Details", 
-               description = "Returns detailed information about business log phase migrations")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
-    })
+    @Operation(summary = "Get Business Log Phase Details", description = "Returns detailed information about business log phase migrations")
     @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getBusinessLogDetails(
             @RequestParam(defaultValue = "0") int page,
@@ -250,93 +199,11 @@ public class IncomingCorrespondenceMigrationController {
             @RequestParam(defaultValue = "") String search) {
         logger.info("Received request for business log phase details - page: {}, size: {}, status: {}, search: '{}'", 
                    page, size, status, search);
-        
-        try {
-            Map<String, Object> businessLogs = migrationService.getBusinessLogMigrations(page, size, status, search);
-            return ResponseEntity.ok(businessLogs);
-        } catch (Exception e) {
-            logger.error("Error getting business log details", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("content", new ArrayList<>());
-            errorResponse.put("totalElements", 0L);
-            errorResponse.put("totalPages", 0);
-            errorResponse.put("currentPage", page);
-            errorResponse.put("pageSize", size);
-            errorResponse.put("hasNext", false);
-            errorResponse.put("hasPrevious", false);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
-    @PostMapping("/business-log/execute-specific")
-    @Operation(summary = "Execute Business Log for Specific Transactions", 
-               description = "Executes business log phase for specified transaction GUIDs")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeBusinessLogForSpecific(@RequestBody Map<String, List<String>> request) {
-        List<String> transactionGuids = request.get("transactionGuids");
-        logger.info("Received request to execute business log for {} specific transactions", 
-                   transactionGuids != null ? transactionGuids.size() : 0);
-        
-        try {
-            ImportResponseDto response = migrationService.executeBusinessLogForSpecific(transactionGuids);
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in execute business log for specific", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
-    }
-    
-    @PostMapping("/comment")
-    @Operation(summary = "Phase 5: Comment", 
-               description = "Processes comments for correspondences")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeComment() {
-        logger.info("Received request for Phase 5: Comment");
-        
-        try {
-            ImportResponseDto response = migrationService.executeCommentPhase();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in comment phase", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
-    }
-    
-    @PostMapping("/closing")
-    @Operation(summary = "Phase 6: Closing", 
-               description = "Closes correspondences that need to be closed")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Phase completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Phase failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeClosing() {
-        logger.info("Received request for Phase 6: Closing");
-        
-        try {
-            ImportResponseDto response = migrationService.executeClosingPhase();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in closing phase", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
+        return getDetails(() -> migrationService.getBusinessLogMigrations(page, size, status, search));
     }
     
     @GetMapping("/comment/details")
-    @Operation(summary = "Get Comment Phase Details", 
-               description = "Returns detailed information about comment phase migrations")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
-    })
+    @Operation(summary = "Get Comment Phase Details", description = "Returns detailed information about comment phase migrations")
     @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getCommentDetails(
             @RequestParam(defaultValue = "0") int page,
@@ -346,53 +213,11 @@ public class IncomingCorrespondenceMigrationController {
             @RequestParam(defaultValue = "") String search) {
         logger.info("Received request for comment phase details - page: {}, size: {}, status: {}, commentType: {}, search: '{}'", 
                    page, size, status, commentType, search);
-        
-        try {
-            Map<String, Object> comments = migrationService.getCommentMigrations(page, size, status, commentType, search);
-            return ResponseEntity.ok(comments);
-        } catch (Exception e) {
-            logger.error("Error getting comment details", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("content", new ArrayList<>());
-            errorResponse.put("totalElements", 0L);
-            errorResponse.put("totalPages", 0);
-            errorResponse.put("currentPage", page);
-            errorResponse.put("pageSize", size);
-            errorResponse.put("hasNext", false);
-            errorResponse.put("hasPrevious", false);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
-    @PostMapping("/comment/execute-specific")
-    @Operation(summary = "Execute Comment for Specific Comments", 
-               description = "Executes comment phase for specified comment GUIDs")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeCommentForSpecific(@RequestBody Map<String, List<String>> request) {
-        List<String> commentGuids = request.get("commentGuids");
-        logger.info("Received request to execute comment for {} specific comments", 
-                   commentGuids != null ? commentGuids.size() : 0);
-        
-        try {
-            ImportResponseDto response = migrationService.executeCommentForSpecific(commentGuids);
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in execute comment for specific", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
+        return getDetails(() -> migrationService.getCommentMigrations(page, size, status, commentType, search));
     }
     
     @GetMapping("/closing/details")
-    @Operation(summary = "Get Closing Phase Details", 
-               description = "Returns detailed information about closing phase migrations")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Details retrieved successfully")
-    })
+    @Operation(summary = "Get Closing Phase Details", description = "Returns detailed information about closing phase migrations")
     @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getClosingDetails(
             @RequestParam(defaultValue = "0") int page,
@@ -402,74 +227,11 @@ public class IncomingCorrespondenceMigrationController {
             @RequestParam(defaultValue = "") String search) {
         logger.info("Received request for closing phase details - page: {}, size: {}, status: {}, needToClose: {}, search: '{}'", 
                    page, size, status, needToClose, search);
-        
-        try {
-            Map<String, Object> closings = migrationService.getClosingMigrations(page, size, status, needToClose, search);
-            return ResponseEntity.ok(closings);
-        } catch (Exception e) {
-            logger.error("Error getting closing details", e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("content", new ArrayList<>());
-            errorResponse.put("totalElements", 0L);
-            errorResponse.put("totalPages", 0);
-            errorResponse.put("currentPage", page);
-            errorResponse.put("pageSize", size);
-            errorResponse.put("hasNext", false);
-            errorResponse.put("hasPrevious", false);
-            errorResponse.put("needToCloseCount", 0L);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
-    @PostMapping("/closing/execute-specific")
-    @Operation(summary = "Execute Closing for Specific Correspondences", 
-               description = "Executes closing phase for specified correspondence GUIDs")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Execution completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Execution failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> executeClosingForSpecific(@RequestBody Map<String, List<String>> request) {
-        List<String> correspondenceGuids = request.get("correspondenceGuids");
-        logger.info("Received request to execute closing for {} specific correspondences", 
-                   correspondenceGuids != null ? correspondenceGuids.size() : 0);
-        
-        try {
-            ImportResponseDto response = migrationService.executeClosingForSpecific(correspondenceGuids);
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in execute closing for specific", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
-    }
-    
-    @PostMapping("/retry-failed")
-    @Operation(summary = "Retry Failed Migrations", 
-               description = "Retries failed migrations that haven't exceeded max retry count")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Retry completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Retry failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<ImportResponseDto> retryFailed() {
-        logger.info("Received request to retry failed migrations");
-        
-        try {
-            ImportResponseDto response = migrationService.retryFailedMigrations();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error in retry failed migrations", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
+        return getDetails(() -> migrationService.getClosingMigrations(page, size, status, needToClose, search));
     }
     
     @GetMapping("/statistics")
-    @Operation(summary = "Get Migration Statistics", 
-               description = "Returns statistics about migration progress")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
-    })
+    @Operation(summary = "Get Migration Statistics", description = "Returns statistics about migration progress")
     @Transactional(readOnly = true, timeout = 60)
     public ResponseEntity<Map<String, Object>> getStatistics() {
         logger.info("Received request for migration statistics");
@@ -478,44 +240,44 @@ public class IncomingCorrespondenceMigrationController {
             Map<String, Object> statistics = migrationService.getMigrationStatistics();
             
             // Ensure all required fields are present with default values
-            statistics.putIfAbsent("prepareData", 0L);
-            statistics.putIfAbsent("creation", 0L);
-            statistics.putIfAbsent("assignment", 0L);
-            statistics.putIfAbsent("businessLog", 0L);
-            statistics.putIfAbsent("comment", 0L);
-            statistics.putIfAbsent("closing", 0L);
-            statistics.putIfAbsent("completed", 0L);
-            statistics.putIfAbsent("failed", 0L);
-            statistics.putIfAbsent("inProgress", 0L);
+            String[] requiredFields = {"prepareData", "creation", "assignment", "businessLog", "comment", "closing", "completed", "failed", "inProgress"};
+            for (String field : requiredFields) {
+                statistics.putIfAbsent(field, 0L);
+            }
             
             logger.info("Returning migration statistics: {}", statistics);
             return ResponseEntity.ok(statistics);
         } catch (Exception e) {
             logger.error("Error getting migration statistics", e);
-            Map<String, Object> errorMap = new HashMap<>();
-            errorMap.put("error", "Failed to get statistics: " + e.getMessage());
-            
-            // Add default values even in error case
-            errorMap.put("prepareData", 0L);
-            errorMap.put("creation", 0L);
-            errorMap.put("assignment", 0L);
-            errorMap.put("businessLog", 0L);
-            errorMap.put("comment", 0L);
-            errorMap.put("closing", 0L);
-            errorMap.put("completed", 0L);
-            errorMap.put("failed", 0L);
-            errorMap.put("inProgress", 0L);
-            
-            return ResponseEntity.status(500).body(errorMap);
+            return ResponseEntity.status(500).body(createErrorStatistics(e.getMessage()));
+        }
+    }
+    
+    // Helper methods to reduce code duplication
+    private ResponseEntity<ImportResponseDto> executePhase(PhaseExecutor executor) {
+        try {
+            ImportResponseDto response = executor.execute();
+            return getResponseEntity(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error in phase execution", e);
+            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
+    }
+    
+    private ResponseEntity<Map<String, Object>> getDetails(DetailsProvider provider) {
+        try {
+            Map<String, Object> details = provider.getDetails();
+            return ResponseEntity.ok(details);
+        } catch (Exception e) {
+            logger.error("Error getting details", e);
+            return ResponseEntity.status(500).body(createErrorDetails(e.getMessage()));
         }
     }
     
     private ResponseEntity<ImportResponseDto> getResponseEntity(ImportResponseDto response) {
-        if ("ERROR".equals(response.getStatus())) {
-            return ResponseEntity.badRequest().body(response);
-        } else {
-            return ResponseEntity.ok(response);
-        }
+        return "ERROR".equals(response.getStatus()) ? 
+            ResponseEntity.badRequest().body(response) : 
+            ResponseEntity.ok(response);
     }
     
     private ImportResponseDto createErrorResponse(String errorMessage) {
@@ -527,5 +289,42 @@ public class IncomingCorrespondenceMigrationController {
         errorResponse.setFailedImports(0);
         errorResponse.setErrors(java.util.Arrays.asList(errorMessage));
         return errorResponse;
+    }
+    
+    private Map<String, Object> createErrorDetails(String errorMessage) {
+        Map<String, Object> errorResponse = new HashMap<>();
+        errorResponse.put("content", new ArrayList<>());
+        errorResponse.put("totalElements", 0L);
+        errorResponse.put("totalPages", 0);
+        errorResponse.put("currentPage", 0);
+        errorResponse.put("pageSize", 20);
+        errorResponse.put("hasNext", false);
+        errorResponse.put("hasPrevious", false);
+        errorResponse.put("error", errorMessage);
+        return errorResponse;
+    }
+    
+    private Map<String, Object> createErrorStatistics(String errorMessage) {
+        Map<String, Object> errorMap = new HashMap<>();
+        errorMap.put("error", "Failed to get statistics: " + errorMessage);
+        
+        // Add default values
+        String[] fields = {"prepareData", "creation", "assignment", "businessLog", "comment", "closing", "completed", "failed", "inProgress"};
+        for (String field : fields) {
+            errorMap.put(field, 0L);
+        }
+        
+        return errorMap;
+    }
+    
+    // Functional interfaces for cleaner code
+    @FunctionalInterface
+    private interface PhaseExecutor {
+        ImportResponseDto execute() throws Exception;
+    }
+    
+    @FunctionalInterface
+    private interface DetailsProvider {
+        Map<String, Object> getDetails() throws Exception;
     }
 }

@@ -61,7 +61,6 @@ public class IncomingCorrespondenceMigrationService {
         int failedImports = 0;
         
         try {
-            // Get all correspondences that need creation processing
             List<IncomingCorrespondenceMigration> migrations = phaseService.getMigrationsForPhase("CREATION");
             logger.info("Found {} correspondences in CREATION phase", migrations.size());
             
@@ -79,7 +78,6 @@ public class IncomingCorrespondenceMigrationService {
                     logger.info("Processing correspondence: {} ({}/{})", 
                                correspondenceGuid, i + 1, migrations.size());
                     
-                    // Process in completely separate transaction with immediate commit
                     boolean success = creationPhaseService.processCorrespondenceCreationInNewTransaction(correspondenceGuid);
                     
                     if (success) {
@@ -92,13 +90,7 @@ public class IncomingCorrespondenceMigrationService {
                     
                     // Add delay between correspondences to reduce system load and lock contention
                     if (i < migrations.size() - 1) {
-                        try {
-                            Thread.sleep(500); // Increased to 500ms delay between correspondences
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            logger.warn("Thread interrupted during processing delay");
-                            break;
-                        }
+                        Thread.sleep(500);
                     }
                     
                     // Log progress every 10 correspondences
@@ -112,8 +104,6 @@ public class IncomingCorrespondenceMigrationService {
                     String errorMsg = "Error processing correspondence " + correspondenceGuid + ": " + e.getMessage();
                     errors.add(errorMsg);
                     logger.error("❌ " + errorMsg, e);
-                    
-                    // Continue processing other correspondences even if one fails
                     continue;
                 }
             }
@@ -135,7 +125,6 @@ public class IncomingCorrespondenceMigrationService {
         }
     }
     
-    //@Transactional(readOnly = false, timeout = 900)
     public ImportResponseDto executeCreationForSpecific(List<String> correspondenceGuids) {
         logger.info("Delegating creation for specific correspondences to CreationPhaseService");
         return creationPhaseService.executeCreationForSpecific(correspondenceGuids);
@@ -143,89 +132,73 @@ public class IncomingCorrespondenceMigrationService {
     
     @Transactional(readOnly = true, timeout = 60)
     public List<IncomingCorrespondenceMigration> getCreationMigrations() {
-        logger.info("Delegating to CreationPhaseService for creation migrations");
         return creationPhaseService.getCreationMigrations();
     }
     
     @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getCreationMigrationsWithDetails() {
-        logger.info("Delegating to CreationPhaseService for creation migrations with details");
         return creationPhaseService.getCreationMigrationsWithDetails();
     }
     
     @Transactional(readOnly = true, timeout = 60)
     public Map<String, Object> getCreationStatistics() {
-        logger.info("Delegating to CreationPhaseService for creation statistics");
         return creationPhaseService.getCreationStatistics();
     }
     
     // Phase 3: Assignment
     public ImportResponseDto executeAssignmentPhase() {
-        logger.info("Delegating to AssignmentPhaseService");
         return assignmentPhaseService.executeAssignmentPhase();
     }
     
     public ImportResponseDto executeAssignmentForSpecific(List<String> transactionGuids) {
-        logger.info("Delegating assignment for specific transactions to AssignmentPhaseService");
         return assignmentPhaseService.executeAssignmentForSpecific(transactionGuids);
     }
     
     public Map<String, Object> getAssignmentMigrations(int page, int size, String status, String search) {
-        logger.info("Delegating to AssignmentPhaseService for assignment migrations");
         return assignmentPhaseService.getAssignmentMigrations(page, size, status, search);
     }
     
     // Phase 4: Business Log
     public ImportResponseDto executeBusinessLogPhase() {
-        logger.info("Delegating to BusinessLogPhaseService");
         return businessLogPhaseService.executeBusinessLogPhase();
     }
     
     public ImportResponseDto executeBusinessLogForSpecific(List<String> transactionGuids) {
-        logger.info("Delegating business log for specific transactions to BusinessLogPhaseService");
         return businessLogPhaseService.executeBusinessLogForSpecific(transactionGuids);
     }
     
     public Map<String, Object> getBusinessLogMigrations(int page, int size, String status, String search) {
-        logger.info("Delegating to BusinessLogPhaseService for business log migrations");
         return businessLogPhaseService.getBusinessLogMigrations(page, size, status, search);
     }
     
     // Phase 5: Comment
     public ImportResponseDto executeCommentPhase() {
-        logger.info("Delegating to CommentPhaseService");
         return commentPhaseService.executeCommentPhase();
     }
     
     public ImportResponseDto executeCommentForSpecific(List<String> commentGuids) {
-        logger.info("Delegating comment for specific comments to CommentPhaseService");
         return commentPhaseService.executeCommentForSpecific(commentGuids);
     }
     
     public Map<String, Object> getCommentMigrations(int page, int size, String status, String commentType, String search) {
-        logger.info("Delegating to CommentPhaseService for comment migrations");
         return commentPhaseService.getCommentMigrations(page, size, status, commentType, search);
     }
     
     // Phase 6: Closing
     public ImportResponseDto executeClosingPhase() {
-        logger.info("Delegating to ClosingPhaseService");
         return closingPhaseService.executeClosingPhase();
     }
     
     public ImportResponseDto executeClosingForSpecific(List<String> correspondenceGuids) {
-        logger.info("Delegating closing for specific correspondences to ClosingPhaseService");
         return closingPhaseService.executeClosingForSpecific(correspondenceGuids);
     }
     
     public Map<String, Object> getClosingMigrations(int page, int size, String status, String needToClose, String search) {
-        logger.info("Delegating to ClosingPhaseService for closing migrations");
         return closingPhaseService.getClosingMigrations(page, size, status, needToClose, search);
     }
     
     // Statistics and Retry
     public Map<String, Object> getMigrationStatistics() {
-        logger.info("Delegating to MigrationStatisticsService");
         return statisticsService.getMigrationStatistics();
     }
     
@@ -250,7 +223,6 @@ public class IncomingCorrespondenceMigrationService {
                 totalRetried++;
                 
                 try {
-                    // Retry based on current phase
                     boolean success = retryMigrationPhase(migration);
                     if (success) {
                         successfulRetries++;
@@ -291,25 +263,6 @@ public class IncomingCorrespondenceMigrationService {
                 return creationPhaseService.executeCreationForSpecific(
                     Arrays.asList(migration.getCorrespondenceGuid())
                 ).getStatus().equals("SUCCESS");
-                
-            case "ASSIGNMENT":
-                // For assignment retry, we need to find the transaction GUIDs
-                // This would require additional logic to get transaction GUIDs for the correspondence
-                logger.info("Assignment retry not implemented yet for correspondence: {}", 
-                          migration.getCorrespondenceGuid());
-                return false;
-                
-            case "BUSINESS_LOG":
-                // Similar to assignment, needs transaction GUIDs
-                logger.info("Business log retry not implemented yet for correspondence: {}", 
-                          migration.getCorrespondenceGuid());
-                return false;
-                
-            case "COMMENT":
-                // Similar to others, needs comment GUIDs
-                logger.info("Comment retry not implemented yet for correspondence: {}", 
-                          migration.getCorrespondenceGuid());
-                return false;
                 
             case "CLOSING":
                 return closingPhaseService.executeClosingForSpecific(
