@@ -4,12 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "positions", indexes = {
-    @javax.persistence.Index(name = "idx_pos_department_guid", columnList = "department_guid"),
-    @javax.persistence.Index(name = "idx_pos_is_manager", columnList = "is_manager"),
-    @javax.persistence.Index(name = "idx_pos_is_hidden", columnList = "is_hidden"),
-    @javax.persistence.Index(name = "idx_pos_dept_lookup", columnList = "guid, department_guid")
-})
+@Table(name = "positions")
 public class Position extends BaseEntity {
     
     @Id

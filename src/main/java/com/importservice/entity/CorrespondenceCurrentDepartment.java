@@ -4,10 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "correspondence_current_departments", indexes = {
-    @javax.persistence.Index(name = "idx_corr_curr_dept_doc_guid", columnList = "doc_guid"),
-    @javax.persistence.Index(name = "idx_corr_curr_dept_import_status", columnList = "import_status")
-})
+@Table(name = "correspondence_current_departments")
 public class CorrespondenceCurrentDepartment extends BaseEntity {
     
     @Id

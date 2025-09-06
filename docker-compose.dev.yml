@@ -1,48 +1,6 @@
 version: '3.8'
 
 services:
-  app-dev:
-    build: .
-    container_name: data-import-app-dev
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-dev:3306/data_import_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      - SPRING_DATASOURCE_USERNAME=import_user
-      - SPRING_DATASOURCE_PASSWORD=import_password123
-      - JAVA_OPTS=-Xmx512m -Xms256m -XX:+UseG1GC
-      - LOGGING_LEVEL_ROOT=DEBUG
-    depends_on:
-      mysql-dev:
-        condition: service_healthy
-    networks:
-      - data-import-dev-network
-    volumes:
-      - ./logs:/app/logs
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 256M
-
-  frontend-dev:
-    build: 
-      context: ./angular-migration-ui
-      dockerfile: Dockerfile
-    container_name: data-import-frontend-dev
-    restart: unless-stopped
-    ports:
-      - "4200:80"
-    environment:
-      - API_BASE_URL=http://app-dev:8080
-    depends_on:
-      - app-dev
-    networks:
-      - data-import-dev-network
-
   mysql-dev:
     image: mysql:8.0.43
     container_name: data-import-mysql-dev
@@ -61,7 +19,6 @@ services:
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
-      --max-allowed-packet=200M
       --innodb-buffer-pool-size=512M
       --innodb-redo-log-capacity=256M
       --innodb-flush-log-at-trx-commit=2
@@ -82,8 +39,30 @@ services:
       interval: 30s
       start_period: 40s
 
+  app-dev:
+    build: .
+    container_name: data-import-app-dev
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql-dev:3306/data_import_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: import_user
+      SPRING_DATASOURCE_PASSWORD: import_password123
+      JAVA_OPTS: "-Xms1g -Xmx3g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/"
+    depends_on:
+      mysql-dev:
+        condition: service_healthy
+    networks:
+      - data-import-dev-network
+    volumes:
+      - app_dev_logs:/app/logs
+
 volumes:
   mysql_dev_data:
+    driver: local
+  app_dev_logs:
     driver: local
 
 networks:

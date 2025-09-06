@@ -6,7 +6,6 @@ import com.importservice.dto.DestinationRequestDto;
 import com.importservice.dto.ExternalAgencyDto;
 import com.importservice.dto.ExternalAgencyInfoDto;
 import com.importservice.dto.ImportResponseDto;
-import com.importservice.service.KeycloakTokenService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,15 +38,9 @@ public class ExternalAgencyImportService {
     @Value("${destination.api.token}")
     private String authToken;
 
-    @Value("${destination.api.logging.enabled:false}")
-    private boolean loggingEnabled;
-
     @Autowired
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
-    
-    @Autowired
-    private KeycloakTokenService keycloakTokenService;
 
     public ExternalAgencyImportService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -55,7 +48,7 @@ public class ExternalAgencyImportService {
     }
 
     public ImportResponseDto importExternalAgencies() {
-        logger.debug("Starting external agencies import process");
+        logger.info("Starting external agencies import process");
         
         List<String> errors = new ArrayList<>();
         int successfulImports = 0;
@@ -67,15 +60,13 @@ public class ExternalAgencyImportService {
             
             for (ExternalAgencyDto agency : agencies) {
                 try {
-                    if ("Municipality".equals(agency.getCategory())){
-                        boolean success = importSingleAgency(agency);
-                        if (success) {
-                            successfulImports++;
-                            logger.debug("Successfully imported agency: {}", agency.getLabelEn());
-                        } else {
-                            failedImports++;
-                            errors.add("Failed to import agency: " + agency.getLabelEn());
-                        }
+                    boolean success = importSingleAgency(agency);
+                    if (success) {
+                        successfulImports++;
+                        logger.info("Successfully imported agency: {}", agency.getLabelEn());
+                    } else {
+                        failedImports++;
+                        errors.add("Failed to import agency: " + agency.getLabelEn());
                     }
                 } catch (Exception e) {
                     failedImports++;
@@ -110,13 +101,6 @@ public class ExternalAgencyImportService {
     private boolean importSingleAgency(ExternalAgencyDto agency) {
         try {
             DestinationRequestDto request = mapToDestinationRequest(agency);
-            
-            if (loggingEnabled) {
-                System.out.println("=== EXTERNAL AGENCY IMPORT ===");
-                System.out.println("URL: " + destinationApiUrl);
-                System.out.println("Request Body: " + request.toString());
-                System.out.println("=== END EXTERNAL AGENCY IMPORT ===");
-            }
             
             HttpHeaders headers = createHttpHeaders();
             HttpEntity<DestinationRequestDto> httpEntity = new HttpEntity<DestinationRequestDto>(request, headers);
@@ -167,17 +151,7 @@ public class ExternalAgencyImportService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Accept", "application/json");
         headers.set("Accept-Language", "en-US,en;q=0.9,ar;q=0.8");
-        
-        // Use dynamic token from Keycloak service if available
-        String token = keycloakTokenService.getCurrentToken();
-        if (token != null) {
-            headers.set("Authorization", "Bearer " + token);
-            logger.debug("Using dynamic Keycloak token for external agency import");
-        } else {
-            headers.set("Authorization", "Bearer " + authToken);
-            logger.debug("Using static token from configuration for external agency import");
-        }
-        
+        headers.set("Authorization", "Bearer " + authToken);
         headers.set("Connection", "keep-alive");
         headers.set("Content-Type", "application/json");
         return headers;

@@ -10,89 +10,31 @@ services:
       MYSQL_DATABASE: data_import_db
       MYSQL_USER: import_user
       MYSQL_PASSWORD: import_password123
-      MYSQL_ROOT_HOST: "%"
+      # لو تحتاج mysql_native_password مؤقتًا (مُهمل في 8.0):
+      # MYSQL_ROOT_HOST: "%"   # اختياري
     ports:
       - "3306:3306"
-    command:
-      - mysqld
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --init-connect=SET NAMES utf8mb4
-      - --max_allowed_packet=200M
-      - --innodb-buffer-pool-size=1G
-      - --innodb-redo-log-capacity=512M
-      - --innodb-flush-log-at-trx-commit=2
-      - --innodb-file-per-table=1
-      - --innodb_adaptive_hash_index=ON
-      - --innodb_adaptive_flushing=ON
-      - --innodb_flush_neighbors=0
-      - --innodb_autoinc_lock_mode=2
-      - --innodb_doublewrite=ON
-      - --innodb_flush_method=O_DIRECT
-      - --innodb_read_io_threads=4
-      - --innodb_write_io_threads=4
-      - --innodb_io_capacity=500
-      - --innodb_io_capacity_max=1000
-      - --max-connections=200
-      - --max_connect_errors=1000
-      - --connect-timeout=30
-      - --wait-timeout=600
-      - --interactive-timeout=600
-      - --innodb_lock_wait_timeout=30
-      - --lock-wait-timeout=30
-      - --transaction-isolation=READ-COMMITTED
-      - --net_read_timeout=60
-      - --net_write_timeout=60
-      - --mysqlx-connect-timeout=30
-      - --mysqlx-read-timeout=60
-      - --mysqlx-write-timeout=60
-      - --max_execution_time=300000
-      - --innodb_rollback_on_timeout=ON
-      - --autocommit=0
-      - --innodb_deadlock_detect=ON
-      - --innodb_print_all_deadlocks=ON
-      - --innodb_status_output=ON
-      - --innodb_status_output_locks=ON
-      - --table-open-cache=4000
-      - --table-definition-cache=1400
-      - --open-files-limit=65535
-      - --tmp-table-size=64M
-      - --max-heap-table-size=64M
-      - --sort-buffer-size=8M
-      - --read-buffer-size=2M
-      - --read-rnd-buffer-size=8M
-      - --myisam-sort-buffer-size=64M
-      - --query-cache-type=0
-      - --query-cache-size=0
-      - --thread-cache-size=50
-      - --thread-stack=256K
-      - --max_prepared_stmt_count=16382
-      - --log-bin=mysql-bin
-      - --binlog-format=ROW
-      - --binlog_expire_logs_seconds=604800
-      - --max-binlog-size=100M
-      - --sync-binlog=2
-      - --log-error=/var/log/mysql/error.log
-      - --slow-query-log=1
-      - --slow-query-log-file=/var/log/mysql/slow.log
-      - --long_query_time=2
-      - --log-queries-not-using-indexes=1
-      - --min_examined_row_limit=1000
-      - --local-infile=0
-      - --skip-name-resolve=ON
-      - --skip-symbolic-links=ON
-      - --performance-schema=ON
-      - --performance_schema_consumer_events_statements_current=ON
-      - --performance_schema_consumer_events_statements_history=ON
-      - --performance_schema_consumer_events_statements_history_long=ON
-      - --performance_schema_consumer_events_waits_current=ON
-      - --performance_schema_consumer_events_waits_history=ON
-      - --performance_schema_consumer_events_waits_history_long=ON
-      - --sql-mode=STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
     volumes:
       - ./../data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/zz-my.cnf:ro
+      #- ./data/mysql-logs:/var/log/mysql
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
-      - ./docker/mysql/logs:/var/log/mysql
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --innodb-buffer-pool-size=1G
+      --innodb-redo-log-capacity=512M
+      --innodb-flush-log-at-trx-commit=2
+      --innodb-file-per-table=1
+      --max-connections=200
+      --table-open-cache=4000
+      --tmp-table-size=64M
+      --max-heap-table-size=64M
+      --slow-query-log=1
+      --slow-query-log-file=/var/log/mysql/slow.log
+      --long-query-time=2
+      # الخيار التالي مُهمل لكنه شائع؛ إن أردته مؤقتًا:
+      # --default-authentication-plugin=mysql_native_password
     entrypoint: ["/bin/sh","-c","mkdir -p /var/log/mysql && chown -R mysql:mysql /var/log/mysql && exec docker-entrypoint.sh mysqld"]
     networks:
       - data-import-network
@@ -102,15 +44,33 @@ services:
       retries: 10
       interval: 30s
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
+
+  app:
+    build: .
+    container_name: data-import-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/data_import_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: import_user
+      SPRING_DATASOURCE_PASSWORD: import_password123
+      JAVA_OPTS: "-Xms1g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/app/logs/"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - data-import-network
+    volumes:
+      - app_logs:/app/logs
 
 volumes:
   mysql_data:
+    driver: local
+  mysql_config:
+    driver: local
+  app_logs:
     driver: local
 
 networks:

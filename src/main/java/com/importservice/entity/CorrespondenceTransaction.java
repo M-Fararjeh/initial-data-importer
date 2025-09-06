@@ -5,16 +5,7 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "correspondence_transactions", indexes = {
-    @javax.persistence.Index(name = "idx_corr_trans_doc_guid", columnList = "doc_guid"),
-    @javax.persistence.Index(name = "idx_corr_trans_action_id", columnList = "action_id"),
-    @javax.persistence.Index(name = "idx_corr_trans_migrate_status", columnList = "migrate_status"),
-    @javax.persistence.Index(name = "idx_corr_trans_action_date", columnList = "action_date"),
-    @javax.persistence.Index(name = "idx_corr_trans_retry_count", columnList = "retry_count"),
-    @javax.persistence.Index(name = "idx_corr_trans_assignment", columnList = "action_id, migrate_status, retry_count"),
-    @javax.persistence.Index(name = "idx_corr_trans_from_user", columnList = "from_user_name"),
-    @javax.persistence.Index(name = "idx_corr_trans_to_user", columnList = "to_user_name")
-})
+@Table(name = "correspondence_transactions")
 public class CorrespondenceTransaction extends BaseEntity {
     
     @Id
@@ -106,14 +97,8 @@ public class CorrespondenceTransaction extends BaseEntity {
     @Column(name = "is_hidden")
     private Boolean isHidden;
     
-    @Column(name = "migrate_status", length = 255)
-    private String migrateStatus = "PENDING";
-    
     @Column(name = "import_status", length = 255)
     private String importStatus = "PENDING";
-    
-    @Column(name = "retry_count")
-    private Integer retryCount = 0;
     
     // Constructors
     public CorrespondenceTransaction() {}
@@ -301,21 +286,5 @@ public class CorrespondenceTransaction extends BaseEntity {
     
     public void setImportStatus(String importStatus) {
         this.importStatus = importStatus;
-    }
-    
-    public String getMigrateStatus() {
-        return migrateStatus;
-    }
-    
-    public void setMigrateStatus(String migrateStatus) {
-        this.migrateStatus = migrateStatus;
-    }
-    
-    public Integer getRetryCount() {
-        return retryCount;
-    }
-    
-    public void setRetryCount(Integer retryCount) {
-        this.retryCount = retryCount;
     }
 }

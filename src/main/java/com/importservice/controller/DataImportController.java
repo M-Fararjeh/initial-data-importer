@@ -1,10 +1,7 @@
 package com.importservice.controller;
 
 import com.importservice.dto.ImportResponseDto;
-import com.importservice.repository.*;
 import com.importservice.service.DataImportService;
-import com.importservice.entity.Correspondence;
-import com.importservice.service.CorrespondenceRelatedImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,82 +11,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/data-import")
 @Tag(name = "Data Import Controller", description = "Operations for importing data from source system")
-@CrossOrigin(origins = "*")
 public class DataImportController {
 
     private static final Logger logger = LoggerFactory.getLogger(DataImportController.class);
 
     @Autowired
     private DataImportService dataImportService;
-
-    @Autowired
-    private CorrespondenceRelatedImportService correspondenceRelatedImportService;
-
-    // Inject repositories for count endpoints
-    @Autowired
-    private ClassificationRepository classificationRepository;
-    
-    @Autowired
-    private ContactRepository contactRepository;
-    
-    @Autowired
-    private DecisionRepository decisionRepository;
-    
-    @Autowired
-    private DepartmentRepository departmentRepository;
-    
-    @Autowired
-    private FormRepository formRepository;
-    
-    @Autowired
-    private FormTypeRepository formTypeRepository;
-    
-    @Autowired
-    private ImportanceRepository importanceRepository;
-    
-    @Autowired
-    private PositionRepository positionRepository;
-    
-    @Autowired
-    private PosRoleRepository posRoleRepository;
-    
-    @Autowired
-    private PriorityRepository priorityRepository;
-    
-    @Autowired
-    private RoleRepository roleRepository;
-    
-    @Autowired
-    private SecrecyRepository secrecyRepository;
-    
-    @Autowired
-    private UserPositionRepository userPositionRepository;
-    
-    @Autowired
-    private UserRepository userRepository;
-    
-    @Autowired
-    private CorrespondenceRepository correspondenceRepository;
-
-    @Autowired
-    private CorrespondenceAttachmentRepository correspondenceAttachmentRepository;
-    
-    @Autowired
-    private CorrespondenceCommentRepository correspondenceCommentRepository;
-    
-    @Autowired
-    private CorrespondenceTransactionRepository correspondenceTransactionRepository;
 
     // Basic entity imports
     @PostMapping("/classifications")
@@ -488,7 +420,7 @@ public class DataImportController {
 
     @PostMapping("/all-correspondences-with-related")
     @Operation(summary = "Import All Correspondences with Related Data", 
-               description = "Import all correspondences with related data using DataImportService")
+               description = "Retrieves all correspondences from database and imports all related entities for each")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Import completed successfully"),
         @ApiResponse(responseCode = "400", description = "Import failed with errors"),
@@ -496,310 +428,14 @@ public class DataImportController {
     })
     public ResponseEntity<ImportResponseDto> importAllCorrespondencesWithRelated() {
         logger.info("Received request to import all correspondences with related data");
-        
-        try {
-            ImportResponseDto response = dataImportService.importAllCorrespondencesWithRelated();
-            return getResponseEntity(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error during correspondence related import", e);
-            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
-        }
+        ImportResponseDto response = dataImportService.importAllCorrespondencesWithRelated();
+        return getResponseEntity(response);
     }
-    
-    @PostMapping("/correspondence-related/{correspondenceGuid}")
-    @Operation(summary = "Import Related Data for Specific Correspondence", 
-               description = "Import all related data for a specific correspondence")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Import completed successfully"),
-        @ApiResponse(responseCode = "400", description = "Import failed with errors"),
-        @ApiResponse(responseCode = "500", description = "Internal server error")
-    })
-    public ResponseEntity<Map<String, Object>> importCorrespondenceRelated(
-            @Parameter(description = "Correspondence GUID") @PathVariable String correspondenceGuid) {
-        logger.info("Received request to import related data for correspondence: {}", correspondenceGuid);
-        
-        try {
-            ImportResponseDto result = dataImportService.importAllCorrespondenceRelated(correspondenceGuid);
-            boolean success = "SUCCESS".equals(result.getStatus()) || "PARTIAL_SUCCESS".equals(result.getStatus());
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("success", success);
-            response.put("correspondenceGuid", correspondenceGuid);
-            response.put("message", result.getMessage());
-            response.put("details", result);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Unexpected error during correspondence related import for: {}", correspondenceGuid, e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("success", false);
-            errorResponse.put("correspondenceGuid", correspondenceGuid);
-            errorResponse.put("error", e.getMessage());
-            return ResponseEntity.status(500).body(errorResponse);
-        }
-    }
-    
-    @GetMapping("/correspondence-import-statistics")
-    @Operation(summary = "Get Correspondence Import Statistics", 
-               description = "Returns basic statistics about correspondence import")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Statistics retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 60)
-    public ResponseEntity<Map<String, Object>> getCorrespondenceImportStatistics() {
-        logger.info("Received request for correspondence import statistics");
-        
-        try {
-            // Redirect to the proper correspondence import statistics endpoint
-            return ResponseEntity.status(302)
-                .header("Location", "/api/correspondence-import/statistics")
-                .build();
-        } catch (Exception e) {
-            logger.error("Error getting correspondence import statistics", e);
-            Map<String, Object> errorMap = new HashMap<>();
-            errorMap.put("error", "Failed to get statistics: " + e.getMessage());
-            errorMap.put("pending", 0L);
-            errorMap.put("inProgress", 0L);
-            errorMap.put("completed", 0L);
-            errorMap.put("failed", 0L);
-            errorMap.put("total", 0L);
-            return ResponseEntity.status(500).body(errorMap);
-        }
-    }
-    
-    @GetMapping("/correspondence-import-status")
-    @Operation(summary = "Get All Correspondence Import Statuses", 
-               description = "Returns basic import status information")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Statuses retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 60)
-    public ResponseEntity<List<Object>> getAllCorrespondenceImportStatuses() {
-        logger.info("Received request for all correspondence import statuses");
-        
-        try {
-            // Redirect to the proper correspondence import status endpoint
-            return ResponseEntity.status(302)
-                .header("Location", "/api/correspondence-import/status")
-                .build();
-        } catch (Exception e) {
-            logger.error("Error getting all import statuses", e);
-            return ResponseEntity.status(500).body(new ArrayList<>());
-        }
-    }
-
-    // Count endpoints for UI
-    @GetMapping("/classifications/count")
-    @Operation(summary = "Get Classifications Count", description = "Get total count of classifications in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getClassificationsCount() {
-        logger.info("Received request to get classifications count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", classificationRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/contacts/count")
-    @Operation(summary = "Get Contacts Count", description = "Get total count of contacts in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getContactsCount() {
-        logger.info("Received request to get contacts count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", contactRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/decisions/count")
-    @Operation(summary = "Get Decisions Count", description = "Get total count of decisions in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getDecisionsCount() {
-        logger.info("Received request to get decisions count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", decisionRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/departments/count")
-    @Operation(summary = "Get Departments Count", description = "Get total count of departments in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getDepartmentsCount() {
-        logger.info("Received request to get departments count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", departmentRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/forms/count")
-    @Operation(summary = "Get Forms Count", description = "Get total count of forms in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getFormsCount() {
-        logger.info("Received request to get forms count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", formRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/form-types/count")
-    @Operation(summary = "Get Form Types Count", description = "Get total count of form types in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getFormTypesCount() {
-        logger.info("Received request to get form types count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", formTypeRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/importance/count")
-    @Operation(summary = "Get Importance Count", description = "Get total count of importance levels in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getImportanceCount() {
-        logger.info("Received request to get importance count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", importanceRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/positions/count")
-    @Operation(summary = "Get Positions Count", description = "Get total count of positions in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getPositionsCount() {
-        logger.info("Received request to get positions count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", positionRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/pos-roles/count")
-    @Operation(summary = "Get Position Roles Count", description = "Get total count of position roles in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getPosRolesCount() {
-        logger.info("Received request to get pos roles count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", posRoleRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/priority/count")
-    @Operation(summary = "Get Priority Count", description = "Get total count of priority levels in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getPriorityCount() {
-        logger.info("Received request to get priority count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", priorityRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/roles/count")
-    @Operation(summary = "Get Roles Count", description = "Get total count of roles in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getRolesCount() {
-        logger.info("Received request to get roles count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", roleRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/secrecy/count")
-    @Operation(summary = "Get Secrecy Count", description = "Get total count of secrecy levels in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getSecrecyCount() {
-        logger.info("Received request to get secrecy count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", secrecyRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/user-positions/count")
-    @Operation(summary = "Get User Positions Count", description = "Get total count of user positions in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getUserPositionsCount() {
-        logger.info("Received request to get user positions count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", userPositionRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/users/count")
-    @Operation(summary = "Get Users Count", description = "Get total count of users in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getUsersCount() {
-        logger.info("Received request to get users count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", userRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/correspondences/count")
-    @Operation(summary = "Get Correspondences Count", description = "Get total count of correspondences in database")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Count retrieved successfully")
-    })
-    @Transactional(readOnly = true, timeout = 30)
-    public ResponseEntity<Map<String, Long>> getCorrespondencesCount() {
-        logger.info("Received request to get correspondences count");
-        Map<String, Long> response = new HashMap<>();
-        response.put("count", correspondenceRepository.count());
-        return ResponseEntity.ok(response);
-    }
-
     private ResponseEntity<ImportResponseDto> getResponseEntity(ImportResponseDto response) {
         if ("ERROR".equals(response.getStatus())) {
             return ResponseEntity.badRequest().body(response);
         } else {
             return ResponseEntity.ok(response);
         }
-    }
-    
-    private ImportResponseDto createErrorResponse(String errorMessage) {
-        ImportResponseDto errorResponse = new ImportResponseDto();
-        errorResponse.setStatus("ERROR");
-        errorResponse.setMessage(errorMessage);
-        errorResponse.setTotalRecords(0);
-        errorResponse.setSuccessfulImports(0);
-        errorResponse.setFailedImports(0);
-        errorResponse.setErrors(java.util.Arrays.asList(errorMessage));
-        return errorResponse;
     }
 }

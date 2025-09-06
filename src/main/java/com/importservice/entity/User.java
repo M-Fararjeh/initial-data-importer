@@ -5,11 +5,7 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users", indexes = {
-    @javax.persistence.Index(name = "idx_users_email", columnList = "email"),
-    @javax.persistence.Index(name = "idx_users_login_name", columnList = "login_name"),
-    @javax.persistence.Index(name = "idx_users_user_code", columnList = "user_code")
-})
+@Table(name = "users")
 public class User extends BaseEntity {
     
     @Id

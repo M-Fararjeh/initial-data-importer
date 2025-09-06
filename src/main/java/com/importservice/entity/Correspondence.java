@@ -1,25 +1,11 @@
 package com.importservice.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.importservice.util.CorrespondenceUtils;
-import com.importservice.util.HijriDateUtils;
-
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "correspondences", indexes = {
-    @javax.persistence.Index(name = "idx_corr_type_deleted_draft", columnList = "correspondence_type_id, is_deleted, is_draft"),
-    @javax.persistence.Index(name = "idx_corr_import_status", columnList = "import_status"),
-    @javax.persistence.Index(name = "idx_corr_creation_date", columnList = "correspondence_creation_date"),
-    @javax.persistence.Index(name = "idx_corr_last_modified", columnList = "correspondence_last_modified_date"),
-    @javax.persistence.Index(name = "idx_corr_coming_from", columnList = "coming_from_guid"),
-    @javax.persistence.Index(name = "idx_corr_classification", columnList = "classification_guid"),
-    @javax.persistence.Index(name = "idx_corr_creation_user", columnList = "creation_user_guid"),
-    @javax.persistence.Index(name = "idx_corr_creation_dept", columnList = "creation_department_guid"),
-    @javax.persistence.Index(name = "idx_corr_reference_no", columnList = "reference_no"),
-    @javax.persistence.Index(name = "idx_corr_external_ref", columnList = "external_reference_number")
-})
+@Table(name = "correspondences")
 public class Correspondence extends BaseEntity {
     
     @Id
@@ -239,7 +225,7 @@ public class Correspondence extends BaseEntity {
     }
     
     public LocalDateTime getDueDate() {
-        return HijriDateUtils.addYears(dueDate,5);
+        return dueDate;
     }
     
     public void setDueDate(LocalDateTime dueDate) {
@@ -295,7 +281,7 @@ public class Correspondence extends BaseEntity {
     }
     
     public String getNotes() {
-        return CorrespondenceUtils.cleanHtmlTags(notes);
+        return notes;
     }
     
     public void setNotes(String notes) {

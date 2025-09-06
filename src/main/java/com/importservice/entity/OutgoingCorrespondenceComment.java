@@ -5,8 +5,8 @@ import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "correspondence_comments")
-public class CorrespondenceComment extends BaseEntity {
+@Table(name = "outgoing_correspondence_comments")
+public class OutgoingCorrespondenceComment extends BaseEntity {
     
     @Id
     @JsonProperty("CommentGUId")
@@ -33,9 +33,29 @@ public class CorrespondenceComment extends BaseEntity {
     @Column(name = "creation_user_guid", length = 255)
     private String creationUserGuid;
     
+    @JsonProperty("CreationUserName")
+    @Column(name = "creation_user_name", length = 500)
+    private String creationUserName;
+    
     @JsonProperty("RoleGUId")
     @Column(name = "role_guid", length = 255)
     private String roleGuid;
+    
+    @JsonProperty("PositionGUId")
+    @Column(name = "position_guid", length = 255)
+    private String positionGuid;
+    
+    @JsonProperty("DepartmentGUId")
+    @Column(name = "department_guid", length = 255)
+    private String departmentGuid;
+    
+    @JsonProperty("IsPrivate")
+    @Column(name = "is_private")
+    private Boolean isPrivate;
+    
+    @JsonProperty("IsDeleted")
+    @Column(name = "is_deleted")
+    private Boolean isDeleted;
     
     @JsonProperty("AttachmentCaption")
     @Column(name = "attachment_caption", length = 500)
@@ -53,7 +73,7 @@ public class CorrespondenceComment extends BaseEntity {
     private String importStatus = "PENDING";
     
     // Constructors
-    public CorrespondenceComment() {}
+    public OutgoingCorrespondenceComment() {}
     
     // Getters and Setters
     public String getCommentGuid() {
@@ -104,12 +124,52 @@ public class CorrespondenceComment extends BaseEntity {
         this.creationUserGuid = creationUserGuid;
     }
     
+    public String getCreationUserName() {
+        return creationUserName;
+    }
+    
+    public void setCreationUserName(String creationUserName) {
+        this.creationUserName = creationUserName;
+    }
+    
     public String getRoleGuid() {
         return roleGuid;
     }
     
     public void setRoleGuid(String roleGuid) {
         this.roleGuid = roleGuid;
+    }
+    
+    public String getPositionGuid() {
+        return positionGuid;
+    }
+    
+    public void setPositionGuid(String positionGuid) {
+        this.positionGuid = positionGuid;
+    }
+    
+    public String getDepartmentGuid() {
+        return departmentGuid;
+    }
+    
+    public void setDepartmentGuid(String departmentGuid) {
+        this.departmentGuid = departmentGuid;
+    }
+    
+    public Boolean getIsPrivate() {
+        return isPrivate;
+    }
+    
+    public void setIsPrivate(Boolean isPrivate) {
+        this.isPrivate = isPrivate;
+    }
+    
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+    
+    public void setIsDeleted(Boolean isDeleted) {
+        this.isDeleted = isDeleted;
     }
     
     public String getAttachmentCaption() {
