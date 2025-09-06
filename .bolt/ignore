@@ -3,6 +3,8 @@ helm-chart/*
 scripts/*
 supabase/*
 src/main/java/com/importservice/config/*
+src/main/java/com/importservice/service/externalimport/*
+src/main/java/com/importservice/service/controller/external/*
 
 src/main/java/com/importservice/controller/HealthController.java
 src/main/java/com/importservice/controller/CorrespondenceRelatedImportController.java
