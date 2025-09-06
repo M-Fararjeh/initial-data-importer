@@ -101,7 +101,7 @@ public class IncomingCorrespondenceMigrationService {
                     // Add delay between correspondences to reduce system load and lock contention
                     if (i < migrations.size() - 1) {
                         try {
-                            Thread.sleep(300); // 300ms delay between correspondences
+                            Thread.sleep(500); // Increased to 500ms delay between correspondences
                         } catch (InterruptedException ie) {
                             Thread.currentThread().interrupt();
                             logger.warn("Thread interrupted during processing delay");

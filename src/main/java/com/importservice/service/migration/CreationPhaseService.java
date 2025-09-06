@@ -168,7 +168,8 @@ public class CreationPhaseService {
     /**
      * Processes correspondence creation in a new transaction for better timeout handling
      */
-    @Transactional(readOnly = false, timeout = 180, propagation = Propagation.REQUIRES_NEW)
+    @Transactional(readOnly = false, timeout = 120, propagation = Propagation.REQUIRES_NEW, 
+                   isolation = Isolation.READ_COMMITTED)
     public boolean processCorrespondenceCreationInNewTransaction(String correspondenceGuid) {
         try {
             logger.debug("Starting new transaction for correspondence: {}", correspondenceGuid);
@@ -187,8 +188,8 @@ public class CreationPhaseService {
             migration.setCreationStatus("IN_PROGRESS");
             migration.setLastModifiedDate(LocalDateTime.now());
             
-            // Force immediate commit of status change
-            updateMigrationStatusImmediately(migration);
+            // Save status change without forcing immediate commit
+            migrationRepository.save(migration);
             
             // Process the creation
             boolean result = processCorrespondenceCreation(migration);
@@ -208,8 +209,8 @@ public class CreationPhaseService {
                 migration.setLastErrorAt(LocalDateTime.now());
             }
             
-            // Force immediate commit of final status
-            updateMigrationStatusImmediately(migration);
+            // Save final status
+            migrationRepository.save(migration);
             
             logger.info("Completed creation transaction for correspondence: {} with result: {}", 
                        correspondenceGuid, result);
@@ -229,7 +230,7 @@ public class CreationPhaseService {
                     migration.setCreationError("Transaction failed: " + e.getMessage());
                     migration.setRetryCount(migration.getRetryCount() + 1);
                     migration.setLastErrorAt(LocalDateTime.now());
-                    updateMigrationStatusImmediately(migration);
+                    migrationRepository.save(migration);
                 }
             } catch (Exception statusError) {
                 logger.error("Error updating error status for correspondence: {}", correspondenceGuid, statusError);
@@ -342,7 +343,7 @@ public class CreationPhaseService {
                 primaryAttachment = AttachmentUtils.findPrimaryAttachment(attachments);
                 
                 updateCreationStep(migration, "GET_ATTACHMENTS");
-                migrationRepository.saveAndFlush(migration); // Save step progress
+                migrationRepository.save(migration); // Save step progress
             }
             
             // Step 2: Get Attachments (already done above, move to upload)
@@ -363,7 +364,7 @@ public class CreationPhaseService {
                     batchId = destinationService.createBatch();
                     if (batchId != null) {
                         migration.setBatchId(batchId);
-                        migrationRepository.saveAndFlush(migration); // Save batch ID
+                        migrationRepository.save(migration); // Save batch ID
                         
                         String fileData = AttachmentUtils.getFileDataForUpload(
                                 primaryAttachment.getFileData(),
@@ -390,7 +391,7 @@ public class CreationPhaseService {
                 
                 // Move to next step
                 updateCreationStep(migration, "CREATE_CORRESPONDENCE");
-                migrationRepository.saveAndFlush(migration); // Force immediate commit
+                migrationRepository.save(migration); // Save progress
             }
             
             // Step 4: Create correspondence
@@ -407,7 +408,7 @@ public class CreationPhaseService {
                 // CRITICAL: Save the created document ID immediately
                 migration.setCreatedDocumentId(documentId);
                 updateCreationStep(migration, "UPLOAD_OTHER_ATTACHMENTS");
-                migrationRepository.saveAndFlush(migration); // Force immediate commit with document ID
+                migrationRepository.save(migration); // Save with document ID
                 
                 logger.info("Successfully created correspondence with document ID: {} for correspondence: {}", documentId, correspondenceGuid);
             }
@@ -437,7 +438,7 @@ public class CreationPhaseService {
                 }
                 
                 updateCreationStep(migration, "CREATE_PHYSICAL_ATTACHMENT");
-                migrationRepository.saveAndFlush(migration); // Force immediate commit
+                migrationRepository.save(migration); // Save progress
             }
             
             // Step 6: Create physical attachment
@@ -450,7 +451,7 @@ public class CreationPhaseService {
                 }
                 
                 updateCreationStep(migration, "SET_READY_TO_REGISTER");
-                migrationRepository.saveAndFlush(migration); // Force immediate commit
+                migrationRepository.save(migration); // Save progress
             }
             
             // Step 7: Set ready to register
@@ -466,7 +467,7 @@ public class CreationPhaseService {
                 }
                 
                 updateCreationStep(migration, "REGISTER_WITH_REFERENCE");
-                migrationRepository.saveAndFlush(migration); // Force immediate commit
+                migrationRepository.save(migration); // Save progress
             }
             
             // Step 8: Register with reference
@@ -479,11 +480,11 @@ public class CreationPhaseService {
                 }
                 
                 updateCreationStep(migration, "START_WORK");
-                migrationRepository.saveAndFlush(migration); // Force immediate commit
+                migrationRepository.save(migration); // Save progress
                 
                 // Add delay for destination system processing
                 try {
-                    Thread.sleep(2000); // Reduced to 2 seconds
+                    Thread.sleep(1000); // Reduced to 1 second
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 }
@@ -502,7 +503,7 @@ public class CreationPhaseService {
                 }
                 
                 updateCreationStep(migration, "SET_OWNER");
-                migrationRepository.saveAndFlush(migration); // Force immediate commit
+                migrationRepository.save(migration); // Save progress
             }
             
             // Step 10: Set owner
@@ -519,7 +520,7 @@ public class CreationPhaseService {
                 
                 // Final step: Mark as completed
                 updateCreationStep(migration, "COMPLETED");
-                migrationRepository.saveAndFlush(migration); // Force immediate commit
+                migrationRepository.save(migration); // Save final progress
                 logger.info("Successfully completed creation for correspondence: {}", correspondenceGuid);
                 return true;
             }
@@ -535,7 +536,7 @@ public class CreationPhaseService {
                 migration.setCreationError("Step failed: " + e.getMessage());
                 migration.setRetryCount(migration.getRetryCount() + 1);
                 migration.setLastErrorAt(LocalDateTime.now());
-                migrationRepository.saveAndFlush(migration); // Force immediate commit
+                migrationRepository.save(migration); // Save error status
             } catch (Exception saveError) {
                 logger.error("Error saving error status for correspondence: {}", correspondenceGuid, saveError);
             }
@@ -939,29 +940,16 @@ public class CreationPhaseService {
     /**
      * Updates migration status with immediate database commit using a separate transaction
      */
-    @Autowired
-    private org.springframework.transaction.PlatformTransactionManager transactionManager;
-    
     private void updateMigrationStatusImmediately(IncomingCorrespondenceMigration migration) {
-        org.springframework.transaction.TransactionDefinition def = 
-            new org.springframework.transaction.support.DefaultTransactionDefinition();
-        ((org.springframework.transaction.support.DefaultTransactionDefinition) def)
-            .setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-        ((org.springframework.transaction.support.DefaultTransactionDefinition) def)
-            .setTimeout(30);
-        
-        org.springframework.transaction.TransactionStatus status = transactionManager.getTransaction(def);
-        
         try {
-            migrationRepository.saveAndFlush(migration);
-            transactionManager.commit(status);
-            logger.debug("Immediately committed migration status for correspondence: {} - Status: {}, Step: {}", 
+            // Use simple save without forcing immediate commit to reduce lock contention
+            migrationRepository.save(migration);
+            logger.debug("Updated migration status for correspondence: {} - Status: {}, Step: {}", 
                         migration.getCorrespondenceGuid(), migration.getCreationStatus(), migration.getCreationStep());
         } catch (Exception e) {
-            transactionManager.rollback(status);
-            logger.error("Error committing migration status immediately for correspondence: {}", 
-                        migration.getCorrespondenceGuid(), e);
-            throw e;
+            logger.warn("Error updating migration status for correspondence: {} - {}", 
+                       migration.getCorrespondenceGuid(), e.getMessage());
+            // Don't throw exception to prevent cascading failures
         }
     }
 }

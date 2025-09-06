@@ -28,12 +28,12 @@ public class MigrationPhaseService {
     /**
      * Updates migration phase status
      */
-    @Transactional(readOnly = false, timeout = 30)
+    @Transactional(readOnly = false, timeout = 15, isolation = Isolation.READ_COMMITTED)
     public void updatePhaseStatus(String correspondenceGuid, String phase, String status, String error) {
         try {
             updatePhaseStatusInternal(correspondenceGuid, phase, status, error);
         } catch (Exception e) {
-            logger.error("Failed to update phase status for correspondence: {} - {}", correspondenceGuid, e.getMessage());
+            logger.warn("Failed to update phase status for correspondence: {} - {}", correspondenceGuid, e.getMessage());
             // Don't throw exception to prevent cascading failures
         }
     }
