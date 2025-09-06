@@ -189,9 +189,9 @@ public class CreationPhaseService {
                 migration.setCreationStep("GET_DETAILS");
             }
             migration.setLastModifiedDate(LocalDateTime.now());
-            migrationRepository.saveAndFlush(migration); // Force immediate commit
+            migrationRepository.saveAndFlush(migration); // Force immediate database write
             
-            logger.info("Starting creation process for correspondence: {} at step: {}", 
+            logger.info("Marked correspondence {} as IN_PROGRESS at step: {} - Status saved to database", 
                        correspondenceGuid, migration.getCreationStep());
             
             // Process the creation
@@ -218,10 +218,11 @@ public class CreationPhaseService {
                            correspondenceGuid, migration.getCreationStep());
             }
             
-            migrationRepository.saveAndFlush(migration); // Force immediate commit
+            migrationRepository.saveAndFlush(migration); // Force immediate database write
             
-            logger.info("Completed creation transaction for correspondence: {} with result: {} (Document ID: {})", 
-                       correspondenceGuid, result, migration.getCreatedDocumentId());
+            logger.info("Final status saved to database for correspondence: {} - Status: {}, Document ID: {}", 
+                       correspondenceGuid, migration.getCreationStatus(), migration.getCreatedDocumentId());
+            
             return result;
             
         } catch (Exception e) {
@@ -237,9 +238,9 @@ public class CreationPhaseService {
                     migration.setCreationError("Transaction failed: " + e.getMessage());
                     migration.setRetryCount(migration.getRetryCount() + 1);
                     migration.setLastErrorAt(LocalDateTime.now());
-                    migrationRepository.saveAndFlush(migration); // Force immediate commit
+                    migrationRepository.saveAndFlush(migration); // Force immediate database write
                     
-                    logger.error("Saved error status for correspondence: {} - Error: {}", 
+                    logger.error("Saved error status to database for correspondence: {} - Error: {}", 
                                correspondenceGuid, e.getMessage());
                 }
             } catch (Exception statusError) {
