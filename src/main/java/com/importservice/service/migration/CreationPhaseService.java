@@ -310,9 +310,6 @@ public class CreationPhaseService {
             updateMigrationStatusImmediately(migration);
             logger.debug("Updated creation step to {} for correspondence: {}", step, migration.getCorrespondenceGuid());
             logger.warn("Error updating creation step to {}: {}", step, e.getMessage());
-        } catch (Exception e) {
-            logger.warn("Error updating creation step to {}: {}", step, e.getMessage());
-        }
         }
     }
     
@@ -935,6 +932,35 @@ public class CreationPhaseService {
             errorStats.put("stepStatistics", new ArrayList<>());
             errorStats.put("error", e.getMessage());
             return errorStats;
+        }
+    }
+    
+    /**
+     * Updates migration status with immediate database commit using a separate transaction
+     */
+    @Autowired
+    private org.springframework.transaction.PlatformTransactionManager transactionManager;
+    
+    private void updateMigrationStatusImmediately(IncomingCorrespondenceMigration migration) {
+        org.springframework.transaction.TransactionDefinition def = 
+            new org.springframework.transaction.support.DefaultTransactionDefinition();
+        ((org.springframework.transaction.support.DefaultTransactionDefinition) def)
+            .setPropagationBehavior(org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        ((org.springframework.transaction.support.DefaultTransactionDefinition) def)
+            .setTimeout(30);
+        
+        org.springframework.transaction.TransactionStatus status = transactionManager.getTransaction(def);
+        
+        try {
+            migrationRepository.saveAndFlush(migration);
+            transactionManager.commit(status);
+            logger.debug("Immediately committed migration status for correspondence: {} - Status: {}, Step: {}", 
+                        migration.getCorrespondenceGuid(), migration.getCreationStatus(), migration.getCreationStep());
+        } catch (Exception e) {
+            transactionManager.rollback(status);
+            logger.error("Error committing migration status immediately for correspondence: {}", 
+                        migration.getCorrespondenceGuid(), e);
+            throw e;
         }
     }
 }
