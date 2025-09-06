@@ -38,7 +38,7 @@ public class MigrationStatisticsService {
         try {
             Map<String, Object> statistics = new HashMap<>();
             
-            // Phase-specific counts - use safe defaults
+            // Phase-specific counts (records currently in each phase) - use safe defaults
             Long prepareDataCount = 0L;
             Long creationCount = 0L;
             Long assignmentCount = 0L;
@@ -64,15 +64,30 @@ public class MigrationStatisticsService {
             statistics.put("comment", commentCount != null ? commentCount : 0L);
             statistics.put("closing", closingCount != null ? closingCount : 0L);
             
-            // Overall status counts - use safe defaults
+            // Overall status counts (total migrations by final status) - use safe defaults
             Long completedCount = 0L;
             Long failedCount = 0L;
             Long inProgressCount = 0L;
+            Long totalMigrations = 0L;
             
             try {
                 completedCount = migrationRepository.countByOverallStatus("COMPLETED");
                 failedCount = migrationRepository.countByOverallStatus("FAILED");
                 inProgressCount = migrationRepository.countByOverallStatus("IN_PROGRESS");
+                
+                // Also count migrations that are still pending (haven't started yet)
+                Long pendingCount = migrationRepository.countByOverallStatus("PENDING");
+                if (pendingCount != null) {
+                    inProgressCount = (inProgressCount != null ? inProgressCount : 0L) + pendingCount;
+                }
+                
+                // Calculate total migrations
+                totalMigrations = (completedCount != null ? completedCount : 0L) + 
+                                (failedCount != null ? failedCount : 0L) + 
+                                (inProgressCount != null ? inProgressCount : 0L);
+                
+                logger.info("Migration statistics - Total: {}, Completed: {}, Failed: {}, InProgress: {}", 
+                           totalMigrations, completedCount, failedCount, inProgressCount);
             } catch (Exception e) {
                 logger.warn("Error getting overall status counts, using defaults: {}", e.getMessage());
             }
@@ -80,6 +95,7 @@ public class MigrationStatisticsService {
             statistics.put("completed", completedCount != null ? completedCount : 0L);
             statistics.put("failed", failedCount != null ? failedCount : 0L);
             statistics.put("inProgress", inProgressCount != null ? inProgressCount : 0L);
+            statistics.put("total", totalMigrations);
             
             // Assignment statistics - handle potential ambiguity
             try {
