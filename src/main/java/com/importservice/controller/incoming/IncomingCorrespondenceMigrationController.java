@@ -9,14 +9,24 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping("/api/incoming-migration")
@@ -28,6 +38,54 @@ public class IncomingCorrespondenceMigrationController {
     
     @Autowired
     private IncomingCorrespondenceMigrationService migrationService;
+    
+    // Multithreading configuration
+    @Value("${migration.creation.thread-pool.core-size:5}")
+    private int corePoolSize;
+    
+    @Value("${migration.creation.thread-pool.max-size:10}")
+    private int maxPoolSize;
+    
+    @Value("${migration.creation.thread-pool.queue-capacity:50}")
+    private int queueCapacity;
+    
+    @Value("${migration.creation.thread-pool.keep-alive-seconds:60}")
+    private int keepAliveSeconds;
+    
+    @Value("${migration.creation.thread-pool.thread-name-prefix:CreationPhase-}")
+    private String threadNamePrefix;
+    
+    @Value("${migration.creation.concurrent-correspondences:5}")
+    private int concurrentCorrespondences;
+    
+    @Value("${migration.creation.processing-delay-ms:200}")
+    private long processingDelayMs;
+    
+    private ThreadPoolTaskExecutor taskExecutor;
+    
+    @PostConstruct
+    public void initializeThreadPool() {
+        taskExecutor = new ThreadPoolTaskExecutor();
+        taskExecutor.setCorePoolSize(corePoolSize);
+        taskExecutor.setMaxPoolSize(maxPoolSize);
+        taskExecutor.setQueueCapacity(queueCapacity);
+        taskExecutor.setKeepAliveSeconds(keepAliveSeconds);
+        taskExecutor.setThreadNamePrefix(threadNamePrefix);
+        taskExecutor.setWaitForTasksToCompleteOnShutdown(true);
+        taskExecutor.setAwaitTerminationSeconds(60);
+        taskExecutor.initialize();
+        
+        logger.info("Initialized creation phase thread pool - Core: {}, Max: {}, Queue: {}, Concurrent: {}", 
+                   corePoolSize, maxPoolSize, queueCapacity, concurrentCorrespondences);
+    }
+    
+    @PreDestroy
+    public void shutdownThreadPool() {
+        if (taskExecutor != null) {
+            logger.info("Shutting down creation phase thread pool");
+            taskExecutor.shutdown();
+        }
+    }
     
     @PostMapping("/prepare-data")
     @Operation(summary = "Phase 1: Prepare Data", description = "Prepares incoming correspondences for migration")
@@ -50,7 +108,14 @@ public class IncomingCorrespondenceMigrationController {
     })
     public ResponseEntity<ImportResponseDto> executeCreation() {
         logger.info("Received request for Phase 2: Creation");
-        return executePhase(() -> migrationService.executeCreationPhase());
+        
+        try {
+            ImportResponseDto response = executeCreationWithMultithreading();
+            return getResponseEntity(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error in creation phase", e);
+            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
     }
     
     @PostMapping("/assignment")
@@ -120,7 +185,14 @@ public class IncomingCorrespondenceMigrationController {
         List<String> correspondenceGuids = request.get("correspondenceGuids");
         logger.info("Received request to execute creation for {} specific correspondences", 
                    correspondenceGuids != null ? correspondenceGuids.size() : 0);
-        return executePhase(() -> migrationService.executeCreationForSpecific(correspondenceGuids));
+        
+        try {
+            ImportResponseDto response = executeCreationForSpecificWithMultithreading(correspondenceGuids);
+            return getResponseEntity(response);
+        } catch (Exception e) {
+            logger.error("Unexpected error in execute creation for specific", e);
+            return ResponseEntity.status(500).body(createErrorResponse("Unexpected error: " + e.getMessage()));
+        }
     }
     
     @PostMapping("/assignment/execute-specific")
@@ -250,6 +322,165 @@ public class IncomingCorrespondenceMigrationController {
         } catch (Exception e) {
             logger.error("Error getting migration statistics", e);
             return ResponseEntity.status(500).body(createErrorStatistics(e.getMessage()));
+        }
+    }
+    
+    /**
+     * Executes creation phase with multithreading support
+     */
+    private ImportResponseDto executeCreationWithMultithreading() {
+        logger.info("Starting Phase 2: Creation with {} concurrent threads", concurrentCorrespondences);
+        
+        try {
+            // Get all correspondences that need creation
+            List<com.importservice.entity.IncomingCorrespondenceMigration> migrations = 
+                migrationService.getCreationMigrations().stream()
+                .filter(m -> "CREATION".equals(m.getCurrentPhase()))
+                .collect(java.util.stream.Collectors.toList());
+            
+            if (migrations.isEmpty()) {
+                return createErrorResponse("No correspondences found in CREATION phase");
+            }
+            
+            List<String> correspondenceGuids = migrations.stream()
+                .map(com.importservice.entity.IncomingCorrespondenceMigration::getCorrespondenceGuid)
+                .collect(java.util.stream.Collectors.toList());
+            
+            return executeCreationForSpecificWithMultithreading(correspondenceGuids);
+            
+        } catch (Exception e) {
+            logger.error("Error in multithreaded creation phase", e);
+            return createErrorResponse("Multithreaded creation failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Executes creation for specific correspondences with multithreading support
+     */
+    private ImportResponseDto executeCreationForSpecificWithMultithreading(List<String> correspondenceGuids) {
+        if (correspondenceGuids == null || correspondenceGuids.isEmpty()) {
+            return createErrorResponse("No correspondence GUIDs provided");
+        }
+        
+        logger.info("Starting multithreaded creation for {} correspondences with {} concurrent threads", 
+                   correspondenceGuids.size(), concurrentCorrespondences);
+        
+        AtomicInteger successfulImports = new AtomicInteger(0);
+        AtomicInteger failedImports = new AtomicInteger(0);
+        List<String> errors = Collections.synchronizedList(new ArrayList<>());
+        
+        try {
+            // Split correspondences into batches for concurrent processing
+            List<List<String>> batches = createBatches(correspondenceGuids, concurrentCorrespondences);
+            
+            for (int batchIndex = 0; batchIndex < batches.size(); batchIndex++) {
+                List<String> batch = batches.get(batchIndex);
+                logger.info("Processing batch {} of {} ({} correspondences)", 
+                           batchIndex + 1, batches.size(), batch.size());
+                
+                // Process batch concurrently
+                List<CompletableFuture<Boolean>> futures = new ArrayList<>();
+                
+                for (String correspondenceGuid : batch) {
+                    CompletableFuture<Boolean> future = CompletableFuture.supplyAsync(() -> {
+                        try {
+                            logger.debug("Processing correspondence in thread: {}", correspondenceGuid);
+                            return migrationService.processCorrespondenceCreationInNewTransaction(correspondenceGuid);
+                        } catch (Exception e) {
+                            logger.error("Error processing correspondence {}: {}", correspondenceGuid, e.getMessage());
+                            errors.add("Error processing correspondence " + correspondenceGuid + ": " + e.getMessage());
+                            return false;
+                        }
+                    }, taskExecutor);
+                    
+                    futures.add(future);
+                }
+                
+                // Wait for all futures in this batch to complete
+                for (int i = 0; i < futures.size(); i++) {
+                    try {
+                        Boolean result = futures.get(i).get();
+                        String correspondenceGuid = batch.get(i);
+                        
+                        if (result) {
+                            successfulImports.incrementAndGet();
+                            logger.info("✅ Successfully completed creation for correspondence: {}", correspondenceGuid);
+                        } else {
+                            failedImports.incrementAndGet();
+                            logger.warn("❌ Failed to complete creation for correspondence: {}", correspondenceGuid);
+                        }
+                    } catch (Exception e) {
+                        failedImports.incrementAndGet();
+                        String correspondenceGuid = batch.get(i);
+                        String errorMsg = "Future execution failed for correspondence " + correspondenceGuid + ": " + e.getMessage();
+                        errors.add(errorMsg);
+                        logger.error(errorMsg, e);
+                    }
+                }
+                
+                // Add delay between batches to reduce system load
+                if (batchIndex < batches.size() - 1) {
+                    Thread.sleep(processingDelayMs);
+                }
+                
+                // Log progress
+                logger.info("Batch {} completed - Total processed: {}, Success: {}, Failed: {}", 
+                           batchIndex + 1, successfulImports.get() + failedImports.get(), 
+                           successfulImports.get(), failedImports.get());
+            }
+            
+            // Create final response
+            String status = determineFinalStatus(successfulImports.get(), failedImports.get());
+            String message = String.format("Multithreaded creation completed. Created: %d, Failed: %d (Processed %d batches with %d concurrent threads)", 
+                                         successfulImports.get(), failedImports.get(), batches.size(), concurrentCorrespondences);
+            
+            ImportResponseDto response = new ImportResponseDto();
+            response.setStatus(status);
+            response.setMessage(message);
+            response.setTotalRecords(correspondenceGuids.size());
+            response.setSuccessfulImports(successfulImports.get());
+            response.setFailedImports(failedImports.get());
+            response.setErrors(errors);
+            
+            logger.info("Multithreaded creation completed - Total: {}, Success: {}, Failed: {}", 
+                       correspondenceGuids.size(), successfulImports.get(), failedImports.get());
+            
+            return response;
+            
+        } catch (Exception e) {
+            logger.error("Error in multithreaded creation execution", e);
+            return createErrorResponse("Multithreaded creation failed: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Creates batches of correspondence GUIDs for concurrent processing
+     */
+    private List<List<String>> createBatches(List<String> correspondenceGuids, int batchSize) {
+        List<List<String>> batches = new ArrayList<>();
+        
+        for (int i = 0; i < correspondenceGuids.size(); i += batchSize) {
+            int endIndex = Math.min(i + batchSize, correspondenceGuids.size());
+            List<String> batch = correspondenceGuids.subList(i, endIndex);
+            batches.add(new ArrayList<>(batch)); // Create new list to avoid sublist issues
+        }
+        
+        logger.debug("Created {} batches from {} correspondences (batch size: {})", 
+                    batches.size(), correspondenceGuids.size(), batchSize);
+        
+        return batches;
+    }
+    
+    /**
+     * Determines final status based on success/failure counts
+     */
+    private String determineFinalStatus(int successfulImports, int failedImports) {
+        if (failedImports == 0) {
+            return "SUCCESS";
+        } else if (successfulImports > 0) {
+            return "PARTIAL_SUCCESS";
+        } else {
+            return "ERROR";
         }
     }
     

@@ -255,7 +255,7 @@ public class IncomingCorrespondenceMigrationService {
     /**
      * Retries a specific migration phase
      */
-    private boolean retryMigrationPhase(IncomingCorrespondenceMigration migration) {
+    @Transactional(readOnly = false, timeout = 180, propagation = Propagation.REQUIRES_NEW, 
         String currentPhase = migration.getCurrentPhase();
         
         switch (currentPhase) {
