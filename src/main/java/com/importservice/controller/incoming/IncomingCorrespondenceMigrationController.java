@@ -2,6 +2,7 @@ package com.importservice.controller.incoming;
 
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.service.migration.incoming.IncomingCorrespondenceMigrationService;
+import com.importservice.service.migration.incoming.CreationPhaseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -38,6 +39,9 @@ public class IncomingCorrespondenceMigrationController {
     
     @Autowired
     private IncomingCorrespondenceMigrationService migrationService;
+    
+    @Autowired
+    private CreationPhaseService creationPhaseService;
     
     // Multithreading configuration
     @Value("${migration.creation.thread-pool.core-size:5}")
@@ -408,7 +412,7 @@ public class IncomingCorrespondenceMigrationController {
                         } else {
                             failedImports.incrementAndGet();
                             logger.warn("❌ Failed to complete creation for correspondence: {}", correspondenceGuid);
-                        }
+                       return creationPhaseService.processCorrespondenceCreationInNewTransaction(correspondenceGuid);
                     } catch (Exception e) {
                         failedImports.incrementAndGet();
                         String correspondenceGuid = batch.get(i);
