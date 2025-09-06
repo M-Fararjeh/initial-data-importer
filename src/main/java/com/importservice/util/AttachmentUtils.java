@@ -55,7 +55,16 @@ public class AttachmentUtils {
             logger.debug("Found fallback primary attachment: {}", fallback.get().getName());
             return fallback.get();
         }
-        
+        Optional<CorrespondenceAttachment> pdfAttachment = attachments.stream()
+                .filter(attachment -> attachment != null)
+                .filter(attachment -> attachment.getName() != null &&
+                        attachment.getName().toLowerCase().contains("pdf"))
+                .findFirst();
+
+        if (pdfAttachment.isPresent()) {
+            logger.debug("Found PDF attachment: {}", pdfAttachment.get().getName());
+            return pdfAttachment.get();
+        }
         logger.debug("No primary attachment found");
         return null;
     }
