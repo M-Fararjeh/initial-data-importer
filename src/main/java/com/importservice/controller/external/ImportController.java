@@ -1,7 +1,7 @@
-package com.importservice.controller;
+package com.importservice.controller.external;
 
 import com.importservice.dto.ImportResponseDto;
-import com.importservice.service.ExternalAgencyImportService;
+import com.importservice.service.externalimport.ExternalAgencyImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

@@ -1,4 +1,4 @@
-package com.importservice.service.migration;
+package com.importservice.service.migration.incoming;
 
 import java.util.Arrays;
 import com.importservice.dto.ImportResponseDto;
@@ -8,7 +8,6 @@ import com.importservice.entity.IncomingCorrespondenceMigration;
 import com.importservice.repository.CorrespondenceAttachmentRepository;
 import com.importservice.repository.CorrespondenceRepository;
 import com.importservice.repository.IncomingCorrespondenceMigrationRepository;
-import com.importservice.service.DestinationSystemService;
 import com.importservice.util.AgencyMappingUtils;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
@@ -25,7 +24,6 @@ import org.springframework.transaction.annotation.Isolation;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

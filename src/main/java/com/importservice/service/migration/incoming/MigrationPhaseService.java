@@ -1,4 +1,4 @@
-package com.importservice.service.migration;
+package com.importservice.service.migration.incoming;
 
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.entity.IncomingCorrespondenceMigration;
@@ -10,9 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**

@@ -1,10 +1,10 @@
-package com.importservice.service;
+package com.importservice.service.migration.outgoing;
 
 import com.importservice.dto.*;
 import com.importservice.entity.Correspondence;
 import com.importservice.entity.CorrespondenceAttachment;
-import com.importservice.entity.CorrespondenceComment;
 import com.importservice.entity.CorrespondenceSendTo;
+import com.importservice.service.KeycloakTokenService;
 import com.importservice.util.AgencyMappingUtils;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
@@ -17,7 +17,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpEntity;

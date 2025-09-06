@@ -1,11 +1,11 @@
-package com.importservice.controller;
+package com.importservice.controller.external;
 
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.entity.Correspondence;
 import com.importservice.entity.CorrespondenceImportStatus;
 import com.importservice.repository.CorrespondenceImportStatusRepository;
 import com.importservice.repository.CorrespondenceRepository;
-import com.importservice.service.CorrespondenceRelatedImportService;
+import com.importservice.service.externalimport.CorrespondenceRelatedImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

@@ -5,8 +5,7 @@ import com.importservice.entity.CorrespondenceTransaction;
 import com.importservice.entity.OutgoingCorrespondenceMigration;
 import com.importservice.repository.CorrespondenceTransactionRepository;
 import com.importservice.repository.OutgoingCorrespondenceMigrationRepository;
-import com.importservice.service.OutgoingDestinationSystemService;
-import com.importservice.service.migration.MigrationPhaseService;
+import com.importservice.service.migration.incoming.MigrationPhaseService;
 import com.importservice.util.DepartmentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;

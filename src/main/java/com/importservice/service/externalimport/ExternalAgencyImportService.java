@@ -1,4 +1,4 @@
-package com.importservice.service;
+package com.importservice.service.externalimport;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ExternalAgencyImportService {

@@ -1,10 +1,9 @@
-package com.importservice.controller;
+package com.importservice.controller.external;
 
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.repository.*;
-import com.importservice.service.DataImportService;
-import com.importservice.entity.Correspondence;
-import com.importservice.service.CorrespondenceRelatedImportService;
+import com.importservice.service.externalimport.DataImportService;
+import com.importservice.service.externalimport.CorrespondenceRelatedImportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

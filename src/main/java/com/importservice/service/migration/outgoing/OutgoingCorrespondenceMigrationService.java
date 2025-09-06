@@ -1,16 +1,9 @@
-package com.importservice.service;
+package com.importservice.service.migration.outgoing;
 
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.entity.OutgoingCorrespondenceMigration;
-import com.importservice.service.migration.outgoing.OutgoingApprovalPhaseService;
-import com.importservice.service.migration.outgoing.OutgoingAssignmentPhaseService;
-import com.importservice.service.migration.outgoing.OutgoingBusinessLogPhaseService;
-import com.importservice.service.migration.outgoing.OutgoingBusinessLogPhaseService;
-import com.importservice.service.migration.outgoing.OutgoingClosingPhaseService;
-import com.importservice.service.migration.outgoing.OutgoingCreationPhaseService;
-import com.importservice.service.migration.outgoing.OutgoingPrepareDataService;
-import com.importservice.service.migration.MigrationPhaseService;
-import com.importservice.service.migration.MigrationStatisticsService;
+import com.importservice.service.migration.incoming.MigrationPhaseService;
+import com.importservice.service.migration.incoming.MigrationStatisticsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,15 +1,9 @@
-package com.importservice.service;
+package com.importservice.service.migration.internal;
 
 import com.importservice.dto.ImportResponseDto;
 import com.importservice.entity.InternalCorrespondenceMigration;
-import com.importservice.service.migration.internal.InternalApprovalPhaseService;
-import com.importservice.service.migration.internal.InternalAssignmentPhaseService;
-import com.importservice.service.migration.internal.InternalBusinessLogPhaseService;
-import com.importservice.service.migration.internal.InternalClosingPhaseService;
-import com.importservice.service.migration.internal.InternalCreationPhaseService;
-import com.importservice.service.migration.internal.InternalPrepareDataService;
-import com.importservice.service.migration.MigrationPhaseService;
-import com.importservice.service.migration.MigrationStatisticsService;
+import com.importservice.service.migration.incoming.MigrationPhaseService;
+import com.importservice.service.migration.incoming.MigrationStatisticsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

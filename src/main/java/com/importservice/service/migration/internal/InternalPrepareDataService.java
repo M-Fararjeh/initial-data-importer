@@ -5,7 +5,7 @@ import com.importservice.entity.Correspondence;
 import com.importservice.entity.InternalCorrespondenceMigration;
 import com.importservice.repository.CorrespondenceRepository;
 import com.importservice.repository.InternalCorrespondenceMigrationRepository;
-import com.importservice.service.migration.MigrationPhaseService;
+import com.importservice.service.migration.incoming.MigrationPhaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

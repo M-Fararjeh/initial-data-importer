@@ -1,8 +1,9 @@
-package com.importservice.service;
+package com.importservice.service.migration.internal;
 
 import com.importservice.dto.*;
 import com.importservice.entity.Correspondence;
 import com.importservice.entity.CorrespondenceAttachment;
+import com.importservice.service.KeycloakTokenService;
 import com.importservice.util.AttachmentUtils;
 import com.importservice.util.CorrespondenceUtils;
 import com.importservice.util.CorrespondenceSubjectGenerator;

@@ -1,8 +1,7 @@
-package com.importservice.controller;
+package com.importservice.controller.internal;
 
 import com.importservice.dto.ImportResponseDto;
-import com.importservice.service.InternalCorrespondenceMigrationService;
-import com.importservice.entity.InternalCorrespondenceMigration;
+import com.importservice.service.migration.internal.InternalCorrespondenceMigrationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
