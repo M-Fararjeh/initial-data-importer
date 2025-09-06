@@ -310,6 +310,9 @@ public class CreationPhaseService {
             updateMigrationStatusImmediately(migration);
             logger.debug("Updated creation step to {} for correspondence: {}", step, migration.getCorrespondenceGuid());
             logger.warn("Error updating creation step to {}: {}", step, e.getMessage());
+        } catch (Exception e) {
+            logger.warn("Error updating creation step to {}: {}", step, e.getMessage());
+        }
         }
     }
     
